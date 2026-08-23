@@ -79,8 +79,7 @@ class TranscriptBuilder(private val rawCapChars: Int = DEFAULT_RAW_CAP) {
     fun toggleExpanded(blockId: String) {
         val index = indexOfBlock(blockId)
         if (index < 0) return
-        val lastOutputId = lastOutputId()
-        val current = computeCollapsed(blocks[index], lastOutputId)
+        val current = computeCollapsed(blocks[index], expandedOutputId())
         expandedOverrides[blockId] = !current
     }
 
@@ -94,10 +93,10 @@ class TranscriptBuilder(private val rawCapChars: Int = DEFAULT_RAW_CAP) {
     // ------------------------------------------------------------- snapshot
 
     fun snapshot(displayRaw: Boolean): TranscriptSnapshot {
-        val lastOutputId = lastOutputId()
+        val expandedOutput = expandedOutputId()
         val views = ArrayList<BlockView>(blocks.size)
         for (block in blocks) {
-            views.add(BlockView(block, computeCollapsed(block, lastOutputId)))
+            views.add(BlockView(block, computeCollapsed(block, expandedOutput)))
         }
         return TranscriptSnapshot(
             blocks = views,
@@ -106,11 +105,11 @@ class TranscriptBuilder(private val rawCapChars: Int = DEFAULT_RAW_CAP) {
         )
     }
 
-    private fun computeCollapsed(block: Block, lastOutputId: String?): Boolean {
+    private fun computeCollapsed(block: Block, expandedOutputId: String?): Boolean {
         expandedOverrides[block.id]?.let { return it }
         return when (block) {
             is CommandBlock -> block.text.lines().size > PREVIEW_LINES
-            is OutputBlock -> !(block.running || block.id == lastOutputId)
+            is OutputBlock -> !(block.running || block.id == expandedOutputId)
         }
     }
 
@@ -131,8 +130,20 @@ class TranscriptBuilder(private val rawCapChars: Int = DEFAULT_RAW_CAP) {
 
     private fun nextOutputId(): String = "out-${++outputCounter}"
 
-    private fun lastOutputId(): String? =
-        blocks.lastOrNull { it is OutputBlock }?.id
+    /**
+     * The output stays expanded only while it is the newest transcript
+     * element. A newly submitted command lands after it, so every older
+     * answer collapses automatically without extra bookkeeping.
+     */
+    private fun expandedOutputId(): String? {
+        val lastCommandIndex = blocks.indexOfLast { it is CommandBlock }
+        val lastOutputIndex = blocks.indexOfLast { it is OutputBlock }
+        return if (lastOutputIndex > lastCommandIndex) {
+            blocks[lastOutputIndex].id
+        } else {
+            null
+        }
+    }
 
     private fun appendRaw(text: String) {
         raw.append(text)

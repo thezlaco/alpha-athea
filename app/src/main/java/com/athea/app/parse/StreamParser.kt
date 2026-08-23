@@ -174,7 +174,10 @@ class StreamParser {
     private fun handleOsc(payload: String) {
         val parts = payload.split(';')
         if (parts.firstOrNull()?.toIntOrNull() != 133) return // unrelated OSC
-        flushPending() // text seen before the mark keeps its place in time
+        // A partially collected line belongs to the past: flush it before
+        // the mark so text and marks keep their chronological order.
+        finishLine()
+        flushPending()
         when (parts.getOrNull(1)) {
             "A", "B" -> {
                 suppressPrompt = true
