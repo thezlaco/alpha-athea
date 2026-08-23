@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import java.nio.IntBuffer
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -99,11 +98,11 @@ internal class NativeShellEngine(
     }
 
     private fun waitLoop(pid: Int) {
-        val status = IntBuffer.allocate(1)
+        val status = android.util.MutableInt(0)
         var code = -1
         try {
             Os.waitpid(pid, status, 0)
-            val st = status.get(0)
+            val st = status.value
             code = if (st and 0x7F == 0) (st ushr 8) and 0xFF else -(st and 0x7F)
         } catch (_: Exception) {
         }

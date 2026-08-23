@@ -86,6 +86,7 @@ fun InputBar(
 }
 
 /** Union of navigation-bar and IME insets: correct spacing with the keyboard open and closed. */
+@Composable
 private fun Modifier.barPadding(): Modifier =
     this
         .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
@@ -123,7 +124,8 @@ private fun DraftRow(
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.None,
                 keyboardType = KeyboardType.Ascii,
-                imeAction = if (enterSends) ImeAction.Send else ImeAction.NewLine,
+                // None keeps the IME newline key: multi-line drafts stay possible.
+                imeAction = if (enterSends) ImeAction.Send else ImeAction.None,
             ),
             keyboardActions = KeyboardActions(
                 onSend = { onSend() },

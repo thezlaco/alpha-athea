@@ -3,8 +3,12 @@ name: ci
 on:
   push:
     branches: [main, master]
+    paths-ignore:
+      - '**.md'
   pull_request:
     branches: [main, master]
+    paths-ignore:
+      - '**.md'
   workflow_dispatch:
 
 concurrency:
@@ -28,7 +32,7 @@ jobs:
   build:
     name: build-apk
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -37,14 +41,25 @@ jobs:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
 
+      # Licenses are accepted by setup-android below; no duplicate step.
       - uses: android-actions/setup-android@v3
         with:
           cmdline-tools-version: 11076708
           accept-android-sdk-licenses: true
 
+      # The NDK download is the fattest recurring cost; restore it from cache.
+      - name: Restore Android SDK components
+        uses: actions/cache@v4
+        with:
+          path: |
+            /usr/local/lib/android/sdk/ndk/${{ env.NDK_VERSION }}
+            /usr/local/lib/android/sdk/cmake/${{ env.CMAKE_VERSION }}
+            /usr/local/lib/android/sdk/platforms/android-35
+            /usr/local/lib/android/sdk/build-tools/${{ env.BUILD_TOOLS_VERSION }}
+          key: android-sdk-ndk${{ env.NDK_VERSION }}-cmake${{ env.CMAKE_VERSION }}-bt${{ env.BUILD_TOOLS_VERSION }}-api35
+
       - name: Install SDK components
         run: |
-          yes | sdkmanager --licenses > /dev/null || true
           sdkmanager --install \
             "platforms;android-35" \
             "build-tools;${BUILD_TOOLS_VERSION}" \
@@ -52,6 +67,7 @@ jobs:
             "ndk;${NDK_VERSION}" \
             "cmake;${CMAKE_VERSION}"
 
+      # setup-gradle caches Gradle itself and dependency caches automatically.
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -76,7 +92,7 @@ jobs:
 
       - name: Upload unit test results
         uses: actions/upload-artifact@v4
-        if: always()
+        if: failure()
         with:
           name: unit-test-results
           path: app/build/test-results/testDebugUnitTest
@@ -94,7 +110,7 @@ jobs:
     name: emulator-smoke
     runs-on: ubuntu-latest
     needs: build
-    timeout-minutes: 75
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -110,7 +126,6 @@ jobs:
 
       - name: Install platform tools and build tools
         run: |
-          yes | sdkmanager --licenses > /dev/null || true
           sdkmanager --install "platform-tools" "build-tools;${BUILD_TOOLS_VERSION}" "platforms;android-${API_LEVEL}"
           echo "${ANDROID_HOME}/platform-tools" >> $GITHUB_PATH
           echo "${ANDROID_HOME}/build-tools/${BUILD_TOOLS_VERSION}" >> $GITHUB_PATH

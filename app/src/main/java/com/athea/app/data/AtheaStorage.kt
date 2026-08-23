@@ -52,12 +52,12 @@ class AtheaStorage(root: File) {
 
     // ----------------------------------------------------------------- index
 
-    fun loadIndex(): SessionsIndex =
+    internal fun loadIndex(): SessionsIndex =
         runCatching {
             json.decodeFromString(SessionsIndex.serializer(), indexFile.readText())
         }.getOrDefault(SessionsIndex())
 
-    fun saveIndex(index: SessionsIndex) {
+    internal fun saveIndex(index: SessionsIndex) {
         sessionsDir.mkdirs()
         indexFile.writeText(json.encodeToString(SessionsIndex.serializer(), index))
     }
@@ -73,12 +73,12 @@ class AtheaStorage(root: File) {
 
     // ------------------------------------------------------------- favorites
 
-    fun loadFavorites(): FavoritesIndex =
+    internal fun loadFavorites(): FavoritesIndex =
         runCatching {
             json.decodeFromString(FavoritesIndex.serializer(), favoritesFile.readText())
         }.getOrDefault(FavoritesIndex())
 
-    fun saveFavorites(favorites: FavoritesIndex) {
+    internal fun saveFavorites(favorites: FavoritesIndex) {
         sessionsDir.mkdirs()
         favoritesFile.writeText(json.encodeToString(FavoritesIndex.serializer(), favorites))
     }

@@ -406,7 +406,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     is CommandBlock -> block.text
                     is OutputBlock -> block.text
                 }
-                if (haystack.contains(query, ignoreCase = true)) block.id else null
+                if (haystack.contains(query, ignoreCase = true)) view.block.id else null
             }
             .orEmpty()
         _state.update { st ->
