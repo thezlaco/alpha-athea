@@ -70,6 +70,16 @@ val MessageStyle = TextStyle(
     lineHeight = 22.sp,
 )
 
+/** Message font size chosen in settings; defaults match [MessageStyle]. */
+val LocalMessageFontSize = staticCompositionLocalOf { 16 }
+
+/** [MessageStyle] honoring the user-selected message font size. */
+@Composable
+fun messageStyle(): TextStyle {
+    val size = LocalMessageFontSize.current
+    return MessageStyle.copy(fontSize = size.sp, lineHeight = (size * 1.375f).sp)
+}
+
 val HighlightColor = Color(0xFFBB8009)
 val OnHighlightColor = Color(0xFFECECEC)
 

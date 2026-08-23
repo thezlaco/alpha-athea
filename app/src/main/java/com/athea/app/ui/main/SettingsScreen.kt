@@ -15,7 +15,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,87 +32,120 @@ fun SettingsScreen(
     keyRowVisible: Boolean,
     enterSends: Boolean,
     outputFontSizeSp: Int,
+    previewLines: Int,
+    bubbleFontSizeSp: Int,
     onKeyRowVisibleChange: (Boolean) -> Unit,
     onEnterSendsChange: (Boolean) -> Unit,
     onOutputFontSizeChange: (Int) -> Unit,
+    onPreviewLinesChange: (Int) -> Unit,
+    onBubbleFontSizeChange: (Int) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier
-            .fillMaxSize()
-            .safeDrawingPadding(),
-    ) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.cd_back),
-                )
-            }
-            Text(
-                text = stringResource(R.string.settings),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(end = 48.dp),
-            )
-        }
-        HorizontalDivider()
-
+    // Surface gives every inner text and control the proper content colors.
+    Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Column(
             Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
+                .safeDrawingPadding(),
         ) {
-            SwitchRow(
-                title = stringResource(R.string.settings_key_row),
-                subtitle = stringResource(R.string.settings_key_row_desc),
-                checked = keyRowVisible,
-                onChange = onKeyRowVisibleChange,
-            )
-            SwitchRow(
-                title = stringResource(R.string.settings_enter_sends),
-                subtitle = stringResource(R.string.settings_enter_sends_desc),
-                checked = enterSends,
-                onChange = onEnterSendsChange,
-            )
-
-            HorizontalDivider(Modifier.padding(vertical = 8.dp))
-
-            Text(
-                text = stringResource(R.string.settings_font_size),
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-            )
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp),
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Slider(
-                    value = outputFontSizeSp.toFloat(),
-                    onValueChange = { onOutputFontSizeChange(it.toInt()) },
-                    valueRange = 10f..22f,
-                    steps = 11,
+                IconButton(onClick = onBack) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.cd_back),
+                    )
+                }
+                Text(
+                    text = stringResource(R.string.settings),
+                    style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier
                         .weight(1f)
-                        .padding(horizontal = 8.dp),
+                        .padding(end = 48.dp),
                 )
-                Text(
-                    text = "$outputFontSizeSp",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(end = 12.dp),
+            }
+            HorizontalDivider()
+
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                SwitchRow(
+                    title = stringResource(R.string.settings_key_row),
+                    subtitle = stringResource(R.string.settings_key_row_desc),
+                    checked = keyRowVisible,
+                    onChange = onKeyRowVisibleChange,
+                )
+                SwitchRow(
+                    title = stringResource(R.string.settings_enter_sends),
+                    subtitle = stringResource(R.string.settings_enter_sends_desc),
+                    checked = enterSends,
+                    onChange = onEnterSendsChange,
+                )
+
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+
+                SliderRow(
+                    title = stringResource(R.string.settings_font_size),
+                    value = outputFontSizeSp,
+                    range = 10f..22f,
+                    onChange = onOutputFontSizeChange,
+                )
+                SliderRow(
+                    title = stringResource(R.string.settings_preview_lines),
+                    value = previewLines,
+                    range = 1f..10f,
+                    onChange = onPreviewLinesChange,
+                )
+                SliderRow(
+                    title = stringResource(R.string.settings_bubble_size),
+                    value = bubbleFontSizeSp,
+                    range = 12f..24f,
+                    onChange = onBubbleFontSizeChange,
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun SliderRow(
+    title: String,
+    value: Int,
+    range: ClosedFloatingPointRange<Float>,
+    onChange: (Int) -> Unit,
+) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.bodyLarge,
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+    )
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Slider(
+            value = value.toFloat(),
+            onValueChange = { onChange(it.toInt()) },
+            valueRange = range,
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 8.dp),
+        )
+        Text(
+            text = "$value",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(end = 12.dp),
+        )
     }
 }
 

@@ -30,6 +30,7 @@ import com.athea.app.core.model.DisplayMode
 import com.athea.app.ui.MainViewModel
 import com.athea.app.ui.UiEvent
 import com.athea.app.ui.UiState
+import com.athea.app.ui.theme.LocalMessageFontSize
 import com.athea.app.ui.theme.LocalOutputFontSize
 import kotlinx.coroutines.launch
 
@@ -43,12 +44,23 @@ fun MainScreen(viewModel: MainViewModel) {
             keyRowVisible = state.keyRowVisible,
             enterSends = state.enterSends,
             outputFontSizeSp = state.outputFontSizeSp,
+            previewLines = state.previewLines,
+            bubbleFontSizeSp = state.bubbleFontSizeSp,
             onKeyRowVisibleChange = viewModel::setKeyRowVisible,
             onEnterSendsChange = viewModel::setEnterSends,
             onOutputFontSizeChange = viewModel::setOutputFontSize,
+            onPreviewLinesChange = viewModel::setPreviewLines,
+            onBubbleFontSizeChange = viewModel::setBubbleFontSize,
             onBack = { viewModel.setShowSettings(false) },
         )
         return
+    }
+
+    CompositionLocalProvider(
+        LocalOutputFontSize provides state.outputFontSizeSp,
+        LocalMessageFontSize provides state.bubbleFontSizeSp,
+    ) {
+        MainScreenContent(viewModel, state)
     }
 
     if (state.showFavorites) {
@@ -164,6 +176,7 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
                             session = current,
                             search = state.search,
                             scrollRequests = viewModel.scrollRequests,
+                            previewLines = state.previewLines,
                             onToggleBlock = viewModel::toggleBlockCollapsed,
                             onRevealBlock = viewModel::revealBlock,
                             onLocateBlock = { blockId ->

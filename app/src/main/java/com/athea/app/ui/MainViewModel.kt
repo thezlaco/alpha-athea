@@ -61,6 +61,8 @@ data class UiState(
     val keyRowVisible: Boolean = true,
     val enterSends: Boolean = true,
     val outputFontSizeSp: Int = 13,
+    val previewLines: Int = 3,
+    val bubbleFontSizeSp: Int = 16,
     val showSettings: Boolean = false,
     val showFavorites: Boolean = false,
     val renameTargetId: Long? = null,
@@ -122,9 +124,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var favoriteCounter: Long = 0
 
     init {
+        restoreSettings()
         restoreSessions()
         restoreFavorites()
-        restoreSettings()
     }
 
     // ----------------------------------------------------------- restoration
@@ -132,13 +134,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun restoreSessions() {
         synchronized(lock) {
             val index = storage.loadIndex()
+            val preview = storage.loadSettings().previewLines
             for (meta in index.items) {
                 metas[meta.id] = meta
                 val journal = storage.journalFor(meta.id)
                 pipes[meta.id] = SessionPipe(
                     journal = journal,
                     parser = StreamParser(),
-                    builder = TranscriptBuilder.replay(journal.readAll()),
+                    builder = TranscriptBuilder.replay(journal.readAll(), previewLines = preview),
                 )
                 nextCommandSeqs[meta.id] = journal.nextCommandSeq() + 1
                 attachEngine(meta)
@@ -167,6 +170,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 keyRowVisible = settings.keyRowVisible,
                 enterSends = settings.enterSends,
                 outputFontSizeSp = settings.outputFontSizeSp,
+                previewLines = settings.previewLines,
+                bubbleFontSizeSp = settings.bubbleFontSizeSp,
             )
         }
     }
@@ -246,7 +251,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val meta = SessionMeta(id = id, name = name)
         metas[id] = meta
         val journal = storage.journalFor(id)
-        pipes[id] = SessionPipe(journal, StreamParser(), TranscriptBuilder())
+        pipes[id] = SessionPipe(
+            journal,
+            StreamParser(),
+            TranscriptBuilder(previewLines = _state.value.previewLines),
+        )
         nextCommandSeqs[id] = journal.nextCommandSeq() + 1
         attachEngine(meta)
         persistIndexLocked()
@@ -511,6 +520,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         saveSettings()
     }
 
+    fun setPreviewLines(lines: Int) {
+        val coerced = lines.coerceIn(1, 10)
+        synchronized(lock) {
+            _state.update { it.copy(previewLines = coerced) }
+            pipes.values.forEach { it.builder.applyPreviewLines(coerced) }
+            pipes.keys.toList().forEach { refreshSession(it) }
+        }
+        saveSettings()
+    }
+
+    fun setBubbleFontSize(sizeSp: Int) {
+        _state.update { it.copy(bubbleFontSizeSp = sizeSp.coerceIn(12, 24)) }
+        saveSettings()
+    }
+
     fun setShowSettings(visible: Boolean) = _state.update {
         it.copy(showSettings = visible)
     }
@@ -522,6 +546,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 keyRowVisible = st.keyRowVisible,
                 enterSends = st.enterSends,
                 outputFontSizeSp = st.outputFontSizeSp,
+                previewLines = st.previewLines,
+                bubbleFontSizeSp = st.bubbleFontSizeSp,
             ),
         )
     }

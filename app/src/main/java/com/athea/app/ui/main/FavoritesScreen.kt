@@ -25,6 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -59,11 +60,12 @@ fun FavoritesScreen(
 ) {
     var editTarget by remember { mutableStateOf<FavoriteCommand?>(null) }
 
-    Column(
-        modifier
-            .fillMaxSize()
-            .safeDrawingPadding(),
-    ) {
+    Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .safeDrawingPadding(),
+        ) {
         Row(
             Modifier
                 .fillMaxWidth()
@@ -159,6 +161,7 @@ fun FavoritesScreen(
                 }
             }
         }
+    }
     }
 
     editTarget?.let { target ->

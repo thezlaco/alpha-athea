@@ -58,6 +58,8 @@
     <string name="settings_enter_sends">Enter sends command</string>
     <string name="settings_enter_sends_desc">Off keeps Enter for a new line</string>
     <string name="settings_font_size">Output font size</string>
+    <string name="settings_preview_lines">Command preview lines</string>
+    <string name="settings_bubble_size">Message font size</string>
 
     <!-- Favorites screen -->
     <string name="favorites_run">Run</string>

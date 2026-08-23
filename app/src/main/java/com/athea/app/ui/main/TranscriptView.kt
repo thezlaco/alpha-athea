@@ -63,13 +63,12 @@ import com.athea.app.R
 import com.athea.app.core.model.CommandBlock
 import com.athea.app.core.model.DisplayMode
 import com.athea.app.core.model.OutputBlock
-import com.athea.app.core.model.PREVIEW_LINES
 import com.athea.app.ui.SearchState
 import com.athea.app.ui.SessionUi
 import com.athea.app.ui.theme.HighlightColor
-import com.athea.app.ui.theme.MessageStyle
 import com.athea.app.ui.theme.OnHighlightColor
 import com.athea.app.ui.theme.codeStyle
+import com.athea.app.ui.theme.messageStyle
 import kotlinx.coroutines.flow.Flow
 
 private const val TAIL_LINES = 3
@@ -82,6 +81,7 @@ fun TranscriptView(
     session: SessionUi,
     search: SearchState?,
     scrollRequests: Flow<String>,
+    previewLines: Int,
     onToggleBlock: (String) -> Unit,
     onRevealBlock: (String) -> Unit,
     onLocateBlock: (String) -> Int,
@@ -158,6 +158,7 @@ fun TranscriptView(
                         block = block,
                         collapsed = view.collapsed,
                         maxWidth = maxBubbleWidth,
+                        previewLines = previewLines,
                         currentMatch = block.id == currentMatchId,
                         onToggle = { onToggleBlock(block.id) },
                         onCopy = { onCopyCommand(block.text) },
@@ -184,6 +185,7 @@ private fun CommandBubble(
     block: CommandBlock,
     collapsed: Boolean,
     maxWidth: Dp,
+    previewLines: Int,
     currentMatch: Boolean,
     onToggle: () -> Unit,
     onCopy: () -> Unit,
@@ -191,7 +193,8 @@ private fun CommandBubble(
     onFavorite: () -> Unit,
 ) {
     val lines = block.text.lines()
-    val collapsible = lines.size > PREVIEW_LINES
+    val collapsible = lines.size > previewLines
+    val bubbleStyle = messageStyle()
     var menuOpen by remember { mutableStateOf(false) }
 
     Row(
@@ -219,8 +222,8 @@ private fun CommandBubble(
                 if (collapsed && collapsible) {
                     Box {
                         Text(
-                            text = lines.take(PREVIEW_LINES).joinToString("\n"),
-                            style = MessageStyle,
+                            text = lines.take(previewLines).joinToString("\n"),
+                            style = bubbleStyle,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
                         // Fade hugs the tail only: the first lines stay fully readable.
@@ -250,7 +253,7 @@ private fun CommandBubble(
                 } else {
                     Text(
                         text = block.text,
-                        style = MessageStyle,
+                        style = bubbleStyle,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
                 }

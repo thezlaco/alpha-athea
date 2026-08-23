@@ -2,9 +2,10 @@ package com.athea.app.ui.main
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
@@ -17,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 enum class KeyActionKind {
@@ -119,14 +121,21 @@ private fun KeyChip(
         } else {
             null
         },
+        // Fixed floor width keeps the row rhythm even: short labels do
+        // not shrink below it, long ones still expand naturally.
+        modifier = Modifier.defaultMinSize(minWidth = 52.dp),
     ) {
-        Text(
-            text = key.label,
-            style = MaterialTheme.typography.labelLarge.copy(fontFamily = FontFamily.Monospace),
-            modifier = Modifier
-                .padding(horizontal = 12.dp)
-                .heightIn(min = 40.dp)
-                .wrapContentHeight(Alignment.CenterVertically),
-        )
+        Box(
+            Modifier
+                .defaultMinSize(minWidth = 52.dp, minHeight = 40.dp)
+                .padding(horizontal = 10.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = key.label,
+                style = MaterialTheme.typography.labelLarge.copy(fontFamily = FontFamily.Monospace),
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }

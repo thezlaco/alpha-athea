@@ -51,6 +51,8 @@
     <string name="settings_enter_sends">Enter отправляет команду</string>
     <string name="settings_enter_sends_desc">Выключено — Enter переносит строку</string>
     <string name="settings_font_size">Размер шрифта вывода</string>
+    <string name="settings_preview_lines">Строк превью команды</string>
+    <string name="settings_bubble_size">Размер шрифта сообщений</string>
 
     <!-- Favorites screen -->
     <string name="favorites_run">Выполнить</string>

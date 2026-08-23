@@ -1,5 +1,6 @@
 package com.athea.app.ui.main
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -33,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
@@ -41,9 +44,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.athea.app.R
 import com.athea.app.ui.SearchState
-import com.athea.app.ui.theme.MessageStyle
+import com.athea.app.ui.theme.messageStyle
 
 private val PanelShape = RoundedCornerShape(28.dp)
+private val BUTTON_ROW_HEIGHT = 44.dp
 
 @Composable
 fun InputBar(
@@ -87,8 +91,13 @@ private fun Modifier.barPadding(): Modifier =
         .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
         .padding(horizontal = 10.dp, vertical = 8.dp)
 
-/** One rounded panel holding the field and its buttons on the same row;
- *  grows with the text, buttons stay at the tail - chat-app style. */
+/**
+ * One morphing panel, chat-app style:
+ *  - short text: slim single row, buttons vertically centered beside it;
+ *  - growing text: the field rises to full width, buttons stay on their
+ *    own line at the tail, so no dead space appears beside the text.
+ * The field is a single instance, so focus survives the morph.
+ */
 @Composable
 private fun DraftPanel(
     draft: String,
@@ -98,6 +107,9 @@ private fun DraftPanel(
     enterSends: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    var lineCount by remember { mutableStateOf(1) }
+    val compact = lineCount <= 1
+
     Surface(
         shape = PanelShape,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -105,31 +117,20 @@ private fun DraftPanel(
             .fillMaxWidth()
             .barPadding(),
     ) {
-        Row(
-            Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.Bottom,
-        ) {
-            TextField(
+        Box(Modifier.padding(horizontal = 4.dp, vertical = 4.dp)) {
+            BasicTextField(
                 value = draft,
                 onValueChange = onDraftChange,
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 4.dp),
-                placeholder = {
-                    Text(
-                        stringResource(R.string.input_hint),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                textStyle = MessageStyle.copy(color = MaterialTheme.colorScheme.onSurface),
-                maxLines = 5,
-                shape = PanelShape,
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                ),
+                    .fillMaxWidth()
+                    .padding(
+                        end = if (compact) 96.dp else 8.dp,
+                        bottom = if (compact) 0.dp else BUTTON_ROW_HEIGHT,
+                    ),
+                textStyle = messageStyle().copy(color = MaterialTheme.colorScheme.onSurface),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                maxLines = 6,
+                onTextLayout = { lineCount = it.lineCount },
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.None,
                     keyboardType = KeyboardType.Ascii,
@@ -139,28 +140,48 @@ private fun DraftPanel(
                 keyboardActions = KeyboardActions(
                     onSend = { onSend() },
                 ),
+                decorationBox = { inner ->
+                    Box {
+                        if (draft.isEmpty()) {
+                            Text(
+                                stringResource(R.string.input_hint),
+                                style = messageStyle(),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                            )
+                        }
+                        inner()
+                    }
+                },
             )
-            IconButton(onClick = onExpandEditor) {
-                Icon(
-                    Icons.Default.OpenInFull,
-                    contentDescription = stringResource(R.string.cd_expand_editor),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            FilledIconButton(
-                onClick = onSend,
-                shape = CircleShape,
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
-                modifier = Modifier.padding(end = 4.dp).size(40.dp),
+            Row(
+                Modifier
+                    .align(if (compact) Alignment.CenterEnd else Alignment.BottomEnd)
+                    .padding(end = 4.dp, bottom = if (compact) 0.dp else 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    Icons.Default.Send,
-                    contentDescription = stringResource(R.string.cd_send),
-                    modifier = Modifier.rotate(-90f),
-                )
+                IconButton(onClick = onExpandEditor, modifier = Modifier.size(36.dp)) {
+                    Icon(
+                        Icons.Default.OpenInFull,
+                        contentDescription = stringResource(R.string.cd_expand_editor),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                FilledIconButton(
+                    onClick = onSend,
+                    shape = CircleShape,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                    modifier = Modifier.size(36.dp),
+                ) {
+                    Icon(
+                        Icons.Default.Send,
+                        contentDescription = stringResource(R.string.cd_send),
+                        modifier = Modifier.rotate(-90f),
+                    )
+                }
             }
         }
     }
@@ -197,7 +218,7 @@ private fun SearchPanel(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 },
-                textStyle = MessageStyle.copy(color = MaterialTheme.colorScheme.onSurface),
+                textStyle = messageStyle().copy(color = MaterialTheme.colorScheme.onSurface),
                 singleLine = true,
                 shape = PanelShape,
                 leadingIcon = {

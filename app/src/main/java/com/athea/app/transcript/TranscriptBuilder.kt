@@ -33,13 +33,24 @@ data class TranscriptSnapshot(
  *  - an output block stays open while it runs or is the newest output;
  *    older outputs auto-collapse when the next command is submitted.
  */
-class TranscriptBuilder(private val rawCapChars: Int = DEFAULT_RAW_CAP) {
+class TranscriptBuilder(
+    private val rawCapChars: Int = DEFAULT_RAW_CAP,
+    previewLines: Int = PREVIEW_LINES,
+) {
 
     private val blocks = ArrayList<Block>()
     private val expandedOverrides = HashMap<String, Boolean>()
     private var runningOutputId: String? = null
     private var outputCounter = 0
     private val raw = StringBuilder()
+
+    /** Lines shown in a collapsed command bubble; live-tunable in settings. */
+    @Volatile var previewLines: Int = previewLines
+        private set
+
+    fun applyPreviewLines(lines: Int) {
+        previewLines = lines.coerceIn(1, 10)
+    }
 
     // ---------------------------------------------------------------- input
 
@@ -111,7 +122,7 @@ class TranscriptBuilder(private val rawCapChars: Int = DEFAULT_RAW_CAP) {
     private fun computeCollapsed(block: Block, expandedOutputId: String?): Boolean {
         expandedOverrides[block.id]?.let { return it }
         return when (block) {
-            is CommandBlock -> block.text.lines().size > PREVIEW_LINES
+            is CommandBlock -> block.text.lines().size > previewLines
             is OutputBlock -> !(block.running || block.id == expandedOutputId)
         }
     }
@@ -166,8 +177,12 @@ class TranscriptBuilder(private val rawCapChars: Int = DEFAULT_RAW_CAP) {
          * routed through a fresh parser so stored bytes are interpreted
          * with the current parsing rules.
          */
-        fun replay(events: List<JournalEvent>, rawCapChars: Int = DEFAULT_RAW_CAP): TranscriptBuilder {
-            val builder = TranscriptBuilder(rawCapChars)
+        fun replay(
+            events: List<JournalEvent>,
+            rawCapChars: Int = DEFAULT_RAW_CAP,
+            previewLines: Int = PREVIEW_LINES,
+        ): TranscriptBuilder {
+            val builder = TranscriptBuilder(rawCapChars, previewLines)
             val parser = StreamParser()
             for (event in events) {
                 when (event) {
