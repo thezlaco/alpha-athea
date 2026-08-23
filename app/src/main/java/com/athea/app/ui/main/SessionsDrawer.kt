@@ -80,11 +80,13 @@ fun SessionsDrawerContent(
         sessions.sortedByDescending { it.pinned }
     }
 
-    Column(
-        modifier
+    // Surface (not a bare background) so inner text picks up the proper
+    // content color instead of the default dark one.
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = modifier
             .fillMaxHeight()
             .fillMaxWidth(0.84f)
-            .background(MaterialTheme.colorScheme.surfaceContainer)
             .windowInsetsPadding(
                 WindowInsets.safeDrawing.only(
                     WindowInsetsSides.Start +
@@ -170,7 +172,6 @@ fun SessionsDrawerContent(
         }
     }
 }
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SessionRow(

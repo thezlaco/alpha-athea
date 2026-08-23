@@ -96,18 +96,15 @@ class StreamParserTest {
     }
 
     @Test
-    fun `prompt region is suppressed`() {
+    fun `prompt marks are consumed but text passes through`() {
         val parser = StreamParser()
         val first = parser.feed(
-            "\u001B]133;A\u0007\u001B]133;B\u0007$ ls\n".toByteArray()
+            "\u001B]133;A\u0007\u001B]133;B\u0007".toByteArray()
         )
-        val second = parser.feed("\u001B]133;C\u0007res\n".toByteArray())
+        val second = parser.feed("$ ls\n".toByteArray())
         assertTrue(first.isEmpty())
         assertEquals(
-            listOf<StreamEvent>(
-                StreamEvent.OutputBegin,
-                StreamEvent.Text("res\n"),
-            ),
+            listOf<StreamEvent>(StreamEvent.Text("$ ls\n")),
             second,
         )
     }
@@ -116,19 +113,6 @@ class StreamParserTest {
     fun `unrelated osc sequences are swallowed`() {
         val events = feedAll("\u001B]0;window title\u0007hi\n")
         assertEquals("hi\n", texts(events))
-    }
-
-    @Test
-    fun `st prompt without terminator cannot hide output forever`() {
-        val parser = StreamParser()
-        val first = parser.feed("\u001B]133;A\u0007\u001B]133;B\u0007".toByteArray())
-        assertTrue(first.isEmpty())
-        val second = parser.feed("x".repeat(600).toByteArray())
-        val third = parser.feed("\u001B]133;C\u0007ok\n".toByteArray())
-        // 512 characters are suppressed, the rest must surface.
-        assertEquals("x".repeat(600 - 512), texts(second))
-        assertTrue(third.any { it is StreamEvent.OutputBegin })
-        assertEquals("ok\n", texts(third))
     }
 
     @Test

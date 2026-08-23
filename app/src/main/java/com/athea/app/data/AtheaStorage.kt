@@ -29,6 +29,14 @@ internal data class FavoritesIndex(
     val nextFavoriteId: Long = 1,
 )
 
+/** User-facing application preferences. */
+@Serializable
+data class AtheaSettings(
+    val keyRowVisible: Boolean = true,
+    val enterSends: Boolean = true,
+    val outputFontSizeSp: Int = 13,
+)
+
 /**
  * Owns every byte Athea keeps on disk: session index, favorites, journals
  * and the shell integration rc. Pure file operations; orchestration lives
@@ -81,6 +89,22 @@ class AtheaStorage(root: File) {
     internal fun saveFavorites(favorites: FavoritesIndex) {
         sessionsDir.mkdirs()
         favoritesFile.writeText(json.encodeToString(FavoritesIndex.serializer(), favorites))
+    }
+
+    // -------------------------------------------------------------- settings
+
+    fun loadSettings(): AtheaSettings =
+        runCatching {
+            json.decodeFromString(
+                AtheaSettings.serializer(),
+                File(sessionsDir, "settings.json").readText(),
+            )
+        }.getOrDefault(AtheaSettings())
+
+    fun saveSettings(settings: AtheaSettings) {
+        sessionsDir.mkdirs()
+        File(sessionsDir, "settings.json")
+            .writeText(json.encodeToString(AtheaSettings.serializer(), settings))
     }
 
     // ----------------------------------------------------------------- files

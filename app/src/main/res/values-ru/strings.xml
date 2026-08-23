@@ -42,9 +42,15 @@
     <string name="favorites_empty">Долгое нажатие на отправленную команду добавит её сюда</string>
     <string name="settings">Настройки</string>
 
-    <string name="settings_placeholder">Настройки появятся на следующем этапе</string>
     <string name="shell_start_failed">Не удалось запустить оболочку</string>
     <string name="exit_code">код возврата %1$d</string>
+
+    <!-- Settings screen -->
+    <string name="settings_key_row">Ряд клавиш</string>
+    <string name="settings_key_row_desc">Дополнительные клавиши над транскриптом</string>
+    <string name="settings_enter_sends">Enter отправляет команду</string>
+    <string name="settings_enter_sends_desc">Выключено — Enter переносит строку</string>
+    <string name="settings_font_size">Размер шрифта вывода</string>
 
     <plurals name="output_lines">
         <item quantity="one">%d строка</item>

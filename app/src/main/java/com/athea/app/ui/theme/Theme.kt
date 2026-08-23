@@ -4,6 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -52,6 +53,16 @@ val CodeStyle = TextStyle(
     fontSize = 13.sp,
     lineHeight = 19.sp,
 )
+
+/** Output font size chosen in settings; defaults match [CodeStyle]. */
+val LocalOutputFontSize = staticCompositionLocalOf { 13 }
+
+/** [CodeStyle] honoring the user-selected output font size. */
+@Composable
+fun codeStyle(): TextStyle {
+    val size = LocalOutputFontSize.current
+    return CodeStyle.copy(fontSize = size.sp, lineHeight = (size * 1.45f).sp)
+}
 
 /** Chat-message style for command bubbles and the composer, like chat apps. */
 val MessageStyle = TextStyle(

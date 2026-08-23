@@ -1,19 +1,25 @@
 # Athea shell integration.
 #
 # This file is handed to mksh through the ENV variable, so only the
-# interactive shells spawned by Athea read it. It installs shell
-# integration marks (OSC 133, the FinalTerm convention used by VS Code,
-# iTerm2 and others) around the prompt:
+# interactive shells spawned by Athea read it. It installs one shell
+# integration mark (OSC 133;D with the previous exit code) at the start
+# of every prompt:
 #
 #   D;<code>  - the previous command finished with this exit code
-#   A         - prompt starts
-#   B         - prompt ends (input region starts)
 #
-# The marks are invisible to the user; the Athea stream parser uses them
-# to locate real command boundaries. The prompt itself is kept empty:
-# the app renders its own input surface, so a visible prompt would only
-# pollute the transcript.
+# The mark is invisible to the user; the Athea stream parser uses it to
+# locate real command boundaries. Prompt marks A/B are deliberately NOT
+# emitted: Athea renders its own input surface and keeps the prompt
+# text empty, so there is nothing to hide - and no risk of suppressing
+# real output between boundaries.
+#
+# Echo and the interactive line editor are disabled on purpose: Athea
+# sends fully edited lines, so mksh must not draw or echo them itself.
 
 case $- in *i*) ;; *) return ;; esac
 
-PS1=$'\E]133;D;'"$?"$'\a\E]133;A\a\E]133;B\a'
+set +o emacs 2>/dev/null || true
+set +o vi 2>/dev/null || true
+stty -echo 2>/dev/null || true
+
+PS1=$'\E]133;D;'"$?"$'\a'

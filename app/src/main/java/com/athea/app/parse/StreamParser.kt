@@ -22,10 +22,10 @@ sealed interface StreamEvent {
  *  - strip ANSI/VT noise (colors, cursor movement, other OSC sequences);
  *  - apply carriage-return overwrite semantics so progress bars collapse
  *    to their final line state;
- *  - recognize shell integration marks (OSC 133 A/B/C/D[;exit]) and emit
- *    them as [StreamEvent.CommandEnd] / [StreamEvent.OutputBegin];
- *  - suppress prompt text emitted between marks A/B and C/D, with a
- *    safety cap so a broken pairing can never swallow real output.
+ *  - recognize shell integration marks (OSC 133 C/D[;exit]) and emit them
+ *    as [StreamEvent.OutputBegin] / [StreamEvent.CommandEnd]. Marks A/B
+ *    are consumed but ignored: Athea renders input itself and keeps the
+ *    prompt empty, so there is nothing to hide.
  *
  * Pure Kotlin: no Android dependencies, fully unit-testable.
  */
@@ -36,9 +36,6 @@ class StreamParser {
     private var state = State.NORMAL
     private val csiBuffer = StringBuilder()
     private val oscBuffer = StringBuilder()
-
-    private var suppressPrompt = false
-    private var suppressedCount = 0
 
     private val line = StringBuilder()
     private val pendingText = StringBuilder()
@@ -149,13 +146,6 @@ class StreamParser {
             state = State.ESC
             return
         }
-        if (suppressPrompt) {
-            suppressedCount++
-            if (suppressedCount <= SUPPRESS_LIMIT) return
-            // Broken mark pairing guard: resume normal processing and let
-            // this very character through.
-            suppressPrompt = false
-        }
         when (ch) {
             '\n' -> {
                 pendingText.append(line)
@@ -179,18 +169,11 @@ class StreamParser {
         finishLine()
         flushPending()
         when (parts.getOrNull(1)) {
-            "A", "B" -> {
-                suppressPrompt = true
-                suppressedCount = 0
-            }
-            "C" -> {
-                suppressPrompt = false
-                events.add(StreamEvent.OutputBegin)
-            }
-            "D" -> {
-                suppressPrompt = false
-                events.add(StreamEvent.CommandEnd(parts.getOrNull(2)?.toIntOrNull()))
-            }
+            "A", "B" -> Unit // prompt boundaries: nothing to hide, consumed
+
+            "C" -> events.add(StreamEvent.OutputBegin)
+
+            "D" -> events.add(StreamEvent.CommandEnd(parts.getOrNull(2)?.toIntOrNull()))
         }
     }
 
@@ -213,12 +196,5 @@ class StreamParser {
     private companion object {
         const val ESC = '\u001B'
         const val BEL = '\u0007'
-
-        /**
-         * Maximum characters dropped while waiting for C/D after A/B.
-         * A well-behaved prompt never comes close; a broken one must not
-         * be able to hide real output forever.
-         */
-        const val SUPPRESS_LIMIT = 512
     }
 }

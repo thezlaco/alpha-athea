@@ -24,7 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.athea.app.R
-import com.athea.app.ui.theme.CodeStyle
+import com.athea.app.ui.theme.codeStyle
 
 /**
  * Dedicated full-screen text selection surface (long-press to select),
@@ -71,7 +71,7 @@ fun SelectTextScreen(
             ) {
                 Text(
                     text = text,
-                    style = CodeStyle.copy(color = MaterialTheme.colorScheme.onBackground),
+                    style = codeStyle().copy(color = MaterialTheme.colorScheme.onBackground),
                     modifier = Modifier
                         .verticalScroll(rememberScrollState())
                         .horizontalScroll(rememberScrollState())

@@ -3,6 +3,7 @@ package com.athea.app.ui.main
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +17,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -27,11 +29,35 @@ import com.athea.app.R
 import com.athea.app.core.model.DisplayMode
 import com.athea.app.ui.MainViewModel
 import com.athea.app.ui.UiEvent
+import com.athea.app.ui.UiState
+import com.athea.app.ui.theme.LocalOutputFontSize
 import kotlinx.coroutines.launch
 
 @Composable
 fun MainScreen(viewModel: MainViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    if (state.showSettings) {
+        BackHandler { viewModel.setShowSettings(false) }
+        SettingsScreen(
+            keyRowVisible = state.keyRowVisible,
+            enterSends = state.enterSends,
+            outputFontSizeSp = state.outputFontSizeSp,
+            onKeyRowVisibleChange = viewModel::setKeyRowVisible,
+            onEnterSendsChange = viewModel::setEnterSends,
+            onOutputFontSizeChange = viewModel::setOutputFontSize,
+            onBack = { viewModel.setShowSettings(false) },
+        )
+        return
+    }
+
+    CompositionLocalProvider(LocalOutputFontSize provides state.outputFontSizeSp) {
+        MainScreenContent(viewModel, state)
+    }
+}
+
+@Composable
+private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -40,9 +66,6 @@ fun MainScreen(viewModel: MainViewModel) {
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             val message = when (event) {
-                UiEvent.SettingsPlaceholder ->
-                    context.getString(R.string.settings_placeholder)
-
                 UiEvent.ShellStartFailed ->
                     context.getString(R.string.shell_start_failed)
 
@@ -73,7 +96,7 @@ fun MainScreen(viewModel: MainViewModel) {
                 onDeleteSession = viewModel::requestDelete,
                 onInsertFavorite = viewModel::insertIntoDraft,
                 onRunFavorite = viewModel::executeDirectly,
-                onSettings = viewModel::settingsPlaceholder,
+                onSettings = { viewModel.setShowSettings(true) },
             )
         },
     ) {

@@ -66,14 +66,15 @@ import com.athea.app.core.model.OutputBlock
 import com.athea.app.core.model.PREVIEW_LINES
 import com.athea.app.ui.SearchState
 import com.athea.app.ui.SessionUi
-import com.athea.app.ui.theme.CodeStyle
 import com.athea.app.ui.theme.HighlightColor
 import com.athea.app.ui.theme.MessageStyle
 import com.athea.app.ui.theme.OnHighlightColor
+import com.athea.app.ui.theme.codeStyle
 import kotlinx.coroutines.flow.Flow
 
 private const val TAIL_LINES = 3
 private val FADE_HEIGHT = 24.dp
+private val TAIL_FADE_HEIGHT = 26.dp
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -98,8 +99,9 @@ fun TranscriptView(
 
         // Report the real cell geometry to the engine so line wrapping matches.
         val measurer = rememberTextMeasurer()
-        LaunchedEffect(constraints.maxWidth, constraints.maxHeight) {
-            val layout = measurer.measure(AnnotatedString("M"), CodeStyle)
+        val cellStyle = codeStyle()
+        LaunchedEffect(constraints.maxWidth, constraints.maxHeight, cellStyle) {
+            val layout = measurer.measure(AnnotatedString("M"), cellStyle)
             val cols = (constraints.maxWidth / layout.size.width.coerceAtLeast(1))
                 .coerceAtLeast(1)
             val rows = (constraints.maxHeight / layout.size.height.coerceAtLeast(1))
@@ -221,9 +223,12 @@ private fun CommandBubble(
                             style = MessageStyle,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
+                        // Fade hugs the tail only: the first lines stay fully readable.
                         Box(
                             Modifier
-                                .matchParentSize()
+                                .align(Alignment.BottomCenter)
+                                .fillMaxWidth()
+                                .height(TAIL_FADE_HEIGHT)
                                 .background(
                                     Brush.verticalGradient(
                                         listOf(
@@ -237,10 +242,10 @@ private fun CommandBubble(
                     Icon(
                         Icons.Default.KeyboardArrowDown,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
-                            .align(Alignment.End)
-                            .size(18.dp),
+                            .padding(top = 2.dp)
+                            .size(20.dp),
                     )
                 } else {
                     Text(
@@ -332,7 +337,7 @@ private fun OutputPanel(
             Box {
                 Text(
                     text = allLines.takeLast(TAIL_LINES).joinToString("\n"),
-                    style = CodeStyle,
+                    style = codeStyle(),
                     color = MaterialTheme.colorScheme.onBackground,
                 )
                 Box(
@@ -355,7 +360,7 @@ private fun OutputPanel(
                 val annotated = remember(text, query) { buildHighlighted(text, query) }
                 Text(
                     text = annotated,
-                    style = CodeStyle,
+                    style = codeStyle(),
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -378,7 +383,7 @@ private fun RawStreamView(
     SelectionContainer {
         Text(
             text = buildHighlighted(text.ifEmpty { " " }, query),
-            style = CodeStyle,
+            style = codeStyle(),
             color = MaterialTheme.colorScheme.onBackground,
             modifier = modifier
                 .verticalScroll(scroll)
@@ -401,7 +406,7 @@ private fun BlinkingCursor() {
     )
     Text(
         text = "▊",
-        style = CodeStyle,
+        style = codeStyle(),
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier
             .alpha(alpha)

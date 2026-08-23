@@ -60,13 +60,14 @@ data class UiState(
     val stickyCtrl: Boolean = false,
     val keyRowVisible: Boolean = true,
     val enterSends: Boolean = true,
+    val outputFontSizeSp: Int = 13,
+    val showSettings: Boolean = false,
     val renameTargetId: Long? = null,
     val deleteTargetId: Long? = null,
     val selectTextPayload: String? = null,
 )
 
 sealed interface UiEvent {
-    data object SettingsPlaceholder : UiEvent
     data object ShellStartFailed : UiEvent
     data object CopiedToClipboard : UiEvent
 }
@@ -122,6 +123,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     init {
         restoreSessions()
         restoreFavorites()
+        restoreSettings()
     }
 
     // ----------------------------------------------------------- restoration
@@ -155,6 +157,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val favorites = storage.loadFavorites()
         favoriteCounter = favorites.nextFavoriteId
         _state.update { it.copy(favorites = favorites.items) }
+    }
+
+    private fun restoreSettings() {
+        val settings = storage.loadSettings()
+        _state.update {
+            it.copy(
+                keyRowVisible = settings.keyRowVisible,
+                enterSends = settings.enterSends,
+                outputFontSizeSp = settings.outputFontSizeSp,
+            )
+        }
     }
 
     private fun attachEngine(meta: SessionMeta) {
@@ -453,16 +466,38 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun consumeStickyCtrl() = _state.update { it.copy(stickyCtrl = false) }
 
-    fun setKeyRowVisible(visible: Boolean) = _state.update {
-        it.copy(keyRowVisible = visible)
+    fun setKeyRowVisible(visible: Boolean) {
+        _state.update { it.copy(keyRowVisible = visible) }
+        saveSettings()
     }
 
-    fun setEnterSends(value: Boolean) = _state.update { it.copy(enterSends = value) }
+    fun setEnterSends(value: Boolean) {
+        _state.update { it.copy(enterSends = value) }
+        saveSettings()
+    }
+
+    fun setOutputFontSize(sizeSp: Int) {
+        _state.update { it.copy(outputFontSizeSp = sizeSp.coerceIn(10, 22)) }
+        saveSettings()
+    }
+
+    fun setShowSettings(visible: Boolean) = _state.update {
+        it.copy(showSettings = visible)
+    }
+
+    private fun saveSettings() {
+        val st = _state.value
+        storage.saveSettings(
+            com.athea.app.data.AtheaSettings(
+                keyRowVisible = st.keyRowVisible,
+                enterSends = st.enterSends,
+                outputFontSizeSp = st.outputFontSizeSp,
+            ),
+        )
+    }
 
     fun sendDirectText(payload: String) =
         engines[_state.value.currentSessionId]?.write(payload.toByteArray(Charsets.UTF_8))
-
-    fun settingsPlaceholder() = _events.tryEmit(UiEvent.SettingsPlaceholder)
 
     fun notifyCopied() = _events.tryEmit(UiEvent.CopiedToClipboard)
 
