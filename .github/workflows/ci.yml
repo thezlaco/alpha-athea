@@ -47,17 +47,7 @@ jobs:
           cmdline-tools-version: 11076708
           accept-android-sdk-licenses: true
 
-      # The NDK download is the fattest recurring cost; restore it from cache.
-      - name: Restore Android SDK components
-        uses: actions/cache@v6
-        with:
-          path: |
-            /usr/local/lib/android/sdk/ndk/${{ env.NDK_VERSION }}
-            /usr/local/lib/android/sdk/cmake/${{ env.CMAKE_VERSION }}
-            /usr/local/lib/android/sdk/platforms/android-35
-            /usr/local/lib/android/sdk/build-tools/${{ env.BUILD_TOOLS_VERSION }}
-          key: android-sdk-ndk${{ env.NDK_VERSION }}-cmake${{ env.CMAKE_VERSION }}-bt${{ env.BUILD_TOOLS_VERSION }}-api35
-
+      # Runner images ship these components; the install is a fast no-op.
       - name: Install SDK components
         run: |
           sdkmanager --install \
