@@ -42,7 +42,11 @@ class TranscriptBuilder(
     private val expandedOverrides = HashMap<String, Boolean>()
     private var runningOutputId: String? = null
     private var outputCounter = 0
-    private val raw = StringBuilder()
+
+    // Raw projection kept as chunks: trimming drops whole head chunks in
+    // O(1) instead of copying the surviving megabyte on every overflow.
+    private val rawChunks = ArrayDeque<String>()
+    private var rawSize = 0
 
     /** Lines shown in a collapsed command bubble; live-tunable in settings. */
     @Volatile var previewLines: Int = previewLines
@@ -115,7 +119,7 @@ class TranscriptBuilder(
         return TranscriptSnapshot(
             blocks = views,
             running = runningOutputId != null,
-            rawText = if (displayRaw) raw.toString() else "",
+            rawText = if (displayRaw) rawText() else "",
         )
     }
 
@@ -160,11 +164,21 @@ class TranscriptBuilder(
     }
 
     private fun appendRaw(text: String) {
-        raw.append(text)
-        if (raw.length > rawCapChars + RAW_TRIM_SLACK) {
-            raw.delete(0, raw.length - rawCapChars)
+        rawChunks.addLast(text)
+        rawSize += text.length
+        if (rawSize > rawCapChars + RAW_TRIM_SLACK) {
+            // Drop head chunks only while the remainder still stays above
+            // the cap: the buffer lands in [cap, cap + chunk) after a trim.
+            while (rawChunks.size > 1 && rawSize - rawChunks.first().length >= rawCapChars) {
+                rawSize -= rawChunks.removeFirst().length
+            }
         }
     }
+
+    private fun rawText(): String =
+        buildString(rawSize) {
+            for (chunk in rawChunks) append(chunk)
+        }
 
     companion object {
         const val DEFAULT_RAW_CAP = 1 shl 20

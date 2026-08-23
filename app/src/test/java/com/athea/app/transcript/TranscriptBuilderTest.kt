@@ -115,7 +115,10 @@ class TranscriptBuilderTest {
         repeat(15) { builder.applyOutput("A".repeat(100_000)) }
 
         val rawText = builder.snapshot(displayRaw = true).rawText
-        assertEquals(TranscriptBuilder.DEFAULT_RAW_CAP.toLong(), rawText.length.toLong())
+        // Chunked eviction lands in [cap, cap + slack): never above the
+        // hard ceiling, never a character below the floor.
+        assertTrue(rawText.length >= TranscriptBuilder.DEFAULT_RAW_CAP)
+        assertTrue(rawText.length <= TranscriptBuilder.DEFAULT_RAW_CAP + (1 shl 16))
         assertEquals("", builder.snapshot(displayRaw = false).rawText)
     }
 

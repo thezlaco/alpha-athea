@@ -24,12 +24,14 @@ import com.athea.app.transcript.TranscriptBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /** Search within one session transcript. */
@@ -115,6 +117,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val pipes = LinkedHashMap<Long, SessionPipe>()
     private val engines = HashMap<Long, TerminalEngine>()
     private val engineJobs = HashMap<Long, Job>()
+    private val rawQueues = HashMap<Long, Channel<EngineEvent>>()
     private val nextCommandSeqs = HashMap<Long, Long>()
 
     /** Guards every multi-step session mutation against concurrent engine events. */
@@ -188,8 +191,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
         engines[meta.id] = engine
+        // Delivery pipeline: the collector only forwards into an
+        // unbounded channel (fast, can never drop), while a batch worker
+        // drains everything already queued per iteration - one lock
+        // acquisition, one journal append, one refresh per burst.
+        val queue = Channel<EngineEvent>(Channel.UNLIMITED)
+        rawQueues[meta.id] = queue
+        launch(Dispatchers.Default) {
+            engine.events.collect { queue.send(it) }
+        }
         engineJobs[meta.id] = viewModelScope.launch(Dispatchers.Default) {
-            engine.events.collect { event -> handleEngineEvent(meta.id, event) }
+            while (isActive) {
+                val first = queue.receive()
+                val batch = ArrayList<EngineEvent>(8)
+                batch.add(first)
+                while (true) {
+                    val next = queue.tryReceive().getOrNull() ?: break
+                    batch.add(next)
+                }
+                processBatch(meta.id, batch)
+            }
         }
     }
 
@@ -200,40 +221,41 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     // -------------------------------------------------------- engine events
 
-    private fun handleEngineEvent(id: Long, event: EngineEvent) {
-        when (event) {
-            is EngineEvent.Output -> handleOutputBytes(id, event.data)
-
-            is EngineEvent.Exited -> handleShellExit(id)
-        }
-    }
-
-    private fun handleOutputBytes(id: Long, bytes: ByteArray) {
-        val encoded = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+    private fun processBatch(id: Long, batch: List<EngineEvent>) {
         synchronized(lock) {
             val pipe = pipes[id] ?: return
-            // Raw bytes hit the journal before parsing: the log stays the
-            // single source of truth regardless of parsing rules.
-            pipe.journal.append(JournalEvent.OutputArrived(encoded))
-            for (parsed in pipe.parser.feed(bytes)) {
-                when (parsed) {
-                    is StreamEvent.Text -> pipe.builder.applyOutput(parsed.value)
+            var bytes: ByteArray? = null
+            var shellExited = false
+            for (event in batch) {
+                when (event) {
+                    is EngineEvent.Output ->
+                        bytes = if (bytes == null) event.data else bytes + event.data
 
-                    is StreamEvent.OutputBegin -> Unit
-
-                    is StreamEvent.CommandEnd -> pipe.builder.applyCommandEnd(parsed.exitCode)
+                    is EngineEvent.Exited -> shellExited = true
                 }
             }
-            refreshSession(id)
-        }
-    }
 
-    private fun handleShellExit(id: Long) {
-        synchronized(lock) {
-            val pipe = pipes[id] ?: return
-            // The shell itself died; its exit code belongs to the shell,
-            // not to the last command, so close without one.
-            pipe.builder.applyCommandEnd(null)
+            bytes?.let { data ->
+                val encoded = android.util.Base64.encodeToString(data, android.util.Base64.NO_WRAP)
+                // Raw bytes hit the journal before parsing: the log stays
+                // the single source of truth regardless of parsing rules.
+                pipe.journal.append(JournalEvent.OutputArrived(encoded))
+                for (parsed in pipe.parser.feed(data)) {
+                    when (parsed) {
+                        is StreamEvent.Text -> pipe.builder.applyOutput(parsed.value)
+
+                        is StreamEvent.OutputBegin -> Unit
+
+                        is StreamEvent.CommandEnd -> pipe.builder.applyCommandEnd(parsed.exitCode)
+                    }
+                }
+            }
+
+            if (shellExited) {
+                // The shell itself died; its exit code belongs to the shell,
+                // not to the last command, so close without one.
+                pipe.builder.applyCommandEnd(null)
+            }
             refreshSession(id)
         }
     }
@@ -299,8 +321,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun performDelete(id: Long) {
         synchronized(lock) {
-            engineJobs.remove(id)?.cancel()
+            // Kill first so the reader sees EOF and unwinds naturally;
+            // then cancel the pipeline jobs and drop the queue.
             engines.remove(id)?.terminate()
+            rawQueues.remove(id)?.cancel()
+            engineJobs.remove(id)?.cancel()
             metas.remove(id)
             pipes.remove(id)
             nextCommandSeqs.remove(id)
@@ -630,6 +655,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     override fun onCleared() {
         engines.values.forEach { it.terminate() }
+        rawQueues.values.forEach { it.cancel() }
         super.onCleared()
     }
 

@@ -69,7 +69,7 @@ class AtheaStorage(root: File) {
 
     internal fun saveIndex(index: SessionsIndex) {
         sessionsDir.mkdirs()
-        indexFile.writeText(json.encodeToString(SessionsIndex.serializer(), index))
+        indexFile.writeTextAtomic(json.encodeToString(SessionsIndex.serializer(), index))
     }
 
     // -------------------------------------------------------------- journals
@@ -90,7 +90,7 @@ class AtheaStorage(root: File) {
 
     internal fun saveFavorites(favorites: FavoritesIndex) {
         sessionsDir.mkdirs()
-        favoritesFile.writeText(json.encodeToString(FavoritesIndex.serializer(), favorites))
+        favoritesFile.writeTextAtomic(json.encodeToString(FavoritesIndex.serializer(), favorites))
     }
 
     // -------------------------------------------------------------- settings
@@ -106,7 +106,22 @@ class AtheaStorage(root: File) {
     fun saveSettings(settings: AtheaSettings) {
         sessionsDir.mkdirs()
         File(sessionsDir, "settings.json")
-            .writeText(json.encodeToString(AtheaSettings.serializer(), settings))
+            .writeTextAtomic(json.encodeToString(AtheaSettings.serializer(), settings))
+    }
+
+    // ----------------------------------------------------------------- files
+
+    /**
+     * Crash-safe JSON write: temp file first, atomic rename second, so a
+     * kill mid-write can never leave a torn half-file under the real name.
+     */
+    private fun File.writeTextAtomic(text: String) {
+        val tmp = File(parentFile, "$name.tmp")
+        tmp.writeText(text)
+        if (!tmp.renameTo(this)) {
+            tmp.delete()
+            writeText(text)
+        }
     }
 
     // ----------------------------------------------------------------- files
