@@ -1,0 +1,222 @@
+package com.athea.app.ui.main
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.OpenInFull
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import com.athea.app.R
+import com.athea.app.ui.SearchState
+import com.athea.app.ui.theme.CodeStyle
+
+private val FieldShape = RoundedCornerShape(24.dp)
+
+@Composable
+fun InputBar(
+    draft: String,
+    onDraftChange: (String) -> Unit,
+    onSend: () -> Unit,
+    onExpandEditor: () -> Unit,
+    search: SearchState?,
+    onSearchQueryChange: (String) -> Unit,
+    onSearchNext: () -> Unit,
+    onExitSearch: () -> Unit,
+    enterSends: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        tonalElevation = 3.dp,
+        color = MaterialTheme.colorScheme.surface,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        if (search == null) {
+            DraftRow(
+                draft = draft,
+                onDraftChange = onDraftChange,
+                onSend = onSend,
+                onExpandEditor = onExpandEditor,
+                enterSends = enterSends,
+            )
+        } else {
+            SearchRow(
+                query = search.query,
+                matchIndex = search.index,
+                matchCount = search.matchBlockIds.size,
+                onQueryChange = onSearchQueryChange,
+                onNext = onSearchNext,
+                onExit = onExitSearch,
+            )
+        }
+    }
+}
+
+/** Union of navigation-bar and IME insets: correct spacing with the keyboard open and closed. */
+private fun Modifier.barPadding(): Modifier =
+    this
+        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+        .padding(horizontal = 10.dp, vertical = 8.dp)
+
+@Composable
+private fun DraftRow(
+    draft: String,
+    onDraftChange: (String) -> Unit,
+    onSend: () -> Unit,
+    onExpandEditor: () -> Unit,
+    enterSends: Boolean,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .barPadding(),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        TextField(
+            value = draft,
+            onValueChange = onDraftChange,
+            modifier = Modifier.weight(1f),
+            placeholder = { Text(stringResource(R.string.input_hint)) },
+            textStyle = CodeStyle.copy(color = MaterialTheme.colorScheme.onSurface),
+            maxLines = 4,
+            shape = FieldShape,
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+            ),
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.None,
+                keyboardType = KeyboardType.Ascii,
+                imeAction = if (enterSends) ImeAction.Send else ImeAction.NewLine,
+            ),
+            keyboardActions = KeyboardActions(
+                onSend = { onSend() },
+            ),
+        )
+        IconButton(onClick = onExpandEditor) {
+            Icon(
+                Icons.Default.OpenInFull,
+                contentDescription = stringResource(R.string.cd_expand_editor),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        FilledIconButton(
+            onClick = onSend,
+            shape = CircleShape,
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            ),
+            modifier = Modifier.size(46.dp),
+        ) {
+            Icon(
+                Icons.Default.Send,
+                contentDescription = stringResource(R.string.cd_send),
+                modifier = Modifier.rotate(-90f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SearchRow(
+    query: String,
+    matchIndex: Int,
+    matchCount: Int,
+    onQueryChange: (String) -> Unit,
+    onNext: () -> Unit,
+    onExit: () -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .barPadding(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        TextField(
+            value = query,
+            onValueChange = onQueryChange,
+            modifier = Modifier.weight(1f),
+            placeholder = { Text(stringResource(R.string.search_in_session_hint)) },
+            textStyle = CodeStyle.copy(color = MaterialTheme.colorScheme.onSurface),
+            singleLine = true,
+            shape = FieldShape,
+            leadingIcon = {
+                Icon(
+                    Icons.Default.Search,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+            ),
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.None,
+                keyboardType = KeyboardType.Ascii,
+                imeAction = ImeAction.Search,
+            ),
+            keyboardActions = KeyboardActions(onSearch = { onNext() }),
+        )
+        Text(
+            text = "${matchIndex + 1}/$matchCount",
+            style = MaterialTheme.typography.labelMedium.copy(fontFamily = FontFamily.Monospace),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 4.dp),
+        )
+        IconButton(onClick = onNext) {
+            Icon(
+                Icons.Default.KeyboardArrowDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        IconButton(onClick = onExit) {
+            Icon(
+                Icons.Default.Close,
+                contentDescription = stringResource(R.string.cd_close),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}

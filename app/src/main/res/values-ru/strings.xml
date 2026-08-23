@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Athea</string>
+    <string name="default_session_name">Сессия %1$d</string>
+
+    <string name="cd_open_drawer">Открыть список сессий</string>
+    <string name="cd_new_session">Новая сессия</string>
+    <string name="cd_search">Поиск по сессии</string>
+    <string name="cd_more">Ещё</string>
+    <string name="cd_back">Назад</string>
+    <string name="cd_close">Закрыть</string>
+    <string name="cd_send">Отправить</string>
+    <string name="cd_expand_editor">Развернуть редактор</string>
+
+    <string name="input_hint">Введите команду…</string>
+    <string name="editor_title">Редактор</string>
+    <string name="select_text_title">Выбор текста</string>
+    <string name="search_in_session_hint">Поиск по сессии</string>
+
+    <string name="menu_search">Поиск</string>
+    <string name="menu_rename">Переименовать</string>
+    <string name="menu_pin">Закрепить</string>
+    <string name="menu_unpin">Открепить</string>
+    <string name="menu_display_block">Вид: блоки</string>
+    <string name="menu_display_raw">Вид: поток</string>
+    <string name="menu_delete">Удалить</string>
+
+    <string name="rename_title">Переименовать сессию</string>
+    <string name="delete_confirm_title">Удалить сессию?</string>
+    <string name="delete_confirm_text">Процесс в сессии «%1$s» будет остановлен. Действие необратимо.</string>
+    <string name="dialog_cancel">Отмена</string>
+    <string name="dialog_ok">ОК</string>
+    <string name="dialog_save">Сохранить</string>
+
+    <string name="copy">Копировать</string>
+    <string name="select_text">Выделить текст</string>
+    <string name="add_to_favorites">В избранное</string>
+    <string name="copied">Скопировано</string>
+
+    <string name="drawer_sessions">Сессии</string>
+    <string name="favorites">Избранное</string>
+    <string name="favorites_empty">Долгое нажатие на отправленную команду добавит её сюда</string>
+    <string name="settings">Настройки</string>
+
+    <string name="settings_placeholder">Настройки появятся на следующем этапе</string>
+    <string name="shell_start_failed">Не удалось запустить оболочку</string>
+    <string name="exit_code">код возврата %1$d</string>
+
+    <plurals name="output_lines">
+        <item quantity="one">%d строка</item>
+        <item quantity="few">%d строки</item>
+        <item quantity="many">%d строк</item>
+        <item quantity="other">%d строки</item>
+    </plurals>
+</resources>

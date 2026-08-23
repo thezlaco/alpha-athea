@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Athea</string>
+    <string name="default_session_name">Session %1$d</string>
+
+    <!-- Content descriptions -->
+    <string name="cd_open_drawer">Open sessions drawer</string>
+    <string name="cd_new_session">New session</string>
+    <string name="cd_search">Search in session</string>
+    <string name="cd_more">More options</string>
+    <string name="cd_back">Back</string>
+    <string name="cd_close">Close</string>
+    <string name="cd_send">Send</string>
+    <string name="cd_expand_editor">Expand editor</string>
+
+    <!-- Main screen -->
+    <string name="input_hint">Type a command…</string>
+    <string name="editor_title">Editor</string>
+    <string name="select_text_title">Select text</string>
+    <string name="search_in_session_hint">Search in session</string>
+
+    <!-- Session menu -->
+    <string name="menu_search">Search</string>
+    <string name="menu_rename">Rename</string>
+    <string name="menu_pin">Pin</string>
+    <string name="menu_unpin">Unpin</string>
+    <string name="menu_display_block">Blocks view</string>
+    <string name="menu_display_raw">Raw stream</string>
+    <string name="menu_delete">Delete</string>
+
+    <!-- Dialogs -->
+    <string name="rename_title">Rename session</string>
+    <string name="delete_confirm_title">Delete session?</string>
+    <string name="delete_confirm_text">The process in “%1$s” will be terminated. This cannot be undone.</string>
+    <string name="dialog_cancel">Cancel</string>
+    <string name="dialog_ok">OK</string>
+    <string name="dialog_save">Save</string>
+
+    <!-- Message actions -->
+    <string name="copy">Copy</string>
+    <string name="select_text">Select text</string>
+    <string name="add_to_favorites">Add to favorites</string>
+    <string name="copied">Copied</string>
+
+    <!-- Drawer -->
+    <string name="drawer_sessions">Sessions</string>
+    <string name="favorites">Favorites</string>
+    <string name="favorites_empty">Long-press a sent command to add it here</string>
+    <string name="settings">Settings</string>
+
+    <!-- Misc -->
+    <string name="settings_placeholder">Settings will arrive in a later stage</string>
+    <string name="shell_start_failed">Could not start the shell</string>
+    <string name="exit_code">exit %1$d</string>
+
+    <plurals name="output_lines">
+        <item quantity="one">%d line</item>
+        <item quantity="other">%d lines</item>
+    </plurals>
+</resources>
