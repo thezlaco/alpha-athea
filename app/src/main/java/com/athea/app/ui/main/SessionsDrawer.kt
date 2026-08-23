@@ -182,13 +182,13 @@ private fun SessionRow(
     ) {
         Row(
             Modifier
-                .padding(start = 20.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+                .padding(start = 20.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             ProcessDot(running = session.running)
             Text(
                 text = session.name,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier

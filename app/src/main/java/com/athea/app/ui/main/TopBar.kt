@@ -77,14 +77,14 @@ fun TopBar(
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onSearch) {
+                IconButton(onClick = onSearch, modifier = Modifier.size(40.dp)) {
                     Icon(
                         Icons.Default.Search,
                         contentDescription = stringResource(R.string.cd_search),
                         tint = MaterialTheme.colorScheme.onSurface,
                     )
                 }
-                IconButton(onClick = onNewSession) {
+                IconButton(onClick = onNewSession, modifier = Modifier.size(40.dp)) {
                     Icon(
                         Icons.Default.Add,
                         contentDescription = stringResource(R.string.cd_new_session),
@@ -92,7 +92,7 @@ fun TopBar(
                     )
                 }
                 Box {
-                    IconButton(onClick = { menuOpen = true }) {
+                    IconButton(onClick = { menuOpen = true }, modifier = Modifier.size(40.dp)) {
                         Icon(
                             Icons.Default.MoreVert,
                             contentDescription = stringResource(R.string.cd_more),

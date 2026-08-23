@@ -31,11 +31,13 @@ import com.athea.app.R
 fun SettingsScreen(
     keyRowVisible: Boolean,
     enterSends: Boolean,
+    autoScrollOnSend: Boolean,
     outputFontSizeSp: Int,
     previewLines: Int,
     bubbleFontSizeSp: Int,
     onKeyRowVisibleChange: (Boolean) -> Unit,
     onEnterSendsChange: (Boolean) -> Unit,
+    onAutoScrollOnSendChange: (Boolean) -> Unit,
     onOutputFontSizeChange: (Int) -> Unit,
     onPreviewLinesChange: (Int) -> Unit,
     onBubbleFontSizeChange: (Int) -> Unit,
@@ -87,6 +89,12 @@ fun SettingsScreen(
                     subtitle = stringResource(R.string.settings_enter_sends_desc),
                     checked = enterSends,
                     onChange = onEnterSendsChange,
+                )
+                SwitchRow(
+                    title = stringResource(R.string.settings_auto_scroll),
+                    subtitle = stringResource(R.string.settings_auto_scroll_desc),
+                    checked = autoScrollOnSend,
+                    onChange = onAutoScrollOnSendChange,
                 )
 
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))

@@ -11,6 +11,7 @@
     <string name="cd_close">Закрыть</string>
     <string name="cd_send">Отправить</string>
     <string name="cd_expand_editor">Развернуть редактор</string>
+    <string name="cd_scroll_down">Прокрутить вниз</string>
 
     <string name="input_hint">Введите команду…</string>
     <string name="editor_title">Редактор</string>
@@ -50,6 +51,8 @@
     <string name="settings_key_row_desc">Дополнительные клавиши над транскриптом</string>
     <string name="settings_enter_sends">Enter отправляет команду</string>
     <string name="settings_enter_sends_desc">Выключено — Enter переносит строку</string>
+    <string name="settings_auto_scroll">Переходить в конец при отправке</string>
+    <string name="settings_auto_scroll_desc">После отправки транскрипт следует за новейшим ответом</string>
     <string name="settings_font_size">Размер шрифта вывода</string>
     <string name="settings_preview_lines">Строк превью команды</string>
     <string name="settings_bubble_size">Размер шрифта сообщений</string>

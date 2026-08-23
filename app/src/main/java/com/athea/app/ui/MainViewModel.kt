@@ -63,6 +63,7 @@ data class UiState(
     val keyRowVisible: Boolean = true,
     val enterSends: Boolean = true,
     val outputFontSizeSp: Int = 13,
+    val autoScrollOnSend: Boolean = true,
     val previewLines: Int = 3,
     val bubbleFontSizeSp: Int = 16,
     val showSettings: Boolean = false,
@@ -110,6 +111,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
     val scrollRequests: SharedFlow<String> = _scrollRequests.asSharedFlow()
+
+    /** One-shot requests to force the transcript to its very bottom. */
+    private val _jumpToBottom = MutableSharedFlow<Unit>(
+        extraBufferCapacity = 4,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+    val jumpToBottom: SharedFlow<Unit> = _jumpToBottom.asSharedFlow()
 
     private val storage = AtheaStorage(application.filesDir)
 
@@ -173,6 +181,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 keyRowVisible = settings.keyRowVisible,
                 enterSends = settings.enterSends,
                 outputFontSizeSp = settings.outputFontSizeSp,
+                autoScrollOnSend = settings.autoScrollOnSend,
                 previewLines = settings.previewLines,
                 bubbleFontSizeSp = settings.bubbleFontSizeSp,
             )
@@ -371,6 +380,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         submit(id, draft)
         mutateMeta(id) { it.copy(draft = "") }
         persistTransientState()
+        jumpIfEnabled()
     }
 
     fun setEditorExpanded(expanded: Boolean) = _state.update {
@@ -388,6 +398,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val text = command.trimEnd('\n')
         if (text.isBlank()) return
         submit(id, text)
+        jumpIfEnabled()
+    }
+
+    private fun jumpIfEnabled() {
+        if (_state.value.autoScrollOnSend) _jumpToBottom.tryEmit(Unit)
     }
 
     /** Appends text to the editor draft (favorites: edit before running). */
@@ -559,6 +574,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         saveSettings()
     }
 
+    fun setAutoScrollOnSend(value: Boolean) {
+        _state.update { it.copy(autoScrollOnSend = value) }
+        saveSettings()
+    }
+
     fun setShowSettings(visible: Boolean) = _state.update {
         it.copy(showSettings = visible)
     }
@@ -570,6 +590,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 keyRowVisible = st.keyRowVisible,
                 enterSends = st.enterSends,
                 outputFontSizeSp = st.outputFontSizeSp,
+                autoScrollOnSend = st.autoScrollOnSend,
                 previewLines = st.previewLines,
                 bubbleFontSizeSp = st.bubbleFontSizeSp,
             ),

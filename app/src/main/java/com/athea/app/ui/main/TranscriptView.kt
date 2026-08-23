@@ -42,9 +42,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,6 +72,7 @@ import com.athea.app.ui.theme.OnHighlightColor
 import com.athea.app.ui.theme.codeStyle
 import com.athea.app.ui.theme.messageStyle
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 
 private const val TAIL_LINES = 3
 private val FADE_HEIGHT = 24.dp
@@ -81,6 +84,7 @@ fun TranscriptView(
     session: SessionUi,
     search: SearchState?,
     scrollRequests: Flow<String>,
+    jumpToBottom: Flow<Unit>,
     previewLines: Int,
     onToggleBlock: (String) -> Unit,
     onRevealBlock: (String) -> Unit,
@@ -145,6 +149,17 @@ fun TranscriptView(
             }
         }
 
+        // Forced jumps to the very bottom (e.g. right after sending).
+        LaunchedEffect(session.id) {
+            jumpToBottom.collect {
+                if (itemCount > 0) listState.animateScrollToItem(itemCount - 1)
+            }
+        }
+
+        val canScrollForward by remember {
+            derivedStateOf { listState.canScrollForward }
+        }
+
         val currentMatchId = search?.matchBlockIds?.getOrNull(search.index)
 
         LazyColumn(
@@ -174,6 +189,28 @@ fun TranscriptView(
                         onToggle = { onToggleBlock(block.id) },
                     )
                 }
+            }
+        }
+
+        if (canScrollForward) {
+            val scope = rememberCoroutineScope()
+            Surface(
+                onClick = {
+                    if (itemCount > 0) scope.launch { listState.animateScrollToItem(itemCount - 1) }
+                },
+                shape = androidx.compose.foundation.shape.CircleShape,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 16.dp, bottom = 10.dp),
+            ) {
+                    Box(Modifier.size(36.dp), contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Default.KeyboardArrowDown,
+                            contentDescription = stringResource(R.string.cd_scroll_down),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
             }
         }
     }
@@ -218,7 +255,7 @@ private fun CommandBubble(
                     onLongClick = { menuOpen = true },
                 ),
         ) {
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+            Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 14.dp)) {
                 if (collapsed && collapsible) {
                     Box {
                         Text(

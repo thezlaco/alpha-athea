@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -112,7 +113,12 @@ private fun DraftPanel(
     modifier: Modifier = Modifier,
 ) {
     var lineCount by remember { mutableStateOf(1) }
-    val compact = lineCount <= 1
+    var grown by remember { mutableStateOf(false) }
+    if (draft.isEmpty()) grown = false
+    if (lineCount > 1) grown = true
+    // Sticky growth: a mid-length draft wraps in the narrow width but
+    // fits in the wide one - without the latch the panel flip-flops.
+    val compact = !grown
 
     Surface(
         shape = PanelShape,
@@ -145,7 +151,12 @@ private fun DraftPanel(
                     onSend = { onSend() },
                 ),
                 decorationBox = { inner ->
-                    Box {
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .then(if (compact) Modifier.heightIn(min = 36.dp) else Modifier),
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
                         if (draft.isEmpty()) {
                             Text(
                                 stringResource(R.string.input_hint),
@@ -171,12 +182,24 @@ private fun DraftPanel(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                val hasText = draft.isNotBlank()
                 FilledIconButton(
                     onClick = onSend,
+                    enabled = hasText,
                     shape = CircleShape,
                     colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        containerColor = if (hasText) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.surfaceContainer
+                        },
+                        contentColor = if (hasText) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     ),
                     modifier = Modifier.size(36.dp),
                 ) {

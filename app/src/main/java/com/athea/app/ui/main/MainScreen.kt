@@ -43,11 +43,13 @@ fun MainScreen(viewModel: MainViewModel) {
         SettingsScreen(
             keyRowVisible = state.keyRowVisible,
             enterSends = state.enterSends,
+            autoScrollOnSend = state.autoScrollOnSend,
             outputFontSizeSp = state.outputFontSizeSp,
             previewLines = state.previewLines,
             bubbleFontSizeSp = state.bubbleFontSizeSp,
             onKeyRowVisibleChange = viewModel::setKeyRowVisible,
             onEnterSendsChange = viewModel::setEnterSends,
+            onAutoScrollOnSendChange = viewModel::setAutoScrollOnSend,
             onOutputFontSizeChange = viewModel::setOutputFontSize,
             onPreviewLinesChange = viewModel::setPreviewLines,
             onBubbleFontSizeChange = viewModel::setBubbleFontSize,
@@ -155,16 +157,6 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
                     onDelete = { current?.let { viewModel.requestDelete(it.id) } },
                 )
 
-                if (state.keyRowVisible && state.search == null) {
-                    KeyRow(
-                        stickyCtrl = state.stickyCtrl,
-                        onInsert = viewModel::insertIntoDraft,
-                        onSendBytes = viewModel::sendDirectText,
-                        onToggleStickyCtrl = viewModel::toggleStickyCtrl,
-                        onConsumeStickyCtrl = viewModel::consumeStickyCtrl,
-                    )
-                }
-
                 Box(
                     Modifier
                         .weight(1f)
@@ -175,6 +167,7 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
                             session = current,
                             search = state.search,
                             scrollRequests = viewModel.scrollRequests,
+                            jumpToBottom = viewModel.jumpToBottom,
                             previewLines = state.previewLines,
                             onToggleBlock = viewModel::toggleBlockCollapsed,
                             onRevealBlock = viewModel::revealBlock,
@@ -191,6 +184,16 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
+                }
+
+                if (state.keyRowVisible && state.search == null) {
+                    KeyRow(
+                        stickyCtrl = state.stickyCtrl,
+                        onInsert = viewModel::insertIntoDraft,
+                        onSendBytes = viewModel::sendDirectText,
+                        onToggleStickyCtrl = viewModel::toggleStickyCtrl,
+                        onConsumeStickyCtrl = viewModel::consumeStickyCtrl,
+                    )
                 }
 
                 InputBar(
