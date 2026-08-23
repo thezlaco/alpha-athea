@@ -44,6 +44,7 @@
     <string name="settings">Настройки</string>
 
     <string name="shell_start_failed">Не удалось запустить оболочку</string>
+    <string name="shell_exited">Оболочка завершилась (код %1$d)</string>
     <string name="exit_code">код возврата %1$d</string>
 
     <!-- Settings screen -->

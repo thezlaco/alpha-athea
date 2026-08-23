@@ -59,6 +59,22 @@ sleep 10
 adb shell screencap -p /sdcard/screen_launch.png
 adb pull /sdcard/screen_launch.png "$LOG_DIR/screen_launch.png" || true
 
+# Drive a real command through the UI, then dump the app journal:
+# the journal distinguishes "submit broken" (no cmd record) from
+# "engine write broken" (cmd without out) from "working" (cmd + out).
+W=$(adb shell wm size | grep -oE '[0-9]+x[0-9]+' | cut -d'x' -f1)
+H=$(adb shell wm size | grep -oE '[0-9]+x[0-9]+' | cut -d'x' -f2)
+adb shell input tap "$((W / 2))" "$((H - 220))" || true
+sleep 2
+adb shell input text "echo%sathea-smoke" || true
+sleep 1
+adb shell input tap "$((W - 90))" "$((H - 220))" || true
+sleep 5
+adb shell run-as com.athea.app sh -c 'cat files/sessions/*/journal.log 2>/dev/null; echo "---index---"; cat files/sessions/index.json 2>/dev/null' \
+  > "$LOG_DIR/app_journal.txt" 2>&1 || echo "run-as failed" >> "$LOG_DIR/app_journal.txt"
+adb shell screencap -p /sdcard/screen_after.png
+adb pull /sdcard/screen_after.png "$LOG_DIR/screen_after.png" || true
+
 for i in $(seq 1 30); do
   if ! adb shell pidof "$PKG" > /dev/null 2>&1; then
     echo "CRASH_DETECTED_AT_SECOND_${i}" >> "$LOG_DIR/crash_status.txt"

@@ -7,8 +7,13 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
@@ -22,8 +27,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.athea.app.R
 import com.athea.app.core.model.DisplayMode
@@ -96,6 +105,9 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
                 UiEvent.ShellStartFailed ->
                     context.getString(R.string.shell_start_failed)
 
+                is UiEvent.ShellExited ->
+                    context.getString(R.string.shell_exited, event.exitCode)
+
                 UiEvent.CopiedToClipboard ->
                     context.getString(R.string.copied)
             }
@@ -127,36 +139,19 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
     ) {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
+            // Full-bleed: the scrim and floating top buttons must reach
+            // the status bar; insets are handled per-component instead.
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
             snackbarHost = { SnackbarHost(snackbarHostState) },
         ) { padding ->
+            val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+            val topScrimHeight = statusBarTop + 30.dp
             Column(
                 Modifier
                     .fillMaxSize()
                     .padding(padding)
                     .background(MaterialTheme.colorScheme.background),
             ) {
-                TopBar(
-                    displayBlocks = current?.displayMode != DisplayMode.RAW,
-                    pinned = current?.pinned ?: false,
-                    onOpenDrawer = { scope.launch { drawerState.open() } },
-                    onNewSession = viewModel::newSession,
-                    onSearch = viewModel::enterSearch,
-                    onRename = { current?.let { viewModel.requestRename(it.id) } },
-                    onTogglePin = { current?.let { viewModel.togglePin(it.id) } },
-                    onToggleDisplayMode = {
-                        current?.let {
-                            val mode =
-                                if (it.displayMode == DisplayMode.BLOCKS) {
-                                    DisplayMode.RAW
-                                } else {
-                                    DisplayMode.BLOCKS
-                                }
-                            viewModel.setDisplayMode(mode)
-                        }
-                    },
-                    onDelete = { current?.let { viewModel.requestDelete(it.id) } },
-                )
-
                 Box(
                     Modifier
                         .weight(1f)
@@ -169,6 +164,7 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
                             scrollRequests = viewModel.scrollRequests,
                             jumpToBottom = viewModel.jumpToBottom,
                             previewLines = state.previewLines,
+                            contentTopPadding = statusBarTop + 62.dp,
                             onToggleBlock = viewModel::toggleBlockCollapsed,
                             onRevealBlock = viewModel::revealBlock,
                             onLocateBlock = { blockId ->
@@ -184,15 +180,43 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
-                }
 
-                if (state.keyRowVisible && state.search == null) {
-                    KeyRow(
-                        stickyCtrl = state.stickyCtrl,
-                        onInsert = viewModel::insertIntoDraft,
-                        onSendBytes = viewModel::sendDirectText,
-                        onToggleStickyCtrl = viewModel::toggleStickyCtrl,
-                        onConsumeStickyCtrl = viewModel::consumeStickyCtrl,
+                    // Scrim: full-width darkening that starts at half the
+                    // height of the top buttons and deepens toward the top
+                    // edge, so content scrolling underneath fades away.
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(topScrimHeight)
+                            .background(
+                                Brush.verticalGradient(
+                                    0f to Color.Black,
+                                    1f to Color.Transparent,
+                                )
+                            ),
+                    )
+
+                    TopBar(
+                        modifier = Modifier.align(Alignment.TopCenter),
+                        displayBlocks = current?.displayMode != DisplayMode.RAW,
+                        pinned = current?.pinned ?: false,
+                        onOpenDrawer = { scope.launch { drawerState.open() } },
+                        onNewSession = viewModel::newSession,
+                        onSearch = viewModel::enterSearch,
+                        onRename = { current?.let { viewModel.requestRename(it.id) } },
+                        onTogglePin = { current?.let { viewModel.togglePin(it.id) } },
+                        onToggleDisplayMode = {
+                            current?.let {
+                                val mode =
+                                    if (it.displayMode == DisplayMode.BLOCKS) {
+                                        DisplayMode.RAW
+                                    } else {
+                                        DisplayMode.BLOCKS
+                                    }
+                                viewModel.setDisplayMode(mode)
+                            }
+                        },
+                        onDelete = { current?.let { viewModel.requestDelete(it.id) } },
                     )
                 }
 
@@ -207,6 +231,19 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
                     onExitSearch = viewModel::exitSearch,
                     enterSends = state.enterSends,
                 )
+
+                if (state.keyRowVisible && state.search == null) {
+                    KeyRow(
+                        stickyCtrl = state.stickyCtrl,
+                        onInsert = viewModel::insertIntoDraft,
+                        onSendBytes = viewModel::sendDirectText,
+                        onToggleStickyCtrl = viewModel::toggleStickyCtrl,
+                        onConsumeStickyCtrl = viewModel::consumeStickyCtrl,
+                        // Bottom inset is handled by the row itself so it
+                        // sits flush under the composer.
+                        modifier = Modifier.navigationBarsPadding(),
+                    )
+                }
             }
         }
     }

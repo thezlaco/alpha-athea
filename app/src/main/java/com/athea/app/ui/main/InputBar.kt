@@ -21,7 +21,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.OpenInFull
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,7 +38,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
@@ -53,6 +52,10 @@ import com.athea.app.ui.theme.messageStyle
 
 private val PanelShape = RoundedCornerShape(28.dp)
 private val BUTTON_ROW_HEIGHT = 44.dp
+
+/** Space the buttons occupy at the tail of the field, shared by every
+ *  layout that reserves room for them. */
+private val FIELD_END_SPACE = 84.dp
 
 @Composable
 fun InputBar(
@@ -134,7 +137,8 @@ private fun DraftPanel(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(
-                        end = if (compact) 96.dp else 8.dp,
+                        start = 10.dp,
+                        end = if (compact) FIELD_END_SPACE else 8.dp,
                         bottom = if (compact) 0.dp else BUTTON_ROW_HEIGHT,
                     ),
                 textStyle = messageStyle().copy(color = MaterialTheme.colorScheme.onSurface),
@@ -204,9 +208,8 @@ private fun DraftPanel(
                     modifier = Modifier.size(36.dp),
                 ) {
                     Icon(
-                        Icons.Default.Send,
+                        Icons.Default.ArrowUpward,
                         contentDescription = stringResource(R.string.cd_send),
-                        modifier = Modifier.rotate(-90f),
                     )
                 }
             }

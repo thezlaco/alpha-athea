@@ -46,10 +46,12 @@ internal class NativeShellEngine(
             masterFd = handle[0]
             childPid = handle[1]
             _isAlive.value = true
+            android.util.Log.i("AtheaShell", "shell spawned, pid=$childPid fd=$masterFd")
             Thread({ readLoop(masterFd) }, "athea-pty-reader").start()
             Thread({ waitLoop(childPid) }, "athea-pty-waiter").start()
             true
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            android.util.Log.e("AtheaShell", "start failed", e)
             _isAlive.value = false
             false
         }
@@ -105,6 +107,7 @@ internal class NativeShellEngine(
         }
         if (exitReported.compareAndSet(false, true)) {
             _isAlive.value = false
+            android.util.Log.w("AtheaShell", "shell exited, code=$code")
             _events.tryEmit(EngineEvent.Exited(code))
             val fd = masterFd
             if (fd >= 0) {

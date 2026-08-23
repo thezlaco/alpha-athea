@@ -75,6 +75,7 @@ data class UiState(
 
 sealed interface UiEvent {
     data object ShellStartFailed : UiEvent
+    data class ShellExited(val exitCode: Int) : UiEvent
     data object CopiedToClipboard : UiEvent
 }
 
@@ -235,12 +236,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val pipe = pipes[id] ?: return
             var bytes: ByteArray? = null
             var shellExited = false
+            var shellExitCode: Int? = null
             for (event in batch) {
                 when (event) {
                     is EngineEvent.Output ->
                         bytes = if (bytes == null) event.data else bytes + event.data
 
-                    is EngineEvent.Exited -> shellExited = true
+                    is EngineEvent.Exited -> {
+                        shellExited = true
+                        shellExitCode = event.exitCode
+                    }
                 }
             }
 
@@ -263,6 +268,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 // The shell itself died; its exit code belongs to the shell,
                 // not to the last command, so close without one.
                 pipe.builder.applyCommandEnd(null)
+                _events.tryEmit(UiEvent.ShellExited(shellExitCode ?: -1))
             }
             refreshSession(id)
         }

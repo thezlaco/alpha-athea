@@ -51,6 +51,7 @@
 
     <!-- Misc -->
     <string name="shell_start_failed">Could not start the shell</string>
+    <string name="shell_exited">Shell exited (code %1$d)</string>
     <string name="exit_code">exit %1$d</string>
 
     <!-- Settings screen -->

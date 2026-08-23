@@ -47,11 +47,12 @@ fun TopBar(
     onTogglePin: () -> Unit,
     onToggleDisplayMode: () -> Unit,
     onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .statusBarsPadding()
             .padding(horizontal = 10.dp, vertical = 6.dp),
@@ -63,7 +64,7 @@ fun TopBar(
             shape = CircleShape,
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
-            Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
                 Icon(
                     Icons.Default.Menu,
                     contentDescription = stringResource(R.string.cd_open_drawer),
@@ -77,14 +78,14 @@ fun TopBar(
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onSearch, modifier = Modifier.size(40.dp)) {
+                IconButton(onClick = onSearch) {
                     Icon(
                         Icons.Default.Search,
                         contentDescription = stringResource(R.string.cd_search),
                         tint = MaterialTheme.colorScheme.onSurface,
                     )
                 }
-                IconButton(onClick = onNewSession, modifier = Modifier.size(40.dp)) {
+                IconButton(onClick = onNewSession) {
                     Icon(
                         Icons.Default.Add,
                         contentDescription = stringResource(R.string.cd_new_session),
@@ -92,7 +93,7 @@ fun TopBar(
                     )
                 }
                 Box {
-                    IconButton(onClick = { menuOpen = true }, modifier = Modifier.size(40.dp)) {
+                    IconButton(onClick = { menuOpen = true }) {
                         Icon(
                             Icons.Default.MoreVert,
                             contentDescription = stringResource(R.string.cd_more),

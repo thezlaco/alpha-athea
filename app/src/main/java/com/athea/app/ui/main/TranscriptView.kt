@@ -86,6 +86,7 @@ fun TranscriptView(
     scrollRequests: Flow<String>,
     jumpToBottom: Flow<Unit>,
     previewLines: Int,
+    contentTopPadding: Dp,
     onToggleBlock: (String) -> Unit,
     onRevealBlock: (String) -> Unit,
     onLocateBlock: (String) -> Int,
@@ -165,7 +166,10 @@ fun TranscriptView(
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(vertical = 8.dp),
+            contentPadding = PaddingValues(
+                top = contentTopPadding + 8.dp,
+                bottom = 8.dp,
+            ),
         ) {
             items(views, key = { it.block.id }) { view ->
                 when (val block = view.block) {
