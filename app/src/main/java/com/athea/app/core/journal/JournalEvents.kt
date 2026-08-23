@@ -21,14 +21,20 @@ sealed class JournalEvent {
     ) : JournalEvent()
 
     /**
-     * Raw bytes as they arrived from the engine (base64). Stored before
-     * parsing so parser improvements apply retroactively on replay.
+     * Raw bytes as they arrived from the engine. Stored verbatim (no
+     * base64, no escaping) so parser improvements apply retroactively on
+     * replay at zero encoding cost.
      */
     @Serializable
     @SerialName("out")
     data class OutputArrived(
-        val base64: String,
-    ) : JournalEvent()
+        val bytes: ByteArray,
+    ) : JournalEvent() {
+        override fun equals(other: Any?): Boolean =
+            other is OutputArrived && bytes.contentEquals(other.bytes)
+
+        override fun hashCode(): Int = bytes.contentHashCode()
+    }
 
     /** A real command boundary reported by a shell integration mark. */
     @Serializable

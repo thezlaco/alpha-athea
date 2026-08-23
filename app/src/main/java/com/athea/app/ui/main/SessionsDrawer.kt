@@ -27,10 +27,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.StarBorder
@@ -171,11 +169,11 @@ private fun SessionRow(
     Box(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 2.dp)
-            .clip(RoundedCornerShape(12.dp))
+            // Selection spans the full row edge to edge, no rounding -
+            // calmer, like chat apps do it.
             .background(
                 if (selected) {
-                    MaterialTheme.colorScheme.secondaryContainer
+                    MaterialTheme.colorScheme.surfaceContainerHigh
                 } else {
                     androidx.compose.ui.graphics.Color.Transparent
                 }
@@ -184,7 +182,7 @@ private fun SessionRow(
     ) {
         Row(
             Modifier
-                .padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+                .padding(start = 20.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             ProcessDot(running = session.running)
@@ -206,40 +204,30 @@ private fun SessionRow(
                 )
                 Spacer(Modifier.width(2.dp))
             }
-            Box {
-                IconButton(onClick = { menuOpen = true }) {
-                    Icon(
-                        Icons.Default.MoreVert,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.menu_rename)) },
-                        onClick = { menuOpen = false; onRename() },
-                    )
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                stringResource(
-                                    if (session.pinned) R.string.menu_unpin else R.string.menu_pin
-                                )
+            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.menu_rename)) },
+                    onClick = { menuOpen = false; onRename() },
+                )
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            stringResource(
+                                if (session.pinned) R.string.menu_unpin else R.string.menu_pin
                             )
-                        },
-                        onClick = { menuOpen = false; onTogglePin() },
-                    )
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                stringResource(R.string.menu_delete),
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                        },
-                        onClick = { menuOpen = false; onDelete() },
-                    )
-                }
+                        )
+                    },
+                    onClick = { menuOpen = false; onTogglePin() },
+                )
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            stringResource(R.string.menu_delete),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    },
+                    onClick = { menuOpen = false; onDelete() },
+                )
             }
         }
     }

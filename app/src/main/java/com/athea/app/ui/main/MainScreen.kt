@@ -134,7 +134,6 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
                     .background(MaterialTheme.colorScheme.background),
             ) {
                 TopBar(
-                    title = current?.name.orEmpty(),
                     displayBlocks = current?.displayMode != DisplayMode.RAW,
                     pinned = current?.pinned ?: false,
                     onOpenDrawer = { scope.launch { drawerState.open() } },

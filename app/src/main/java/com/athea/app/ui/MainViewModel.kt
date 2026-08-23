@@ -236,10 +236,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             bytes?.let { data ->
-                val encoded = android.util.Base64.encodeToString(data, android.util.Base64.NO_WRAP)
                 // Raw bytes hit the journal before parsing: the log stays
                 // the single source of truth regardless of parsing rules.
-                pipe.journal.append(JournalEvent.OutputArrived(encoded))
+                pipe.journal.append(JournalEvent.OutputArrived(data))
                 for (parsed in pipe.parser.feed(data)) {
                     when (parsed) {
                         is StreamEvent.Text -> pipe.builder.applyOutput(parsed.value)

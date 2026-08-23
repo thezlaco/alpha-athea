@@ -7,7 +7,6 @@ import com.athea.app.core.model.OutputBlock
 import com.athea.app.core.model.PREVIEW_LINES
 import com.athea.app.parse.StreamEvent
 import com.athea.app.parse.StreamParser
-import java.util.Base64
 
 /** A block plus its presentation-time collapse state. */
 data class BlockView(
@@ -203,21 +202,24 @@ class TranscriptBuilder(
                     is JournalEvent.CommandSubmitted ->
                         builder.applyCommandSubmitted(event.seq, event.text)
 
-                    is JournalEvent.OutputArrived ->
-                        runCatching { Base64.getDecoder().decode(event.base64) }
-                            .getOrNull()
-                            ?.let(parser::feed)
-                            ?.forEach { parsed ->
-                                when (parsed) {
-                                    is StreamEvent.Text ->
-                                        builder.applyOutput(parsed.value)
+                    is JournalEvent.OutputArrived -> {
+                        val parsedEvents = try {
+                            parser.feed(event.bytes)
+                        } catch (_: Exception) {
+                            emptyList()
+                        }
+                        for (parsed in parsedEvents) {
+                            when (parsed) {
+                                is StreamEvent.Text ->
+                                    builder.applyOutput(parsed.value)
 
-                                    is StreamEvent.OutputBegin -> Unit
+                                is StreamEvent.OutputBegin -> Unit
 
-                                    is StreamEvent.CommandEnd ->
-                                        builder.applyCommandEnd(parsed.exitCode)
-                                }
+                                is StreamEvent.CommandEnd ->
+                                    builder.applyCommandEnd(parsed.exitCode)
                             }
+                        }
+                    }
 
                     is JournalEvent.CommandFinished ->
                         builder.applyCommandEnd(event.exitCode)

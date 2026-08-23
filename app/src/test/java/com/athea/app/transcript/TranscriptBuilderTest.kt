@@ -8,15 +8,11 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.util.Base64
 
 class TranscriptBuilderTest {
 
-    private fun b64(text: String): String =
-        Base64.getEncoder().encodeToString(text.toByteArray(Charsets.UTF_8))
-
     private fun outputEvent(text: String) =
-        JournalEvent.OutputArrived(base64 = b64(text))
+        JournalEvent.OutputArrived(bytes = text.toByteArray(Charsets.UTF_8))
 
     @Test
     fun `command and marked output produce closed block with exit code`() {
