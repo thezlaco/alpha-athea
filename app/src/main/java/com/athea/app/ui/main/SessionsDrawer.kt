@@ -95,6 +95,7 @@ fun SessionsDrawerContent(
                 )
             ),
     ) {
+        Column(Modifier.fillMaxSize()) {
         Text(
             text = stringResource(R.string.drawer_sessions),
             style = MaterialTheme.typography.titleMedium,
@@ -170,8 +171,10 @@ fun SessionsDrawerContent(
                 modifier = Modifier.padding(start = 16.dp),
             )
         }
+        }
     }
 }
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SessionRow(
