@@ -197,7 +197,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // acquisition, one journal append, one refresh per burst.
         val queue = Channel<EngineEvent>(Channel.UNLIMITED)
         rawQueues[meta.id] = queue
-        launch(Dispatchers.Default) {
+        viewModelScope.launch(Dispatchers.Default) {
             engine.events.collect { queue.send(it) }
         }
         engineJobs[meta.id] = viewModelScope.launch(Dispatchers.Default) {
