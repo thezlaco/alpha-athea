@@ -31,7 +31,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.io.File
 
 /** Search within one session transcript. */
 data class SearchState(
@@ -106,7 +105,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     )
     val scrollRequests: SharedFlow<String> = _scrollRequests.asSharedFlow()
 
-    private val storage = AtheaStorage(File(application.filesDir))
+    private val storage = AtheaStorage(application.filesDir)
 
     private val metas = LinkedHashMap<Long, SessionMeta>()
     private val pipes = LinkedHashMap<Long, SessionPipe>()

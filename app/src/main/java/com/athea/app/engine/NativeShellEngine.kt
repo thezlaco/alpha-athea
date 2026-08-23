@@ -98,12 +98,9 @@ internal class NativeShellEngine(
     }
 
     private fun waitLoop(pid: Int) {
-        val status = android.util.MutableInt(0)
         var code = -1
         try {
-            Os.waitpid(pid, status, 0)
-            val st = status.value
-            code = if (st and 0x7F == 0) (st ushr 8) and 0xFF else -(st and 0x7F)
+            code = PtyBridge.waitPid(pid)
         } catch (_: Exception) {
         }
         if (exitReported.compareAndSet(false, true)) {

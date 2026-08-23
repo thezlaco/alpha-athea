@@ -20,6 +20,7 @@
 #include <termios.h>
 #include <signal.h>
 #include <sys/ioctl.h>
+#include <sys/wait.h>
 
 static void throw_io_exception(JNIEnv *env, const char *message) {
     jclass cls = (*env)->FindClass(env, "java/io/IOException");
@@ -181,4 +182,30 @@ Java_com_athea_app_engine_PtyBridge_closePty(JNIEnv *env, jobject thiz, jint fd)
     (void) env;
     (void) thiz;
     close((int) fd);
+}
+
+/*
+ * Blocking waitpid with the exit status already decoded: non-negative =
+ * exit code, negative = killed by signal N. Java has no public API for
+ * reaping a forked child, so this lives next to the fork itself.
+ */
+JNIEXPORT jint JNICALL
+Java_com_athea_app_engine_PtyBridge_waitPid(JNIEnv *env, jobject thiz, jint pid) {
+    (void) env;
+    (void) thiz;
+    int status = 0;
+    pid_t r;
+    do {
+        r = waitpid((pid_t) pid, &status, 0);
+    } while (r < 0 && errno == EINTR);
+    if (r < 0) {
+        return -1;
+    }
+    if (WIFEXITED(status)) {
+        return WEXITSTATUS(status);
+    }
+    if (WIFSIGNALED(status)) {
+        return -WTERMSIG(status);
+    }
+    return -1;
 }

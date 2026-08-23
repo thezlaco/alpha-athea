@@ -21,4 +21,7 @@ internal object PtyBridge {
     external fun resizePty(fd: Int, pid: Int, rows: Int, cols: Int)
 
     external fun closePty(fd: Int)
+
+    /** Blocking reap; returns exit code, or -signal when killed. */
+    external fun waitPid(pid: Int): Int
 }
