@@ -9,41 +9,58 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.sp
 
-// Fixed dark identity for the skeleton stage; light theme and dynamic
-// color arrive with the theming/settings stage.
+/*
+ * Chat-like identity: pure black canvas, two grays, near-white text.
+ * Many Material roles intentionally share one value - fewer colors,
+ * calmer screen.
+ *
+ *   #000000  canvas (background, surface)
+ *   #141414  quiet containers (drawer, key row)
+ *   #2F2F2F  raised containers (bubbles, chips, composer, selection)
+ *   #ECECEC  primary text
+ *   #9B9B9B  muted text and icons
+ *   #FFFFFF  accent (send button, cursor, live dot)
+ *   #FF453A  errors
+ */
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFF82AAFF),
-    onPrimary = Color(0xFF0A1B3D),
-    primaryContainer = Color(0xFF1C3A6E),
-    onPrimaryContainer = Color(0xFFD6E3FF),
-    secondary = Color(0xFF9ECEFF),
-    onSecondary = Color(0xFF0A1B3D),
-    secondaryContainer = Color(0xFF223047),
-    onSecondaryContainer = Color(0xFFD6E3FF),
-    background = Color(0xFF0D1117),
-    onBackground = Color(0xFFE6EDF3),
-    surface = Color(0xFF0D1117),
-    onSurface = Color(0xFFE6EDF3),
-    surfaceVariant = Color(0xFF1C2430),
-    onSurfaceVariant = Color(0xFF9DA7B3),
-    surfaceContainer = Color(0xFF141A22),
-    surfaceContainerHigh = Color(0xFF1B222C),
-    outline = Color(0xFF30363D),
-    error = Color(0xFFF85149),
-    onError = Color(0xFF2D0A08),
-    errorContainer = Color(0xFF3D1210),
-    onErrorContainer = Color(0xFFFFB4AB),
+    primary = Color(0xFFFFFFFF),
+    onPrimary = Color(0xFF000000),
+    primaryContainer = Color(0xFF2F2F2F),
+    onPrimaryContainer = Color(0xFFECECEC),
+    secondary = Color(0xFFFFFFFF),
+    onSecondary = Color(0xFF000000),
+    secondaryContainer = Color(0xFF2F2F2F),
+    onSecondaryContainer = Color(0xFFECECEC),
+    background = Color(0xFF000000),
+    onBackground = Color(0xFFECECEC),
+    surface = Color(0xFF000000),
+    onSurface = Color(0xFFECECEC),
+    surfaceVariant = Color(0xFF2F2F2F),
+    onSurfaceVariant = Color(0xFF9B9B9B),
+    surfaceContainer = Color(0xFF141414),
+    surfaceContainerHigh = Color(0xFF2F2F2F),
+    outline = Color(0xFF3A3A3C),
+    error = Color(0xFFFF453A),
+    onError = Color(0xFF000000),
+    errorContainer = Color(0xFF2F2F2F),
+    onErrorContainer = Color(0xFFFF453A),
 )
 
-/** Monospace style used across transcript, editor and key row. */
+/** Monospace style for terminal output, editor and key row. */
 val CodeStyle = TextStyle(
     fontFamily = FontFamily.Monospace,
     fontSize = 13.sp,
     lineHeight = 19.sp,
 )
 
+/** Chat-message style for command bubbles and the composer, like chat apps. */
+val MessageStyle = TextStyle(
+    fontSize = 16.sp,
+    lineHeight = 22.sp,
+)
+
 val HighlightColor = Color(0xFFBB8009)
-val OnHighlightColor = Color(0xFFE6EDF3)
+val OnHighlightColor = Color(0xFFECECEC)
 
 @Composable
 fun AtheaTheme(content: @Composable () -> Unit) {

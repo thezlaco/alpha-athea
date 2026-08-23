@@ -32,7 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.athea.app.R
-import com.athea.app.ui.theme.CodeStyle
+import com.athea.app.ui.theme.MessageStyle
 
 /**
  * Full-screen editing surface for long, multi-line input. Enter always
@@ -81,7 +81,7 @@ fun EditorOverlay(
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp)
                     .verticalScroll(rememberScrollState()),
-                textStyle = CodeStyle.copy(color = MaterialTheme.colorScheme.onBackground),
+                textStyle = MessageStyle.copy(color = MaterialTheme.colorScheme.onBackground),
                 shape = RoundedCornerShape(14.dp),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,

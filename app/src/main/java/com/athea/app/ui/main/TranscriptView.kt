@@ -68,6 +68,7 @@ import com.athea.app.ui.SearchState
 import com.athea.app.ui.SessionUi
 import com.athea.app.ui.theme.CodeStyle
 import com.athea.app.ui.theme.HighlightColor
+import com.athea.app.ui.theme.MessageStyle
 import com.athea.app.ui.theme.OnHighlightColor
 import kotlinx.coroutines.flow.Flow
 
@@ -198,7 +199,7 @@ private fun CommandBubble(
         horizontalArrangement = Arrangement.End,
     ) {
         Surface(
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(22.dp),
             color = MaterialTheme.colorScheme.secondaryContainer,
             border = if (currentMatch) {
                 BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
@@ -212,12 +213,12 @@ private fun CommandBubble(
                     onLongClick = { menuOpen = true },
                 ),
         ) {
-            Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
                 if (collapsed && collapsible) {
                     Box {
                         Text(
                             text = lines.take(PREVIEW_LINES).joinToString("\n"),
-                            style = CodeStyle,
+                            style = MessageStyle,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
                         Box(
@@ -244,7 +245,7 @@ private fun CommandBubble(
                 } else {
                     Text(
                         text = block.text,
-                        style = CodeStyle,
+                        style = MessageStyle,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
                 }

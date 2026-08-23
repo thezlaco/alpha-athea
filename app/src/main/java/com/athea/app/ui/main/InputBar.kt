@@ -1,6 +1,7 @@
 package com.athea.app.ui.main
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -42,9 +43,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.athea.app.R
 import com.athea.app.ui.SearchState
-import com.athea.app.ui.theme.CodeStyle
+import com.athea.app.ui.theme.MessageStyle
 
-private val FieldShape = RoundedCornerShape(24.dp)
+private val PanelShape = RoundedCornerShape(28.dp)
 
 @Composable
 fun InputBar(
@@ -59,29 +60,25 @@ fun InputBar(
     enterSends: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        tonalElevation = 3.dp,
-        color = MaterialTheme.colorScheme.surface,
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        if (search == null) {
-            DraftRow(
-                draft = draft,
-                onDraftChange = onDraftChange,
-                onSend = onSend,
-                onExpandEditor = onExpandEditor,
-                enterSends = enterSends,
-            )
-        } else {
-            SearchRow(
-                query = search.query,
-                matchIndex = search.index,
-                matchCount = search.matchBlockIds.size,
-                onQueryChange = onSearchQueryChange,
-                onNext = onSearchNext,
-                onExit = onExitSearch,
-            )
-        }
+    if (search == null) {
+        DraftPanel(
+            draft = draft,
+            onDraftChange = onDraftChange,
+            onSend = onSend,
+            onExpandEditor = onExpandEditor,
+            enterSends = enterSends,
+            modifier = modifier,
+        )
+    } else {
+        SearchPanel(
+            query = search.query,
+            matchIndex = search.index,
+            matchCount = search.matchBlockIds.size,
+            onQueryChange = onSearchQueryChange,
+            onNext = onSearchNext,
+            onExit = onExitSearch,
+            modifier = modifier,
+        )
     }
 }
 
@@ -92,133 +89,163 @@ private fun Modifier.barPadding(): Modifier =
         .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
         .padding(horizontal = 10.dp, vertical = 8.dp)
 
+/** One rounded panel holding both the field and its buttons, chat-app style. */
 @Composable
-private fun DraftRow(
+private fun DraftPanel(
     draft: String,
     onDraftChange: (String) -> Unit,
     onSend: () -> Unit,
     onExpandEditor: () -> Unit,
     enterSends: Boolean,
+    modifier: Modifier = Modifier,
 ) {
-    Row(
-        Modifier
+    Surface(
+        shape = PanelShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = modifier
             .fillMaxWidth()
             .barPadding(),
-        verticalAlignment = Alignment.Bottom,
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        TextField(
-            value = draft,
-            onValueChange = onDraftChange,
-            modifier = Modifier.weight(1f),
-            placeholder = { Text(stringResource(R.string.input_hint)) },
-            textStyle = CodeStyle.copy(color = MaterialTheme.colorScheme.onSurface),
-            maxLines = 4,
-            shape = FieldShape,
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-            ),
-            keyboardOptions = KeyboardOptions(
-                capitalization = KeyboardCapitalization.None,
-                keyboardType = KeyboardType.Ascii,
-                // None keeps the IME newline key: multi-line drafts stay possible.
-                imeAction = if (enterSends) ImeAction.Send else ImeAction.None,
-            ),
-            keyboardActions = KeyboardActions(
-                onSend = { onSend() },
-            ),
-        )
-        IconButton(onClick = onExpandEditor) {
-            Icon(
-                Icons.Default.OpenInFull,
-                contentDescription = stringResource(R.string.cd_expand_editor),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        Column {
+            TextField(
+                value = draft,
+                onValueChange = onDraftChange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 6.dp),
+                placeholder = {
+                    Text(
+                        stringResource(R.string.input_hint),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                textStyle = MessageStyle.copy(color = MaterialTheme.colorScheme.onSurface),
+                maxLines = 5,
+                shape = PanelShape,
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                ),
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.None,
+                    keyboardType = KeyboardType.Ascii,
+                    // None keeps the IME newline key: multi-line drafts stay possible.
+                    imeAction = if (enterSends) ImeAction.Send else ImeAction.None,
+                ),
+                keyboardActions = KeyboardActions(
+                    onSend = { onSend() },
+                ),
             )
-        }
-        FilledIconButton(
-            onClick = onSend,
-            shape = CircleShape,
-            colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            ),
-            modifier = Modifier.size(46.dp),
-        ) {
-            Icon(
-                Icons.Default.Send,
-                contentDescription = stringResource(R.string.cd_send),
-                modifier = Modifier.rotate(-90f),
-            )
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(end = 10.dp, bottom = 8.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onExpandEditor) {
+                    Icon(
+                        Icons.Default.OpenInFull,
+                        contentDescription = stringResource(R.string.cd_expand_editor),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                FilledIconButton(
+                    onClick = onSend,
+                    shape = CircleShape,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Icon(
+                        Icons.Default.Send,
+                        contentDescription = stringResource(R.string.cd_send),
+                        modifier = Modifier.rotate(-90f),
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun SearchRow(
+private fun SearchPanel(
     query: String,
     matchIndex: Int,
     matchCount: Int,
     onQueryChange: (String) -> Unit,
     onNext: () -> Unit,
     onExit: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Row(
-        Modifier
+    Surface(
+        shape = PanelShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = modifier
             .fillMaxWidth()
             .barPadding(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        TextField(
-            value = query,
-            onValueChange = onQueryChange,
-            modifier = Modifier.weight(1f),
-            placeholder = { Text(stringResource(R.string.search_in_session_hint)) },
-            textStyle = CodeStyle.copy(color = MaterialTheme.colorScheme.onSurface),
-            singleLine = true,
-            shape = FieldShape,
-            leadingIcon = {
+        Row(
+            Modifier.padding(horizontal = 6.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextField(
+                value = query,
+                onValueChange = onQueryChange,
+                modifier = Modifier.weight(1f),
+                placeholder = {
+                    Text(
+                        stringResource(R.string.search_in_session_hint),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                textStyle = MessageStyle.copy(color = MaterialTheme.colorScheme.onSurface),
+                singleLine = true,
+                shape = PanelShape,
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Search,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                ),
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.None,
+                    keyboardType = KeyboardType.Ascii,
+                    imeAction = ImeAction.Search,
+                ),
+                keyboardActions = KeyboardActions(onSearch = { onNext() }),
+            )
+            Text(
+                text = "${matchIndex + 1}/$matchCount",
+                style = MaterialTheme.typography.labelMedium.copy(fontFamily = FontFamily.Monospace),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+            IconButton(onClick = onNext) {
                 Icon(
-                    Icons.Default.Search,
+                    Icons.Default.KeyboardArrowDown,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            },
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-            ),
-            keyboardOptions = KeyboardOptions(
-                capitalization = KeyboardCapitalization.None,
-                keyboardType = KeyboardType.Ascii,
-                imeAction = ImeAction.Search,
-            ),
-            keyboardActions = KeyboardActions(onSearch = { onNext() }),
-        )
-        Text(
-            text = "${matchIndex + 1}/$matchCount",
-            style = MaterialTheme.typography.labelMedium.copy(fontFamily = FontFamily.Monospace),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 4.dp),
-        )
-        IconButton(onClick = onNext) {
-            Icon(
-                Icons.Default.KeyboardArrowDown,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        IconButton(onClick = onExit) {
-            Icon(
-                Icons.Default.Close,
-                contentDescription = stringResource(R.string.cd_close),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            }
+            IconButton(onClick = onExit) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = stringResource(R.string.cd_close),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
