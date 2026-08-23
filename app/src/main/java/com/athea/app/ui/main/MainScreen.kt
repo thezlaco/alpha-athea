@@ -51,6 +51,19 @@ fun MainScreen(viewModel: MainViewModel) {
         return
     }
 
+    if (state.showFavorites) {
+        BackHandler { viewModel.setShowFavorites(false) }
+        FavoritesScreen(
+            favorites = state.favorites,
+            onBack = { viewModel.setShowFavorites(false) },
+            onInsert = viewModel::insertIntoDraft,
+            onRun = viewModel::executeDirectly,
+            onEdit = viewModel::updateFavorite,
+            onDelete = viewModel::deleteFavorite,
+        )
+        return
+    }
+
     CompositionLocalProvider(LocalOutputFontSize provides state.outputFontSizeSp) {
         MainScreenContent(viewModel, state)
     }
@@ -86,7 +99,6 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
             SessionsDrawerContent(
                 sessions = state.sessions,
                 currentSessionId = state.currentSessionId,
-                favorites = state.favorites,
                 onSelectSession = { id ->
                     viewModel.selectSession(id)
                     scope.launch { drawerState.close() }
@@ -94,8 +106,7 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
                 onRenameSession = viewModel::requestRename,
                 onTogglePin = viewModel::togglePin,
                 onDeleteSession = viewModel::requestDelete,
-                onInsertFavorite = viewModel::insertIntoDraft,
-                onRunFavorite = viewModel::executeDirectly,
+                onOpenFavorites = { viewModel.setShowFavorites(true) },
                 onSettings = { viewModel.setShowSettings(true) },
             )
         },

@@ -59,6 +59,11 @@
     <string name="settings_enter_sends_desc">Off keeps Enter for a new line</string>
     <string name="settings_font_size">Output font size</string>
 
+    <!-- Favorites screen -->
+    <string name="favorites_run">Run</string>
+    <string name="favorites_edit">Edit</string>
+    <string name="favorites_edit_title">Edit command</string>
+
     <plurals name="output_lines">
         <item quantity="one">%d line</item>
         <item quantity="other">%d lines</item>

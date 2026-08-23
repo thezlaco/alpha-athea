@@ -54,6 +54,9 @@ class TranscriptBuilder(private val rawCapChars: Int = DEFAULT_RAW_CAP) {
 
     fun applyOutput(text: String) {
         if (text.isEmpty()) return
+        // Stray whitespace with no running command would create a ghost
+        // one-line block; real output always carries content.
+        if (text.isBlank() && runningOutputId == null) return
         val id = runningOutputId
         if (id == null) {
             val newId = nextOutputId()

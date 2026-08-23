@@ -20,6 +20,6 @@ case $- in *i*) ;; *) return ;; esac
 
 set +o emacs 2>/dev/null || true
 set +o vi 2>/dev/null || true
-stty -echo 2>/dev/null || true
+stty -echo -echonl 2>/dev/null || true
 
 PS1=$'\E]133;D;'"$?"$'\a'

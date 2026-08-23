@@ -96,10 +96,6 @@ fun TopBar(
                     onDismissRequest = { menuOpen = false },
                 ) {
                     DropdownMenuItem(
-                        text = { Text(stringResource(R.string.menu_search)) },
-                        onClick = { menuOpen = false; onSearch() },
-                    )
-                    DropdownMenuItem(
                         text = { Text(stringResource(R.string.menu_rename)) },
                         onClick = { menuOpen = false; onRename() },
                     )

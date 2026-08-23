@@ -120,6 +120,17 @@ class TranscriptBuilderTest {
     }
 
     @Test
+    fun `blank stray output never creates a ghost block`() {
+        val builder = TranscriptBuilder()
+        builder.applyOutput("\n")
+        builder.applyOutput("   \n")
+
+        val snapshot = builder.snapshot(false)
+        assertTrue(snapshot.blocks.isEmpty())
+        assertFalse(snapshot.running)
+    }
+
+    @Test
     fun `replay from journal equals live building`() {
         val live = TranscriptBuilder()
         live.applyCommandSubmitted(7, "echo hi")

@@ -62,6 +62,7 @@ data class UiState(
     val enterSends: Boolean = true,
     val outputFontSizeSp: Int = 13,
     val showSettings: Boolean = false,
+    val showFavorites: Boolean = false,
     val renameTargetId: Long? = null,
     val deleteTargetId: Long? = null,
     val selectTextPayload: String? = null,
@@ -401,6 +402,35 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _state.update { it.copy(favorites = current + favorite) }
             }
         }
+    }
+
+    fun updateFavorite(id: Long, text: String) {
+        val trimmed = text.trim().trimEnd('\n')
+        if (trimmed.isEmpty()) return
+        synchronized(lock) {
+            val current = _state.value.favorites
+            if (current.any { it.id == id && it.text == trimmed }) return
+            val updated = current.map { if (it.id == id) it.copy(text = trimmed) else it }
+            storage.saveFavorites(
+                FavoritesIndex(items = updated, nextFavoriteId = favoriteCounter + 1),
+            )
+            _state.update { it.copy(favorites = updated) }
+        }
+    }
+
+    fun deleteFavorite(id: Long) {
+        synchronized(lock) {
+            val current = _state.value.favorites
+            val remaining = current.filterNot { it.id == id }
+            storage.saveFavorites(
+                FavoritesIndex(items = remaining, nextFavoriteId = favoriteCounter + 1),
+            )
+            _state.update { it.copy(favorites = remaining) }
+        }
+    }
+
+    fun setShowFavorites(visible: Boolean) = _state.update {
+        it.copy(showFavorites = visible)
     }
 
     // --------------------------------------------------------------- search

@@ -1,7 +1,5 @@
 package com.athea.app.ui.main
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -89,7 +87,8 @@ private fun Modifier.barPadding(): Modifier =
         .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
         .padding(horizontal = 10.dp, vertical = 8.dp)
 
-/** One rounded panel holding both the field and its buttons, chat-app style. */
+/** One rounded panel holding the field and its buttons on the same row;
+ *  grows with the text, buttons stay at the tail - chat-app style. */
 @Composable
 private fun DraftPanel(
     draft: String,
@@ -106,13 +105,16 @@ private fun DraftPanel(
             .fillMaxWidth()
             .barPadding(),
     ) {
-        Column {
+        Row(
+            Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.Bottom,
+        ) {
             TextField(
                 value = draft,
                 onValueChange = onDraftChange,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 6.dp),
+                    .weight(1f)
+                    .padding(horizontal = 4.dp),
                 placeholder = {
                     Text(
                         stringResource(R.string.input_hint),
@@ -138,35 +140,27 @@ private fun DraftPanel(
                     onSend = { onSend() },
                 ),
             )
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(end = 10.dp, bottom = 8.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically,
+            IconButton(onClick = onExpandEditor) {
+                Icon(
+                    Icons.Default.OpenInFull,
+                    contentDescription = stringResource(R.string.cd_expand_editor),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            FilledIconButton(
+                onClick = onSend,
+                shape = CircleShape,
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+                modifier = Modifier.padding(end = 4.dp).size(40.dp),
             ) {
-                IconButton(onClick = onExpandEditor) {
-                    Icon(
-                        Icons.Default.OpenInFull,
-                        contentDescription = stringResource(R.string.cd_expand_editor),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                FilledIconButton(
-                    onClick = onSend,
-                    shape = CircleShape,
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
-                    modifier = Modifier.size(40.dp),
-                ) {
-                    Icon(
-                        Icons.Default.Send,
-                        contentDescription = stringResource(R.string.cd_send),
-                        modifier = Modifier.rotate(-90f),
-                    )
-                }
+                Icon(
+                    Icons.Default.Send,
+                    contentDescription = stringResource(R.string.cd_send),
+                    modifier = Modifier.rotate(-90f),
+                )
             }
         }
     }

@@ -89,10 +89,14 @@ Java_com_athea_app_engine_PtyBridge_createPty(JNIEnv *env, jobject thiz,
         _exit(127);
     }
 
-    /* Parent: suppress echo so submitted commands are not doubled. */
+    /*
+     * Parent: suppress all echo, including ECHONL - the line discipline
+     * echoes a bare newline even with ECHO off, which would surface as
+     * ghost one-line output blocks for every submitted command.
+     */
     struct termios tio;
     if (tcgetattr(master, &tio) == 0) {
-        tio.c_lflag &= ~(ECHO | ECHOE | ECHOK);
+        tio.c_lflag &= ~(ECHO | ECHOE | ECHOK | ECHONL);
         tcsetattr(master, TCSANOW, &tio);
     }
 

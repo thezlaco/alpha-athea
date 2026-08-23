@@ -18,11 +18,11 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -51,28 +51,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.athea.app.R
-import com.athea.app.core.model.FavoriteCommand
 import com.athea.app.ui.SessionUi
 
 /**
  * Persistent navigation drawer: sessions on top (pinned first),
- * favorite commands below, settings pinned to the bottom.
+ * favorites and settings pinned to the bottom.
  */
 @Composable
 fun SessionsDrawerContent(
     sessions: List<SessionUi>,
     currentSessionId: Long?,
-    favorites: List<FavoriteCommand>,
     onSelectSession: (Long) -> Unit,
     onRenameSession: (Long) -> Unit,
     onTogglePin: (Long) -> Unit,
     onDeleteSession: (Long) -> Unit,
-    onInsertFavorite: (String) -> Unit,
-    onRunFavorite: (String) -> Unit,
+    onOpenFavorites: () -> Unit,
     onSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -87,92 +83,76 @@ fun SessionsDrawerContent(
         color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = modifier
             .fillMaxHeight()
-            .fillMaxWidth(0.84f)
-            .windowInsetsPadding(
-                WindowInsets.safeDrawing.only(
-                    WindowInsetsSides.Start +
-                        WindowInsetsSides.Top +
-                        WindowInsetsSides.Bottom
-                )
-            ),
+            .fillMaxWidth(0.72f),
     ) {
-        Column(Modifier.fillMaxSize()) {
-        Text(
-            text = stringResource(R.string.drawer_sessions),
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
-        )
-
         Column(
             Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState()),
+                .fillMaxSize()
+                .statusBarsPadding()
+                .windowInsetsPadding(
+                    WindowInsets.safeDrawing.only(
+                        WindowInsetsSides.Start + WindowInsetsSides.Bottom
+                    )
+                ),
         ) {
-            ordered.forEach { session ->
-                SessionRow(
-                    session = session,
-                    selected = session.id == currentSessionId,
-                    onSelect = { onSelectSession(session.id) },
-                    onRename = { onRenameSession(session.id) },
-                    onTogglePin = { onTogglePin(session.id) },
-                    onDelete = { onDeleteSession(session.id) },
-                )
-            }
-        }
-
-        HorizontalDivider()
-
-        Text(
-            text = stringResource(R.string.favorites),
-            style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
-        )
-
-        if (favorites.isEmpty()) {
             Text(
-                text = stringResource(R.string.favorites_empty),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 20.dp),
+                text = stringResource(R.string.drawer_sessions),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
             )
-        } else {
+
             Column(
                 Modifier
-                    .weight(1f, fill = false)
+                    .weight(1f)
                     .verticalScroll(rememberScrollState()),
             ) {
-                favorites.forEach { favorite ->
-                    FavoriteRow(
-                        favorite = favorite,
-                        onInsert = { onInsertFavorite(favorite.text) },
-                        onRun = { onRunFavorite(favorite.text) },
+                ordered.forEach { session ->
+                    SessionRow(
+                        session = session,
+                        selected = session.id == currentSessionId,
+                        onSelect = { onSelectSession(session.id) },
+                        onRename = { onRenameSession(session.id) },
+                        onTogglePin = { onTogglePin(session.id) },
+                        onDelete = { onDeleteSession(session.id) },
                     )
                 }
             }
-        }
 
-        Spacer(Modifier.height(8.dp))
-        HorizontalDivider()
+            HorizontalDivider()
 
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onSettings)
-                .padding(horizontal = 20.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                Icons.Default.Settings,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            DrawerActionRow(
+                icon = { Icon(Icons.Outlined.StarBorder, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                label = stringResource(R.string.favorites),
+                onClick = onOpenFavorites,
             )
-            Text(
-                text = stringResource(R.string.settings),
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(start = 16.dp),
+            DrawerActionRow(
+                icon = { Icon(Icons.Default.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                label = stringResource(R.string.settings),
+                onClick = onSettings,
             )
         }
-        }
+    }
+}
+
+@Composable
+private fun DrawerActionRow(
+    icon: @Composable () -> Unit,
+    label: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        icon()
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(start = 16.dp),
+        )
     }
 }
 
@@ -284,37 +264,4 @@ private fun ProcessDot(running: Boolean) {
                 )
             ),
     )
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun FavoriteRow(
-    favorite: FavoriteCommand,
-    onInsert: () -> Unit,
-    onRun: () -> Unit,
-) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .combinedClickable(onClick = onInsert, onLongClick = onRun)
-            .padding(horizontal = 20.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            Icons.Outlined.StarBorder,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(18.dp),
-        )
-        Text(
-            text = favorite.text,
-            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 12.dp),
-        )
-    }
 }
