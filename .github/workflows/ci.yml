@@ -69,7 +69,7 @@ jobs:
 
       # setup-gradle caches Gradle itself and dependency caches automatically.
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v5
         with:
           gradle-version: ${{ env.GRADLE_VERSION }}
 
