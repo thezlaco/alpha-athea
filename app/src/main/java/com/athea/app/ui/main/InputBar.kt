@@ -305,7 +305,7 @@ private fun AttachmentChip(
             .clip(RoundedCornerShape(14.dp))
             .background(MaterialTheme.colorScheme.surfaceContainer),
     ) {
-        Column(Modifier.padding(start = Ui.composerFieldStart + (if (compact) 40.dp else 0.dp), end = 10.dp, top = 8.dp, bottom = 8.dp)) {
+        Column(Modifier.padding(start = 10.dp, end = 10.dp, top = 8.dp, bottom = 8.dp)) {
             Icon(
                 Icons.Default.Code,
                 contentDescription = null,
