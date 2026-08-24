@@ -452,15 +452,7 @@ private fun OutputPanel(
         }
 
         val text = if (block.running) block.text else block.text.trimEnd('\n')
-        // Cap rendered text: 100k-char outputs would lag the main thread
-        // during recomposition. Full text lives in the journal and raw view.
-        val renderCap = 20_000
-        val displayText = if (text.length > renderCap) {
-            "⋯ (truncated, full text in raw view)\n" + text.takeLast(renderCap)
-        } else {
-            text
-        }
-        val lineCount = displayText.lines().size
+        val lineCount = text.lines().size
         val collapsible = lineCount > TAIL_LINES && !block.running
 
         if (collapsed && collapsible) {
@@ -500,7 +492,7 @@ private fun OutputPanel(
             )
         } else {
             SelectionContainer {
-                val annotated = remember(displayText, query) { buildHighlighted(displayText, query) }
+                val annotated = remember(text, query) { buildHighlighted(text, query) }
                 Text(
                     text = annotated,
                     style = codeStyle(),

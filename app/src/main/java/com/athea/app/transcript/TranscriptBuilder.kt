@@ -79,16 +79,16 @@ class TranscriptBuilder(
             runningText.append(text)
             // Only the tail goes into the UI block; the journal has the
             // full text. This prevents O(n²) String concatenation.
-            blocks.add(OutputBlock(id = newId, text = text.takeLast(RUNNING_RENDER_CAP), running = true))
+            blocks.add(OutputBlock(id = newId, text = text, running = true))
             runningOutputId = newId
         } else {
             runningText.append(text)
             val index = indexOfBlock(id)
             if (index >= 0) {
                 val current = blocks[index] as OutputBlock
-                // O(1) append: just show the tail of the StringBuilder.
-                val tail = runningText.takeLast(RUNNING_RENDER_CAP).toString()
-                blocks[index] = current.copy(text = tail)
+                // Full text: StringBuilder appends are O(1), toString() is
+                // O(n) but throttled to 10/sec by the dirty-session loop.
+                blocks[index] = current.copy(text = runningText.toString())
             }
         }
         appendRaw(text)
@@ -146,9 +146,11 @@ class TranscriptBuilder(
         val index = indexOfBlock(id)
         if (index >= 0) {
             val current = blocks[index] as OutputBlock
-            // Commit the full text from the StringBuilder (up to a cap).
-            val finalText = runningText.takeLast(COMMIT_TEXT_CAP).toString()
-            blocks[index] = current.copy(text = finalText, running = false, exitCode = exitCode)
+            blocks[index] = current.copy(
+                text = runningText.toString(),
+                running = false,
+                exitCode = exitCode,
+            )
         }
         runningText.clear()
     }
