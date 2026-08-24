@@ -101,37 +101,41 @@ fun SessionsDrawerContent(
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
             )
 
-            Column(
-                Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState()),
-            ) {
-                ordered.forEach { session ->
-                    SessionRow(
-                        session = session,
-                        selected = session.id == currentSessionId,
-                        onSelect = { onSelectSession(session.id) },
-                        onRename = { onRenameSession(session.id) },
-                        onTogglePin = { onTogglePin(session.id) },
-                        onDelete = { onDeleteSession(session.id) },
-                    )
-                }
-            }
-
-            // Gradient fade: sessions near the bottom dissolve into darkness.
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-                    .background(
-                        androidx.compose.ui.graphics.Brush.verticalGradient(
-                            listOf(
-                                androidx.compose.ui.graphics.Color.Transparent,
-                                androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.6f),
-                            )
+            // Sessions area: scrollable list with a gradient overlay at
+            // the bottom that fades the last items into darkness.
+            Box(Modifier.weight(1f)) {
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    ordered.forEach { session ->
+                        SessionRow(
+                            session = session,
+                            selected = session.id == currentSessionId,
+                            onSelect = { onSelectSession(session.id) },
+                            onRename = { onRenameSession(session.id) },
+                            onTogglePin = { onTogglePin(session.id) },
+                            onDelete = { onDeleteSession(session.id) },
                         )
-                    ),
-            )
+                    }
+                }
+                // Gradient ON TOP of the list items — no extra space.
+                Box(
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(64.dp)
+                        .background(
+                            androidx.compose.ui.graphics.Brush.verticalGradient(
+                                listOf(
+                                    androidx.compose.ui.graphics.Color.Transparent,
+                                    androidx.compose.ui.graphics.Color.Black,
+                                )
+                            )
+                        ),
+                )
+            }
 
             DrawerActionRow(
                 icon = { Icon(Icons.Outlined.StarBorder, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
