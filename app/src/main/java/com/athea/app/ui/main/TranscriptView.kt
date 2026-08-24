@@ -80,7 +80,7 @@ import com.athea.app.ui.theme.messageStyle
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
-private const val TAIL_LINES = 3
+private const val TAIL_LINES = 5
 private val FADE_HEIGHT = 24.dp
 private val TAIL_FADE_HEIGHT = 26.dp
 
@@ -452,7 +452,15 @@ private fun OutputPanel(
         }
 
         val text = if (block.running) block.text else block.text.trimEnd('\n')
-        val lineCount = text.lines().size
+        // Cap rendered text: 100k-char outputs would lag the main thread
+        // during recomposition. Full text lives in the journal and raw view.
+        val renderCap = 20_000
+        val displayText = if (text.length > renderCap) {
+            "⋯ (truncated, full text in raw view)\n" + text.takeLast(renderCap)
+        } else {
+            text
+        }
+        val lineCount = displayText.lines().size
         val collapsible = lineCount > TAIL_LINES && !block.running
 
         if (collapsed && collapsible) {
@@ -463,16 +471,17 @@ private fun OutputPanel(
                     style = codeStyle(),
                     color = MaterialTheme.colorScheme.onBackground,
                 )
+                // Fade at the bottom: suggests more content, tap to expand.
                 Box(
                     Modifier
-                        .align(Alignment.TopCenter)
+                        .align(Alignment.BottomCenter)
                         .fillMaxWidth()
                         .height(FADE_HEIGHT)
                         .background(
                             Brush.verticalGradient(
                                 listOf(
-                                    MaterialTheme.colorScheme.background,
                                     androidx.compose.ui.graphics.Color.Transparent,
+                                    MaterialTheme.colorScheme.background,
                                 ),
                             ),
                         ),
@@ -491,7 +500,7 @@ private fun OutputPanel(
             )
         } else {
             SelectionContainer {
-                val annotated = remember(text, query) { buildHighlighted(text, query) }
+                val annotated = remember(displayText, query) { buildHighlighted(displayText, query) }
                 Text(
                     text = annotated,
                     style = codeStyle(),

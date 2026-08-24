@@ -180,7 +180,7 @@ private fun DraftPanel(
                         .padding(
                             start = if (compact) 50.dp else 16.dp,
                             end = if (compact) Ui.composerButtonSpace else Ui.composerFieldEndGrown,
-                            top = if (compact) 8.dp else Ui.composerFieldTopGrown,
+                            top = if (compact) 4.dp else Ui.composerFieldTopGrown,
                             bottom = if (compact) 0.dp else Ui.composerButtonRowHeight,
                         ),
                     textStyle = messageStyle().copy(color = MaterialTheme.colorScheme.onSurface),

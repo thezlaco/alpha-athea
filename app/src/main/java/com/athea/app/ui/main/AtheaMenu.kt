@@ -3,7 +3,6 @@ package com.athea.app.ui.main
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -12,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.athea.app.ui.theme.Ui
 
@@ -24,11 +24,13 @@ import com.athea.app.ui.theme.Ui
 fun AtheaDropdownMenu(
     expanded: Boolean,
     onDismissRequest: () -> Unit,
+    offset: DpOffset = DpOffset.Zero,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismissRequest,
+        offset = offset,
         shape = Ui.menuShape,
         modifier = Modifier.widthIn(min = Ui.menuMinWidth),
         content = content,

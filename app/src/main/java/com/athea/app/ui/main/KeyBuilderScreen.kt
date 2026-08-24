@@ -41,12 +41,16 @@ import com.athea.app.data.CustomKey
 import com.athea.app.data.KeyKind
 
 private val BUILDER_ROWS: List<List<Pair<String, String>>> = listOf(
-    listOf("ESC" to "\u001B", "TAB" to "\t", "-" to "-", "=" to "=", "[" to "[", "]" to "]", "\\" to "\\", ";" to ";", "'" to "'"),
+    listOf("ESC" to "\u001B", "F1" to "\u001BOP", "F2" to "\u001BOQ", "F3" to "\u001BOR", "F4" to "\u001BOS", "F5" to "\u001B[15~", "TAB" to "\t"),
+    listOf("`" to "`", "1" to "1", "2" to "2", "3" to "3", "4" to "4", "5" to "5", "6" to "6", "7" to "7", "8" to "8", "9" to "9", "0" to "0"),
+    listOf("-" to "-", "=" to "=", "[" to "]", "]" to "]", "\\" to "\\", ";" to ";", "'" to "'", "," to ",", "." to ".", "/" to "/"),
     listOf("q" to "q", "w" to "w", "e" to "e", "r" to "r", "t" to "t", "y" to "y", "u" to "u", "i" to "i", "o" to "o", "p" to "p"),
     listOf("a" to "a", "s" to "s", "d" to "d", "f" to "f", "g" to "g", "h" to "h", "j" to "j", "k" to "k", "l" to "l"),
-    listOf("z" to "z", "x" to "x", "c" to "c", "v" to "v", "b" to "b", "n" to "n", "m" to "m", "," to ",", "." to "."),
-    listOf("1" to "1", "2" to "2", "3" to "3", "4" to "4", "5" to "5", "6" to "6", "7" to "7", "8" to "8", "9" to "9", "0" to "0"),
-    listOf("↑" to "\u001B[A", "↓" to "\u001B[B", "←" to "\u001B[D", "→" to "\u001B[C", "/" to "/", "|" to "|", "~" to "~", "$" to "$", "_" to "_", "SP" to " "),
+    listOf("z" to "z", "x" to "x", "c" to "c", "v" to "v", "b" to "b", "n" to "n", "m" to "m"),
+    listOf("!" to "!", "@" to "@", "#" to "#", "$" to "$", "%" to "%", "^" to "^", "&" to "&", "*" to "*", "(" to "(", ")" to ")"),
+    listOf("_" to "_", "+" to "+", "{" to "{", "}" to "}", "|" to "|", ":" to ":", "\"" to "\"", "<" to "<", ">" to ">", "?" to "?"),
+    listOf("↑" to "\u001B[A", "↓" to "\u001B[B", "←" to "\u001B[D", "→" to "\u001B[C", "HOME" to "\u001B[H", "END" to "\u001B[F", "PGUP" to "\u001B[5~", "PGDN" to "\u001B[6~"),
+    listOf("SP" to " ", "~" to "~", "*" to "*", "&" to "&", "%" to "%", "#" to "#", "@" to "@", "!" to "!"),
 )
 
 /**

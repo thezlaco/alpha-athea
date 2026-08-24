@@ -118,17 +118,16 @@ fun SessionsDrawerContent(
                 }
             }
 
-            // Gradient fade instead of a hard divider: sessions near the
-            // bottom dissolve into the drawer background.
+            // Gradient fade: sessions near the bottom dissolve into darkness.
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .height(40.dp)
+                    .height(48.dp)
                     .background(
                         androidx.compose.ui.graphics.Brush.verticalGradient(
                             listOf(
                                 androidx.compose.ui.graphics.Color.Transparent,
-                                MaterialTheme.colorScheme.surfaceContainer,
+                                androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.6f),
                             )
                         )
                     ),
