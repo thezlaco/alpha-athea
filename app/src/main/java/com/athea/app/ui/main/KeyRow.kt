@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.athea.app.ui.theme.Ui
 
 enum class KeyActionKind {
     /** Plain text appended to the editor draft. */
@@ -84,8 +85,8 @@ fun KeyRow(
             Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 2.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                .padding(horizontal = 2.dp, vertical = Ui.keySpacing),
+            horizontalArrangement = Arrangement.spacedBy(Ui.keySpacing),
         ) {
             keys.forEach { key ->
                 val selected = key.kind == KeyActionKind.TOGGLE_STICKY_CTRL && stickyCtrl
@@ -127,7 +128,7 @@ private fun KeyChip(
 ) {
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(10.dp),
+        shape = Ui.chipShape,
         color = if (selected) {
             MaterialTheme.colorScheme.primaryContainer
         } else {
@@ -140,11 +141,11 @@ private fun KeyChip(
         },
         // Fixed floor width keeps the row rhythm even: short labels do
         // not shrink below it, long ones still expand naturally.
-        modifier = Modifier.defaultMinSize(minWidth = 44.dp),
+        modifier = Modifier.defaultMinSize(minWidth = Ui.keyMinWidth),
     ) {
         Box(
             Modifier
-                .defaultMinSize(minWidth = 44.dp, minHeight = 40.dp)
+                .defaultMinSize(minWidth = Ui.keyMinWidth, minHeight = Ui.keyMinHeight)
                 .padding(horizontal = 8.dp),
             contentAlignment = Alignment.Center,
         ) {

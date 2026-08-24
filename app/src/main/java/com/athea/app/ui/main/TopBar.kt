@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.athea.app.R
+import com.athea.app.ui.theme.Ui
 
 /**
  * Floating top controls, chat-app style: one standalone round button on
@@ -67,7 +68,7 @@ fun TopBar(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
             ) {
-                Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(Ui.topButtonSize), contentAlignment = Alignment.Center) {
                     Icon(
                         Icons.Default.Menu,
                         contentDescription = stringResource(R.string.cd_open_drawer),

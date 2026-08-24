@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.athea.app.ui.theme.Ui
 
 /**
  * The one overflow menu style used everywhere (top bar, message
@@ -28,8 +29,8 @@ fun AtheaDropdownMenu(
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismissRequest,
-        shape = RoundedCornerShape(24.dp),
-        modifier = Modifier.widthIn(min = 240.dp),
+        shape = Ui.menuShape,
+        modifier = Modifier.widthIn(min = Ui.menuMinWidth),
         content = content,
     )
 }
@@ -48,7 +49,7 @@ fun AtheaDropdownItem(
     }
     DropdownMenuItem(
         leadingIcon = {
-            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.heightIn(min = 24.dp))
+            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.heightIn(min = Ui.menuIconSize))
         },
         text = {
             Text(
@@ -57,7 +58,7 @@ fun AtheaDropdownItem(
                 color = if (tinted) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
             )
         },
-        modifier = Modifier.heightIn(min = 52.dp),
+        modifier = Modifier.heightIn(min = Ui.menuItemMinHeight),
         onClick = onClick,
     )
 }

@@ -71,6 +71,7 @@ import com.athea.app.core.model.DisplayMode
 import com.athea.app.core.model.OutputBlock
 import com.athea.app.ui.SearchState
 import com.athea.app.ui.SessionUi
+import com.athea.app.ui.theme.Ui
 import com.athea.app.ui.theme.CodeStyle
 import com.athea.app.ui.theme.HighlightColor
 import com.athea.app.ui.theme.OnHighlightColor
@@ -321,7 +322,7 @@ private fun CommandBubble(
         horizontalArrangement = Arrangement.End,
     ) {
         Surface(
-            shape = RoundedCornerShape(22.dp),
+            shape = Ui.bubbleShape,
             color = MaterialTheme.colorScheme.secondaryContainer,
             border = if (currentMatch) {
                 BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
@@ -337,7 +338,7 @@ private fun CommandBubble(
                     onLongClick = { menuOpen = true },
                 ),
         ) {
-            Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 14.dp)) {
+            Column(Modifier.padding(start = Ui.bubblePaddingH, end = Ui.bubblePaddingH, top = Ui.bubblePaddingTop, bottom = Ui.bubblePaddingBottom)) {
                 if (collapsed && collapsible) {
                     Box {
                         Text(

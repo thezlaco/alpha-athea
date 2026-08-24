@@ -53,6 +53,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.athea.app.R
 import com.athea.app.ui.SessionUi
+import com.athea.app.ui.theme.Ui
 
 /**
  * Persistent navigation drawer: sessions on top (pinned first),
@@ -81,7 +82,7 @@ fun SessionsDrawerContent(
         color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = modifier
             .fillMaxHeight()
-            .fillMaxWidth(0.72f),
+            .fillMaxWidth(Ui.drawerWidthFraction),
     ) {
         Column(
             Modifier

@@ -58,14 +58,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.athea.app.R
 import com.athea.app.ui.SearchState
+import com.athea.app.ui.theme.Ui
 import com.athea.app.ui.theme.messageStyle
 
-private val PanelShape = RoundedCornerShape(28.dp)
-private val BUTTON_ROW_HEIGHT = 44.dp
+
+
 
 /** Space the buttons occupy at the tail of the field, shared by every
  *  layout that reserves room for them. */
-private val FIELD_END_SPACE = 52.dp
+
 
 @Composable
 fun InputBar(
@@ -146,7 +147,7 @@ private fun DraftPanel(
     val compact = !grown
 
     Surface(
-        shape = PanelShape,
+        shape = Ui.panelShape,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = modifier
             .fillMaxWidth()
@@ -178,9 +179,9 @@ private fun DraftPanel(
                         .fillMaxWidth()
                         .padding(
                             start = if (compact) 50.dp else 16.dp,
-                            end = if (compact) FIELD_END_SPACE else 8.dp,
-                            top = if (compact) 0.dp else 10.dp,
-                            bottom = if (compact) 0.dp else BUTTON_ROW_HEIGHT,
+                            end = if (compact) Ui.composerButtonSpace else Ui.composerFieldEndGrown,
+                            top = if (compact) 8.dp else Ui.composerFieldTopGrown,
+                            bottom = if (compact) 0.dp else Ui.composerButtonRowHeight,
                         ),
                     textStyle = messageStyle().copy(color = MaterialTheme.colorScheme.onSurface),
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
@@ -199,7 +200,7 @@ private fun DraftPanel(
                         Box(
                             Modifier
                                 .fillMaxWidth()
-                                .then(if (compact) Modifier.heightIn(min = 36.dp) else Modifier),
+                                .then(if (compact) Modifier.heightIn(min = 40.dp) else Modifier),
                             contentAlignment = Alignment.CenterStart,
                         ) {
                             if (draft.isEmpty()) {
@@ -241,7 +242,7 @@ private fun DraftPanel(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (!compact) {
-                        IconButton(onClick = onExpandEditor, modifier = Modifier.size(36.dp)) {
+                        IconButton(onClick = onExpandEditor, modifier = Modifier.size(Ui.composerButtonSize)) {
                             Icon(
                                 Icons.Default.OpenInFull,
                                 contentDescription = stringResource(R.string.cd_expand_editor),
@@ -268,7 +269,7 @@ private fun DraftPanel(
                             disabledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                             disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         ),
-                        modifier = Modifier.size(36.dp),
+                        modifier = Modifier.size(Ui.composerButtonSize),
                     ) {
                         Icon(
                             Icons.Default.ArrowUpward,
@@ -304,7 +305,7 @@ private fun AttachmentChip(
             .clip(RoundedCornerShape(14.dp))
             .background(MaterialTheme.colorScheme.surfaceContainer),
     ) {
-        Column(Modifier.padding(start = 10.dp, end = 10.dp, top = 8.dp, bottom = 8.dp)) {
+        Column(Modifier.padding(start = Ui.composerFieldStart + (if (compact) 40.dp else 0.dp), end = 10.dp, top = 8.dp, bottom = 8.dp)) {
             Icon(
                 Icons.Default.Code,
                 contentDescription = null,
@@ -347,7 +348,7 @@ private fun SearchPanel(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        shape = PanelShape,
+        shape = Ui.panelShape,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = modifier
             .fillMaxWidth()
@@ -369,7 +370,7 @@ private fun SearchPanel(
                 },
                 textStyle = messageStyle().copy(color = MaterialTheme.colorScheme.onSurface),
                 singleLine = true,
-                shape = PanelShape,
+                shape = Ui.panelShape,
                 leadingIcon = {
                     Icon(
                         Icons.Default.Search,
