@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -118,6 +119,7 @@ fun TopBar(
         }
 
         // Menu panel: overlaps buttons and content, right-aligned.
+        // Same dimensions as AtheaDropdownMenu (240dp min, 52dp items).
         if (menuOpen) {
             Surface(
                 shape = Ui.menuShape,
@@ -125,12 +127,13 @@ fun TopBar(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .statusBarsPadding()
-                    .padding(top = Ui.topBarTopPadding, end = Ui.topBarHorizontalPadding),
+                    .padding(top = Ui.topBarTopPadding, end = Ui.topBarHorizontalPadding)
+                    .widthIn(min = Ui.menuMinWidth),
             ) {
                 Column(Modifier.padding(vertical = 8.dp)) {
                     if (hasMessages) {
                         MenuRow(
-                            icon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                            icon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(Ui.menuIconSize)) },
                             label = stringResource(R.string.menu_search),
                             onClick = { menuOpen = false; onSearch() },
                         )
@@ -170,8 +173,9 @@ private fun MenuRow(
 ) {
     Row(
         Modifier
+            .heightIn(min = Ui.menuItemMinHeight)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         icon()

@@ -102,52 +102,55 @@ fun SessionsDrawerContent(
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
             )
 
-            // Sessions area: scrollable list, no gradient overlay.
-            Column(
-                Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState()),
-            ) {
-                ordered.forEach { session ->
-                    SessionRow(
-                        session = session,
-                        selected = session.id == currentSessionId,
-                        onSelect = { onSelectSession(session.id) },
-                        onRename = { onRenameSession(session.id) },
-                        onTogglePin = { onTogglePin(session.id) },
-                        onDelete = { onDeleteSession(session.id) },
-                    )
-                }
-            }
-
-            // Bottom bar: merged pill (settings + favorites) on a
-            // semi-transparent background, ChatGPT style. No gradient.
-            Surface(
-                shape = RoundedCornerShape(50),
-                color = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.5f),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Ui.drawerItemPaddingH, vertical = 10.dp),
-            ) {
-                Row(
-                    Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+            // Sessions area: scrollable list fills the space; the bottom
+            // bar overlays it so sessions scroll behind the pill.
+            Box(Modifier.weight(1f)) {
+                Column(
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
                 ) {
-                    IconButton(onClick = onSettings) {
-                        Icon(
-                            Icons.Default.Settings,
-                            contentDescription = stringResource(R.string.settings),
-                            tint = MaterialTheme.colorScheme.onSurface,
+                    ordered.forEach { session ->
+                        SessionRow(
+                            session = session,
+                            selected = session.id == currentSessionId,
+                            onSelect = { onSelectSession(session.id) },
+                            onRename = { onRenameSession(session.id) },
+                            onTogglePin = { onTogglePin(session.id) },
+                            onDelete = { onDeleteSession(session.id) },
                         )
                     }
-                    Spacer(Modifier.weight(1f))
-                    IconButton(onClick = onOpenFavorites) {
-                        Icon(
-                            Icons.Outlined.StarBorder,
-                            contentDescription = stringResource(R.string.favorites),
-                            tint = MaterialTheme.colorScheme.onSurface,
-                        )
+                }
+
+                // Merged pill (settings + favorites) overlaid at the bottom,
+                // same style as the top-right pill.
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(horizontal = Ui.drawerItemPaddingH, vertical = 10.dp),
+                ) {
+                    Row(
+                        Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        IconButton(onClick = onSettings) {
+                            Icon(
+                                Icons.Default.Settings,
+                                contentDescription = stringResource(R.string.settings),
+                                tint = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                        IconButton(onClick = onOpenFavorites) {
+                            Icon(
+                                Icons.Outlined.StarBorder,
+                                contentDescription = stringResource(R.string.favorites),
+                                tint = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
                     }
                 }
             }
