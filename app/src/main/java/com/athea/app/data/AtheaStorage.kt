@@ -34,10 +34,13 @@ internal data class FavoritesIndex(
 data class AtheaSettings(
     val keyRowVisible: Boolean = true,
     val enterSends: Boolean = true,
-    val outputFontSizeSp: Int = 13,
     val autoScrollOnSend: Boolean = true,
+    val rawStream: Boolean = false,
+    val outputFontSizeSp: Int = 13,
     val previewLines: Int = 3,
     val bubbleFontSizeSp: Int = 16,
+    val autocompleteEnabled: Boolean = true,
+    val pinchZoomEnabled: Boolean = true,
 )
 
 /**

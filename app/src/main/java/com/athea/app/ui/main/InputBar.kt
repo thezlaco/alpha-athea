@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
@@ -60,6 +60,7 @@ private val FIELD_END_SPACE = 84.dp
 @Composable
 fun InputBar(
     draft: String,
+    suggestion: String?,
     onDraftChange: (String) -> Unit,
     onSend: () -> Unit,
     onExpandEditor: () -> Unit,
@@ -73,6 +74,7 @@ fun InputBar(
     if (search == null) {
         DraftPanel(
             draft = draft,
+            suggestion = suggestion,
             onDraftChange = onDraftChange,
             onSend = onSend,
             onExpandEditor = onExpandEditor,
@@ -96,7 +98,7 @@ fun InputBar(
 @Composable
 private fun Modifier.barPadding(): Modifier =
     this
-        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+        .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
         .padding(horizontal = 10.dp, vertical = 8.dp)
 
 /**
@@ -109,6 +111,7 @@ private fun Modifier.barPadding(): Modifier =
 @Composable
 private fun DraftPanel(
     draft: String,
+    suggestion: String?,
     onDraftChange: (String) -> Unit,
     onSend: () -> Unit,
     onExpandEditor: () -> Unit,
@@ -139,6 +142,7 @@ private fun DraftPanel(
                     .padding(
                         start = 10.dp,
                         end = if (compact) FIELD_END_SPACE else 8.dp,
+                        top = if (compact) 0.dp else 10.dp,
                         bottom = if (compact) 0.dp else BUTTON_ROW_HEIGHT,
                     ),
                 textStyle = messageStyle().copy(color = MaterialTheme.colorScheme.onSurface),
@@ -166,6 +170,17 @@ private fun DraftPanel(
                                 stringResource(R.string.input_hint),
                                 style = messageStyle(),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                            )
+                        }
+                        // Ghost suggestion: the opaque draft text covers the
+                        // prefix, the gray tail sticks out past the cursor.
+                        if (suggestion != null && suggestion.startsWith(draft)) {
+                            Text(
+                                suggestion,
+                                style = messageStyle(),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    .copy(alpha = 0.45f),
                                 maxLines = 1,
                             )
                         }

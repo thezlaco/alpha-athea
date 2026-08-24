@@ -8,6 +8,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -51,7 +52,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -87,6 +90,8 @@ fun TranscriptView(
     jumpToBottom: Flow<Unit>,
     previewLines: Int,
     contentTopPadding: Dp,
+    pinchZoomEnabled: Boolean,
+    onOutputFontZoom: (Float) -> Unit,
     onToggleBlock: (String) -> Unit,
     onRevealBlock: (String) -> Unit,
     onLocateBlock: (String) -> Int,
@@ -165,7 +170,19 @@ fun TranscriptView(
 
         LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .then(
+                    if (pinchZoomEnabled) {
+                        Modifier.pointerInput(Unit) {
+                            detectTransformGestures { _, _, zoom, _ ->
+                                if (zoom != 1f) onOutputFontZoom(zoom)
+                            }
+                        }
+                    } else {
+                        Modifier
+                    }
+                ),
             contentPadding = PaddingValues(
                 top = contentTopPadding + 8.dp,
                 bottom = 8.dp,
@@ -411,6 +428,23 @@ private fun OutputPanel(
             }
             if (block.running) {
                 BlinkingCursor()
+            } else {
+                // Collapse affordance for an open answer: tap folds it back.
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onToggle),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    Icon(
+                        Icons.Default.KeyboardArrowDown,
+                        contentDescription = stringResource(R.string.cd_collapse),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier
+                            .size(16.dp)
+                            .rotate(180f),
+                    )
+                }
             }
         }
     }

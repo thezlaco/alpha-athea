@@ -13,6 +13,7 @@
     <string name="cd_send">Send</string>
     <string name="cd_expand_editor">Expand editor</string>
     <string name="cd_scroll_down">Scroll to bottom</string>
+    <string name="cd_collapse">Collapse</string>
 
     <!-- Main screen -->
     <string name="input_hint">Type a command…</string>
@@ -61,6 +62,12 @@
     <string name="settings_enter_sends_desc">Off keeps Enter for a new line</string>
     <string name="settings_auto_scroll">Jump to bottom on send</string>
     <string name="settings_auto_scroll_desc">After sending, the transcript follows the newest answer</string>
+    <string name="settings_raw_stream">Raw stream view</string>
+    <string name="settings_raw_stream_desc">Continuous terminal flow instead of chat blocks</string>
+    <string name="settings_autocomplete">History autocomplete</string>
+    <string name="settings_autocomplete_desc">Ghost suggestion from history while typing; Tab accepts it</string>
+    <string name="settings_pinch_zoom">Pinch to zoom text</string>
+    <string name="settings_pinch_zoom_desc">Two-finger pinch on the transcript scales the font</string>
     <string name="settings_font_size">Output font size</string>
     <string name="settings_preview_lines">Command preview lines</string>
     <string name="settings_bubble_size">Message font size</string>

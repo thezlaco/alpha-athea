@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
@@ -19,8 +20,6 @@ import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -36,7 +35,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.athea.app.R
-import com.athea.app.core.model.DisplayMode
 import com.athea.app.ui.MainViewModel
 import com.athea.app.ui.UiEvent
 import com.athea.app.ui.UiState
@@ -54,12 +52,18 @@ fun MainScreen(viewModel: MainViewModel) {
             keyRowVisible = state.keyRowVisible,
             enterSends = state.enterSends,
             autoScrollOnSend = state.autoScrollOnSend,
+            rawStream = state.rawStream,
+            autocompleteEnabled = state.autocompleteEnabled,
+            pinchZoomEnabled = state.pinchZoomEnabled,
             outputFontSizeSp = state.outputFontSizeSp,
             previewLines = state.previewLines,
             bubbleFontSizeSp = state.bubbleFontSizeSp,
             onKeyRowVisibleChange = viewModel::setKeyRowVisible,
             onEnterSendsChange = viewModel::setEnterSends,
             onAutoScrollOnSendChange = viewModel::setAutoScrollOnSend,
+            onRawStreamChange = viewModel::setRawStream,
+            onAutocompleteEnabledChange = viewModel::setAutocompleteEnabled,
+            onPinchZoomEnabledChange = viewModel::setPinchZoomEnabled,
             onOutputFontSizeChange = viewModel::setOutputFontSize,
             onPreviewLinesChange = viewModel::setPreviewLines,
             onBubbleFontSizeChange = viewModel::setBubbleFontSize,
@@ -96,10 +100,10 @@ fun MainScreen(viewModel: MainViewModel) {
 @Composable
 private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
     val context = LocalContext.current
-    val snackbarHostState = remember { SnackbarHostState() }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
+    // Native toasts: the system renders them, no custom surfaces needed.
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             val message = when (event) {
@@ -108,11 +112,9 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
 
                 is UiEvent.ShellExited ->
                     context.getString(R.string.shell_exited, event.exitCode)
-
-                UiEvent.CopiedToClipboard ->
-                    context.getString(R.string.copied)
             }
-            snackbarHostState.showSnackbar(message)
+            android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT)
+                .show()
         }
     }
 
@@ -143,7 +145,6 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
             // Full-bleed: the scrim and floating top buttons must reach
             // the status bar; insets are handled per-component instead.
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
-            snackbarHost = { SnackbarHost(snackbarHostState) },
         ) { padding ->
             val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
             val topScrimHeight = statusBarTop + 30.dp
@@ -151,6 +152,9 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
                 Modifier
                     .fillMaxSize()
                     .padding(padding)
+                    // The whole column lifts above the IME, so the key row
+                    // under the composer stays visible while typing.
+                    .imePadding()
                     .background(MaterialTheme.colorScheme.background),
             ) {
                 Box(
@@ -166,14 +170,17 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
                             jumpToBottom = viewModel.jumpToBottom,
                             previewLines = state.previewLines,
                             contentTopPadding = statusBarTop + 62.dp,
+                            pinchZoomEnabled = state.pinchZoomEnabled,
+                            onOutputFontZoom = viewModel::onOutputFontZoom,
                             onToggleBlock = viewModel::toggleBlockCollapsed,
                             onRevealBlock = viewModel::revealBlock,
                             onLocateBlock = { blockId ->
                                 current.blocks.indexOfFirst { it.block.id == blockId }
                             },
                             onCopyCommand = { text ->
+                                // Android 13+ shows its own confirmation
+                                // for clipboard writes - no custom toast.
                                 copyToClipboard(context, text)
-                                viewModel.notifyCopied()
                             },
                             onSelectCommandText = viewModel::showSelectText,
                             onAddToFavorites = viewModel::addFavorite,
@@ -199,30 +206,20 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
 
                     TopBar(
                         modifier = Modifier.align(Alignment.TopCenter),
-                        displayBlocks = current?.displayMode != DisplayMode.RAW,
+                        hasMessages = current?.blocks?.isNotEmpty() == true,
                         pinned = current?.pinned ?: false,
                         onOpenDrawer = { scope.launch { drawerState.open() } },
                         onNewSession = viewModel::newSession,
                         onSearch = viewModel::enterSearch,
                         onRename = { current?.let { viewModel.requestRename(it.id) } },
                         onTogglePin = { current?.let { viewModel.togglePin(it.id) } },
-                        onToggleDisplayMode = {
-                            current?.let {
-                                val mode =
-                                    if (it.displayMode == DisplayMode.BLOCKS) {
-                                        DisplayMode.RAW
-                                    } else {
-                                        DisplayMode.BLOCKS
-                                    }
-                                viewModel.setDisplayMode(mode)
-                            }
-                        },
                         onDelete = { current?.let { viewModel.requestDelete(it.id) } },
                     )
                 }
 
                 InputBar(
                     draft = current?.draft.orEmpty(),
+                    suggestion = if (state.search == null) state.suggestion else null,
                     onDraftChange = viewModel::updateDraft,
                     onSend = viewModel::sendDraft,
                     onExpandEditor = { viewModel.setEditorExpanded(true) },
@@ -236,8 +233,10 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
                 if (state.keyRowVisible && state.search == null) {
                     KeyRow(
                         stickyCtrl = state.stickyCtrl,
+                        suggestionActive = state.suggestion != null,
                         onInsert = viewModel::insertIntoDraft,
                         onSendBytes = viewModel::sendDirectText,
+                        onAcceptSuggestion = viewModel::acceptSuggestion,
                         onToggleStickyCtrl = viewModel::toggleStickyCtrl,
                         onConsumeStickyCtrl = viewModel::consumeStickyCtrl,
                         // Bottom inset is handled by the row itself so it

@@ -64,6 +64,9 @@ data class UiState(
     val enterSends: Boolean = true,
     val outputFontSizeSp: Int = 13,
     val autoScrollOnSend: Boolean = true,
+    val rawStream: Boolean = false,
+    val autocompleteEnabled: Boolean = true,
+    val pinchZoomEnabled: Boolean = true,
     val previewLines: Int = 3,
     val bubbleFontSizeSp: Int = 16,
     val showSettings: Boolean = false,
@@ -71,12 +74,12 @@ data class UiState(
     val renameTargetId: Long? = null,
     val deleteTargetId: Long? = null,
     val selectTextPayload: String? = null,
+    val suggestion: String? = null,
 )
 
 sealed interface UiEvent {
     data object ShellStartFailed : UiEvent
     data class ShellExited(val exitCode: Int) : UiEvent
-    data object CopiedToClipboard : UiEvent
 }
 
 /** Per-session pipeline pieces that always travel together. */
@@ -129,6 +132,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val rawQueues = HashMap<Long, Channel<EngineEvent>>()
     private val nextCommandSeqs = HashMap<Long, Long>()
 
+    /** Submitted command texts per session, newest last (autocomplete source). */
+    private val histories = HashMap<Long, List<String>>()
+
     /** Guards every multi-step session mutation against concurrent engine events. */
     private val lock = Any()
 
@@ -146,15 +152,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun restoreSessions() {
         synchronized(lock) {
             val index = storage.loadIndex()
-            val preview = storage.loadSettings().previewLines
+            val settings = storage.loadSettings()
+            val preview = settings.previewLines
+            val globalMode = if (settings.rawStream) DisplayMode.RAW else DisplayMode.BLOCKS
             for (meta in index.items) {
-                metas[meta.id] = meta
+                metas[meta.id] = meta.copy(displayMode = globalMode)
                 val journal = storage.journalFor(meta.id)
+                val journalEvents = journal.readAll()
                 pipes[meta.id] = SessionPipe(
                     journal = journal,
                     parser = StreamParser(),
-                    builder = TranscriptBuilder.replay(journal.readAll(), previewLines = preview),
+                    builder = TranscriptBuilder.replay(journalEvents, previewLines = preview),
                 )
+                histories[meta.id] = journalEvents
+                    .filterIsInstance<JournalEvent.CommandSubmitted>()
+                    .map { it.text }
                 nextCommandSeqs[meta.id] = journal.nextCommandSeq() + 1
                 attachEngine(meta)
                 refreshSession(meta.id)
@@ -183,6 +195,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 enterSends = settings.enterSends,
                 outputFontSizeSp = settings.outputFontSizeSp,
                 autoScrollOnSend = settings.autoScrollOnSend,
+                rawStream = settings.rawStream,
+                autocompleteEnabled = settings.autocompleteEnabled,
+                pinchZoomEnabled = settings.pinchZoomEnabled,
                 previewLines = settings.previewLines,
                 bubbleFontSizeSp = settings.bubbleFontSizeSp,
             )
@@ -284,8 +299,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val app = getApplication<Application>()
         val id = nextSessionIdValue++
         val name = app.getString(R.string.default_session_name, pipes.size + 1)
-        val meta = SessionMeta(id = id, name = name)
+        val meta = SessionMeta(
+            id = id,
+            name = name,
+            displayMode = if (_state.value.rawStream) DisplayMode.RAW else DisplayMode.BLOCKS,
+        )
         metas[id] = meta
+        histories[id] = emptyList()
         val journal = storage.journalFor(id)
         pipes[id] = SessionPipe(
             journal,
@@ -377,6 +397,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun updateDraft(text: String) {
         val id = _state.value.currentSessionId ?: return
         mutateMeta(id) { it.copy(draft = text) }
+        updateSuggestion(id, text)
     }
 
     fun sendDraft() {
@@ -433,6 +454,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 ),
             )
             pipe.builder.applyCommandSubmitted(seq, text)
+            histories[id] = (histories[id] ?: emptyList()) + text
             refreshSession(id)
         }
         engine.write((text + "\n").toByteArray(Charsets.UTF_8))
@@ -580,8 +602,68 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         saveSettings()
     }
 
+    fun setAutocompleteEnabled(value: Boolean) {
+        _state.update {
+            it.copy(autocompleteEnabled = value, suggestion = if (value) it.suggestion else null)
+        }
+        saveSettings()
+    }
+
+    fun setPinchZoomEnabled(value: Boolean) {
+        _state.update { it.copy(pinchZoomEnabled = value) }
+        saveSettings()
+    }
+
+    /** Pinch on the transcript: scale the output font live. */
+    fun onOutputFontZoom(factor: Float) {
+        if (!_state.value.pinchZoomEnabled) return
+        val current = _state.value.outputFontSizeSp
+        val next = (current * factor).toInt().coerceIn(10, 22)
+        if (next != current) {
+            _state.update { it.copy(outputFontSizeSp = next) }
+            saveSettings()
+        }
+    }
+
+    /**
+     * Ghost-text suggestion: the newest history command that extends the
+     * current draft, zsh-autosuggestions style.
+     */
+    private fun updateSuggestion(id: Long, draft: String) {
+        val enabled = _state.value.autocompleteEnabled
+        val suggestion = if (!enabled || draft.isEmpty()) {
+            null
+        } else {
+            histories[id]
+                ?.lastOrNull { it != draft && it.startsWith(draft) }
+        }
+        _state.update { it.copy(suggestion = suggestion) }
+    }
+
+    /** Tab with a visible suggestion: take the whole command. */
+    fun acceptSuggestion() {
+        val id = _state.value.currentSessionId ?: return
+        val suggestion = _state.value.suggestion ?: return
+        mutateMeta(id) { it.copy(draft = suggestion) }
+        _state.update { it.copy(suggestion = null) }
+    }
+
     fun setAutoScrollOnSend(value: Boolean) {
         _state.update { it.copy(autoScrollOnSend = value) }
+        saveSettings()
+    }
+
+    /** Global transcript view: raw stream instead of chat blocks. */
+    fun setRawStream(enabled: Boolean) {
+        val mode = if (enabled) DisplayMode.RAW else DisplayMode.BLOCKS
+        synchronized(lock) {
+            _state.update { it.copy(rawStream = enabled) }
+            for (id in metas.keys.toList()) {
+                metas[id]?.let { metas[id] = it.copy(displayMode = mode) }
+            }
+            persistIndexLocked()
+            for (id in pipes.keys.toList()) refreshSession(id)
+        }
         saveSettings()
     }
 
@@ -597,16 +679,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 enterSends = st.enterSends,
                 outputFontSizeSp = st.outputFontSizeSp,
                 autoScrollOnSend = st.autoScrollOnSend,
+                rawStream = st.rawStream,
                 previewLines = st.previewLines,
                 bubbleFontSizeSp = st.bubbleFontSizeSp,
+                autocompleteEnabled = st.autocompleteEnabled,
+                pinchZoomEnabled = st.pinchZoomEnabled,
             ),
         )
     }
 
     fun sendDirectText(payload: String) =
         engines[_state.value.currentSessionId]?.write(payload.toByteArray(Charsets.UTF_8))
-
-    fun notifyCopied() = _events.tryEmit(UiEvent.CopiedToClipboard)
 
     fun showSelectText(text: String) = _state.update {
         it.copy(selectTextPayload = text)

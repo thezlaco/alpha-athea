@@ -34,12 +34,18 @@ fun SettingsScreen(
     keyRowVisible: Boolean,
     enterSends: Boolean,
     autoScrollOnSend: Boolean,
+    rawStream: Boolean,
+    autocompleteEnabled: Boolean,
+    pinchZoomEnabled: Boolean,
     outputFontSizeSp: Int,
     previewLines: Int,
     bubbleFontSizeSp: Int,
     onKeyRowVisibleChange: (Boolean) -> Unit,
     onEnterSendsChange: (Boolean) -> Unit,
     onAutoScrollOnSendChange: (Boolean) -> Unit,
+    onRawStreamChange: (Boolean) -> Unit,
+    onAutocompleteEnabledChange: (Boolean) -> Unit,
+    onPinchZoomEnabledChange: (Boolean) -> Unit,
     onOutputFontSizeChange: (Int) -> Unit,
     onPreviewLinesChange: (Int) -> Unit,
     onBubbleFontSizeChange: (Int) -> Unit,
@@ -97,6 +103,24 @@ fun SettingsScreen(
                     subtitle = stringResource(R.string.settings_auto_scroll_desc),
                     checked = autoScrollOnSend,
                     onChange = onAutoScrollOnSendChange,
+                )
+                SwitchRow(
+                    title = stringResource(R.string.settings_raw_stream),
+                    subtitle = stringResource(R.string.settings_raw_stream_desc),
+                    checked = rawStream,
+                    onChange = onRawStreamChange,
+                )
+                SwitchRow(
+                    title = stringResource(R.string.settings_autocomplete),
+                    subtitle = stringResource(R.string.settings_autocomplete_desc),
+                    checked = autocompleteEnabled,
+                    onChange = onAutocompleteEnabledChange,
+                )
+                SwitchRow(
+                    title = stringResource(R.string.settings_pinch_zoom),
+                    subtitle = stringResource(R.string.settings_pinch_zoom_desc),
+                    checked = pinchZoomEnabled,
+                    onChange = onPinchZoomEnabledChange,
                 )
 
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))

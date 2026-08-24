@@ -10,12 +10,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -34,18 +36,19 @@ import com.athea.app.R
 
 /**
  * Floating top controls, chat-app style: one standalone round button on
- * the left, one merged pill on the right, no bar behind them.
+ * the left, one merged pill on the right, no bar behind them. The pill
+ * grows search and new-session actions only once the transcript has
+ * content; everything else lives in the overflow menu.
  */
 @Composable
 fun TopBar(
-    displayBlocks: Boolean,
+    hasMessages: Boolean,
     pinned: Boolean,
     onOpenDrawer: () -> Unit,
     onNewSession: () -> Unit,
     onSearch: () -> Unit,
     onRename: () -> Unit,
     onTogglePin: () -> Unit,
-    onToggleDisplayMode: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -78,19 +81,21 @@ fun TopBar(
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onSearch) {
-                    Icon(
-                        Icons.Default.Search,
-                        contentDescription = stringResource(R.string.cd_search),
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-                IconButton(onClick = onNewSession) {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = stringResource(R.string.cd_new_session),
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    )
+                if (hasMessages) {
+                    IconButton(onClick = onSearch) {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = stringResource(R.string.cd_search),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    IconButton(onClick = onNewSession) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = stringResource(R.string.cd_new_session),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
                 }
                 Box {
                     IconButton(onClick = { menuOpen = true }) {
@@ -103,12 +108,49 @@ fun TopBar(
                     DropdownMenu(
                         expanded = menuOpen,
                         onDismissRequest = { menuOpen = false },
+                        shape = RoundedCornerShape(20.dp),
                     ) {
                         DropdownMenuItem(
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Search,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            },
+                            text = { Text(stringResource(R.string.menu_search)) },
+                            onClick = { menuOpen = false; onSearch() },
+                        )
+                        DropdownMenuItem(
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            },
+                            text = { Text(stringResource(R.string.cd_new_session)) },
+                            onClick = { menuOpen = false; onNewSession() },
+                        )
+                        DropdownMenuItem(
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Edit,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            },
                             text = { Text(stringResource(R.string.menu_rename)) },
                             onClick = { menuOpen = false; onRename() },
                         )
                         DropdownMenuItem(
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.PushPin,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            },
                             text = {
                                 Text(
                                     stringResource(
@@ -119,21 +161,13 @@ fun TopBar(
                             onClick = { menuOpen = false; onTogglePin() },
                         )
                         DropdownMenuItem(
-                            text = {
-                                Text(
-                                    stringResource(
-                                        if (displayBlocks) {
-                                            R.string.menu_display_raw
-                                        } else {
-                                            R.string.menu_display_block
-                                        }
-                                    )
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
                                 )
                             },
-                            onClick = { menuOpen = false; onToggleDisplayMode() },
-                        )
-                        HorizontalDivider()
-                        DropdownMenuItem(
                             text = {
                                 Text(
                                     stringResource(R.string.menu_delete),

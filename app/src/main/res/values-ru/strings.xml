@@ -12,6 +12,7 @@
     <string name="cd_send">Отправить</string>
     <string name="cd_expand_editor">Развернуть редактор</string>
     <string name="cd_scroll_down">Прокрутить вниз</string>
+    <string name="cd_collapse">Свернуть</string>
 
     <string name="input_hint">Введите команду…</string>
     <string name="editor_title">Редактор</string>
@@ -54,6 +55,12 @@
     <string name="settings_enter_sends_desc">Выключено — Enter переносит строку</string>
     <string name="settings_auto_scroll">Переходить в конец при отправке</string>
     <string name="settings_auto_scroll_desc">После отправки транскрипт следует за новейшим ответом</string>
+    <string name="settings_raw_stream">Вид: поток</string>
+    <string name="settings_raw_stream_desc">Сплошной поток терминала вместо блоков-сообщений</string>
+    <string name="settings_autocomplete">Автодополнение из истории</string>
+    <string name="settings_autocomplete_desc">Призрачная подсказка при наборе; Tab — принять целиком</string>
+    <string name="settings_pinch_zoom">Масштаб щипком</string>
+    <string name="settings_pinch_zoom_desc">Два пальца на транскрипте меняют размер шрифта</string>
     <string name="settings_font_size">Размер шрифта вывода</string>
     <string name="settings_preview_lines">Строк превью команды</string>
     <string name="settings_bubble_size">Размер шрифта сообщений</string>

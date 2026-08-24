@@ -58,8 +58,10 @@ object DefaultKeys {
 @Composable
 fun KeyRow(
     stickyCtrl: Boolean,
+    suggestionActive: Boolean,
     onInsert: (String) -> Unit,
     onSendBytes: (String) -> Unit,
+    onAcceptSuggestion: () -> Unit,
     onToggleStickyCtrl: () -> Unit,
     onConsumeStickyCtrl: () -> Unit,
     modifier: Modifier = Modifier,
@@ -91,6 +93,11 @@ fun KeyRow(
                         KeyActionKind.INSERT_INTO_DRAFT -> onInsert(key.payload)
 
                         KeyActionKind.SEND_TO_TERMINAL -> {
+                            if (key == DefaultKeys.TAB && suggestionActive) {
+                                // Tab with a live ghost suggestion accepts it.
+                                onAcceptSuggestion()
+                                return@KeyChip
+                            }
                             val ch = key.payload.singleOrNull()
                             val combinable = ch != null &&
                                 (ch in 'a'..'z' || ch in 'A'..'Z')

@@ -41,10 +41,10 @@ private val DarkColors = darkColorScheme(
     surfaceContainer = Color(0xFF141414),
     surfaceContainerHigh = Color(0xFF2F2F2F),
     outline = Color(0xFF3A3A3C),
-    error = Color(0xFFFF453A),
+    error = Color(0xFFE5484D),
     onError = Color(0xFF000000),
     errorContainer = Color(0xFF2F2F2F),
-    onErrorContainer = Color(0xFFFF453A),
+    onErrorContainer = Color(0xFFE5484D),
 )
 
 /** Monospace style for terminal output, editor and key row. */
