@@ -105,16 +105,14 @@ class TranscriptBuilderTest {
     }
 
     @Test
-    fun `raw projection respects the cap`() {
+    fun `raw projection respects the render cap`() {
         val builder = TranscriptBuilder()
         builder.applyCommandSubmitted(1, "big")
         repeat(15) { builder.applyOutput("A".repeat(100_000)) }
 
         val rawText = builder.snapshot(displayRaw = true).rawText
-        // Chunked eviction lands in [cap, cap + slack): never above the
-        // hard ceiling, never a character below the floor.
-        assertTrue(rawText.length >= TranscriptBuilder.DEFAULT_RAW_CAP)
-        assertTrue(rawText.length <= TranscriptBuilder.DEFAULT_RAW_CAP + (1 shl 16))
+        assertTrue(rawText.length <= TranscriptBuilder.RAW_RENDER_CAP)
+        assertTrue(rawText.isNotEmpty())
         assertEquals("", builder.snapshot(displayRaw = false).rawText)
     }
 
