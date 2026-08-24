@@ -177,8 +177,6 @@ fun SessionsDrawerContent(
     }
 }
 
-@Composable
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SessionRow(
