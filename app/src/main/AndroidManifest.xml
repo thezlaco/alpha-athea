@@ -5,7 +5,9 @@
         android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
-        android:theme="@style/Theme.Athea">
+        android:theme="@style/Theme.Athea"
+        android:extractNativeLibs="true"
+        android:enableOnBackInvokedCallback="true">
 
         <activity
             android:name=".MainActivity"

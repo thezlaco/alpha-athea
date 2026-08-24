@@ -14,12 +14,11 @@ android {
         applicationId = "com.athea.app"
         minSdk = 29
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 4
+        versionName = "0.4.0"
 
         ndk {
-            // Only the device architecture: smaller APK, fewer install issues.
-            abiFilters += listOf("arm64-v8a")
+            abiFilters += listOf("arm64-v8a", "x86_64")
         }
     }
 
