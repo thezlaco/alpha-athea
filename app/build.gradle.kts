@@ -14,12 +14,12 @@ android {
         applicationId = "com.athea.app"
         minSdk = 29
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
 
         ndk {
-            // Modern devices only, per project decision.
-            abiFilters += listOf("arm64-v8a", "x86_64")
+            // Only the device architecture: smaller APK, fewer install issues.
+            abiFilters += listOf("arm64-v8a")
         }
     }
 
