@@ -65,6 +65,8 @@ fun MainScreen(viewModel: MainViewModel) {
     }
 
     if (state.showSettings) {
+        BackHandler { viewModel.setShowSettings(false) }
+        SettingsScreen(
             keyRowVisible = state.keyRowVisible,
             enterSends = state.enterSends,
             autoScrollOnSend = state.autoScrollOnSend,
