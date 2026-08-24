@@ -48,13 +48,6 @@ class StreamParser {
      */
     private var cursorAtLineStart = false
 
-    /**
-     * Set by a carriage return: the cursor is back at line start. Real
-     * terminals end lines with CRLF, so a following LF must keep the line
-     * intact; printable characters after CR overwrite it (progress bars).
-     */
-    private var cursorAtLineStart = false
-
     private val decoder = Charsets.UTF_8.newDecoder()
         .onMalformedInput(java.nio.charset.CodingErrorAction.REPLACE)
         .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPLACE)
