@@ -58,7 +58,6 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -457,29 +456,6 @@ private fun OutputPanel(
 
         if (collapsed && collapsible) {
             val allLines = text.lines()
-            Row(
-                Modifier
-                    .clickable(onClick = onToggle)
-                    .padding(vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "⋯ " + pluralStringResource(
-                        R.plurals.output_lines,
-                        allLines.size,
-                        allLines.size,
-                    ),
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.labelMedium,
-                )
-                Spacer(Modifier.width(4.dp))
-                Icon(
-                    Icons.Default.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
             Box {
                 Text(
                     text = allLines.takeLast(TAIL_LINES).joinToString("\n"),
@@ -501,6 +477,17 @@ private fun OutputPanel(
                         ),
                 )
             }
+            // Centered expand chevron, same pattern as command bubbles.
+            Icon(
+                Icons.Default.KeyboardArrowDown,
+                contentDescription = stringResource(R.string.cd_expand_editor),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(top = 2.dp)
+                    .size(20.dp)
+                    .clickable(onClick = onToggle),
+            )
         } else {
             SelectionContainer {
                 val annotated = remember(text, query) { buildHighlighted(text, query) }

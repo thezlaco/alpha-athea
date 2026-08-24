@@ -144,6 +144,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     /** Guards every multi-step session mutation against concurrent engine events. */
     private val lock = Any()
 
+    /** Sessions with pending UI refreshes, drained at a fixed rate. */
+    private val dirtySessions = java.util.concurrent.ConcurrentHashMap.newKeySet<Long>()
+
     private var nextSessionIdValue: Long = 1
     private var favoriteCounter: Long = 0
 
@@ -152,6 +155,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         restoreSessions()
         restoreFavorites()
         restoreKeys()
+        // Throttled UI refresh: heavy output produces many batches per
+        // second; without throttling each one triggers a full recompose.
+        viewModelScope.launch(Dispatchers.Default) {
+            while (isActive) {
+                kotlinx.coroutines.delay(100)
+                val toRefresh = dirtySessions.toList()
+                dirtySessions.removeAll(toRefresh)
+                if (toRefresh.isNotEmpty()) {
+                    synchronized(lock) {
+                        for (id in toRefresh) refreshSession(id)
+                    }
+                }
+            }
+        }
     }
 
     // ----------------------------------------------------------- restoration
@@ -387,7 +404,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 pipe.builder.applyCommandEnd(null)
                 _events.tryEmit(UiEvent.ShellExited(shellExitCode ?: -1))
             }
-            refreshSession(id)
+            // Mark dirty instead of refreshing immediately: the throttle
+            // loop batches UI updates to at most 10 per second.
+            dirtySessions.add(id)
         }
     }
 

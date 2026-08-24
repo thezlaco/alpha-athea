@@ -58,7 +58,7 @@ fun TopBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(start = 10.dp, end = 10.dp, top = 20.dp, bottom = 6.dp),
+                .padding(start = 10.dp, end = 10.dp, top = 24.dp, bottom = 6.dp),
             horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -104,7 +104,6 @@ fun TopBar(
         Box(
             Modifier
                 .align(Alignment.TopEnd)
-                .statusBarsPadding()
                 .size(1.dp),
         ) {
             AtheaDropdownMenu(

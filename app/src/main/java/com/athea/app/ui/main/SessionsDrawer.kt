@@ -116,7 +116,21 @@ fun SessionsDrawerContent(
                 }
             }
 
-            HorizontalDivider()
+            // Gradient fade instead of a hard divider: sessions near the
+            // bottom dissolve into the drawer background.
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(40.dp)
+                    .background(
+                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                            listOf(
+                                androidx.compose.ui.graphics.Color.Transparent,
+                                MaterialTheme.colorScheme.surfaceContainer,
+                            )
+                        )
+                    ),
+            )
 
             DrawerActionRow(
                 icon = { Icon(Icons.Outlined.StarBorder, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
