@@ -57,6 +57,20 @@ jobs:
             "ndk;${NDK_VERSION}" \
             "cmake;${CMAKE_VERSION}"
 
+      # Debug keystore: AGP needs one to sign debug APKs; a fresh runner
+      # might not have ~/.android/debug.keystore yet.
+      - name: Ensure debug keystore
+        run: |
+          mkdir -p ~/.android
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkeypair -v \
+              -keystore ~/.android/debug.keystore \
+              -alias androiddebugkey \
+              -storepass android -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
       # setup-gradle caches Gradle itself and dependency caches automatically.
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
