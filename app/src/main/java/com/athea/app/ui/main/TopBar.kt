@@ -1,10 +1,10 @@
 package com.athea.app.ui.main
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -38,12 +38,8 @@ import com.athea.app.ui.theme.Ui
 
 /**
  * Floating top controls, chat-app style: one standalone round button on
- * the left, one merged pill on the right, no bar behind them. The pill
- * grows new-session action only once the transcript has content.
- *
- * The overflow menu is NOT a DropdownMenu — it's a Surface drawn inside
- * this composable's Box, so it naturally overlaps the buttons and the
- * transcript content below.
+ * the left, one merged pill on the right. The overflow menu is a full-
+ * screen overlay that covers the buttons and the content behind them.
  */
 @Composable
 fun TopBar(
@@ -59,12 +55,26 @@ fun TopBar(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
 
-    Box(modifier.fillMaxWidth()) {
+    Box(modifier.fillMaxSize()) {
+        // Scrim: catches all outside taps to dismiss the menu.
+        if (menuOpen) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .clickable(onClick = { menuOpen = false }),
+            )
+        }
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(start = Ui.topBarHorizontalPadding, end = Ui.topBarHorizontalPadding, top = Ui.topBarTopPadding, bottom = Ui.topBarBottomPadding),
+                .padding(
+                    start = Ui.topBarHorizontalPadding,
+                    end = Ui.topBarHorizontalPadding,
+                    top = Ui.topBarTopPadding,
+                    bottom = Ui.topBarBottomPadding,
+                ),
             horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -107,15 +117,8 @@ fun TopBar(
             }
         }
 
-        // Overflow menu: drawn inside this Box, so it naturally overlaps
-        // the buttons and the content behind them.
+        // Menu panel: overlaps buttons and content, right-aligned.
         if (menuOpen) {
-            // Scrim to catch outside taps and dismiss.
-            Box(
-                Modifier
-                    .matchParentSize()
-                    .clickable(onClick = { menuOpen = false }),
-            )
             Surface(
                 shape = Ui.menuShape,
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,

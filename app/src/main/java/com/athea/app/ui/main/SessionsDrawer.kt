@@ -137,41 +137,47 @@ fun SessionsDrawerContent(
                 )
             }
 
-            DrawerActionRow(
-                icon = { Icon(Icons.Outlined.StarBorder, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                label = stringResource(R.string.favorites),
-                onClick = onOpenFavorites,
-            )
-            DrawerActionRow(
-                icon = { Icon(Icons.Default.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                label = stringResource(R.string.settings),
-                onClick = onSettings,
-            )
+            // Two compact round buttons at the bottom-left, like the top
+            // bar style. The gradient above fades sessions into darkness.
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Ui.drawerItemPaddingH, vertical = 10.dp),
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Surface(
+                    onClick = onOpenFavorites,
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                ) {
+                    Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Outlined.StarBorder,
+                            contentDescription = stringResource(R.string.favorites),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+                Surface(
+                    onClick = onSettings,
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                ) {
+                    Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Default.Settings,
+                            contentDescription = stringResource(R.string.settings),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun DrawerActionRow(
-    icon: @Composable () -> Unit,
-    label: String,
-    onClick: () -> Unit,
-) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        icon()
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(start = 16.dp),
-        )
-    }
-}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
