@@ -87,7 +87,7 @@ class TranscriptBuilder(
             if (index >= 0) {
                 val current = blocks[index] as OutputBlock
                 // O(1) append: just show the tail of the StringBuilder.
-                val tail = runningText.takeLast(RUNNING_RENDER_CAP)
+                val tail = runningText.takeLast(RUNNING_RENDER_CAP).toString()
                 blocks[index] = current.copy(text = tail)
             }
         }
@@ -147,7 +147,7 @@ class TranscriptBuilder(
         if (index >= 0) {
             val current = blocks[index] as OutputBlock
             // Commit the full text from the StringBuilder (up to a cap).
-            val finalText = runningText.takeLast(COMMIT_TEXT_CAP)
+            val finalText = runningText.takeLast(COMMIT_TEXT_CAP).toString()
             blocks[index] = current.copy(text = finalText, running = false, exitCode = exitCode)
         }
         runningText.clear()
