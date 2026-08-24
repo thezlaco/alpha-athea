@@ -84,8 +84,8 @@ fun KeyRow(
             Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 8.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                .padding(horizontal = 4.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             keys.forEach { key ->
                 val selected = key.kind == KeyActionKind.TOGGLE_STICKY_CTRL && stickyCtrl

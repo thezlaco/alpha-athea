@@ -263,20 +263,35 @@ fun TranscriptView(
 
 @Composable
 private fun EmptyGreeting(modifier: Modifier = Modifier) {
-    Column(
-        modifier.padding(horizontal = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
+    Column(modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
         Text(
-            text = stringResource(R.string.greeting_title),
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
+            text = "Welcome to Athea!",
+            style = CodeStyle,
+            color = MaterialTheme.colorScheme.onBackground,
         )
+        Spacer(Modifier.height(12.dp))
         Text(
-            text = stringResource(R.string.greeting_hint),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.35f),
-            modifier = Modifier.padding(top = 10.dp),
+            text = "Working with the terminal:\n" +
+                "- Type:   enter a command below\n" +
+                "- Send:   tap the arrow button\n" +
+                "- Edit:   tap the expand icon for multi-line",
+            style = CodeStyle,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Spacer(Modifier.height(12.dp))
+        Text(
+            text = "Working with sessions:\n" +
+                "- Drawer:  tap the menu icon (top left)\n" +
+                "- New:     tap the + icon (top right)\n" +
+                "- Search:  tap ⋮ → Search",
+            style = CodeStyle,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Spacer(Modifier.height(12.dp))
+        Text(
+            text = "Long-press a sent command to add it to favorites.",
+            style = CodeStyle,
+            color = MaterialTheme.colorScheme.onBackground,
         )
     }
 }
@@ -351,6 +366,7 @@ private fun CommandBubble(
                         contentDescription = stringResource(R.string.cd_expand_editor),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
                             .padding(top = 2.dp)
                             .size(20.dp)
                             .clickable(onClick = onToggle),
@@ -435,8 +451,10 @@ private fun OutputPanel(
         }
 
         val text = if (block.running) block.text else block.text.trimEnd('\n')
+        val lineCount = text.lines().size
+        val collapsible = lineCount > TAIL_LINES && !block.running
 
-        if (collapsed && !block.running) {
+        if (collapsed && collapsible) {
             val allLines = text.lines()
             Row(
                 Modifier
@@ -494,23 +512,19 @@ private fun OutputPanel(
             }
             if (block.running) {
                 BlinkingCursor()
-            } else {
-                // Collapse affordance for an open answer: tap folds it back.
-                Row(
-                    Modifier
-                        .fillMaxWidth()
+            } else if (collapsible) {
+                // Collapse affordance: centered, same style as command bubbles.
+                Icon(
+                    Icons.Default.KeyboardArrowDown,
+                    contentDescription = stringResource(R.string.cd_collapse),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(top = 2.dp)
+                        .size(16.dp)
+                        .rotate(180f)
                         .clickable(onClick = onToggle),
-                    horizontalArrangement = Arrangement.End,
-                ) {
-                    Icon(
-                        Icons.Default.KeyboardArrowDown,
-                        contentDescription = stringResource(R.string.cd_collapse),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier
-                            .size(16.dp)
-                            .rotate(180f),
-                    )
-                }
+                )
             }
         }
     }

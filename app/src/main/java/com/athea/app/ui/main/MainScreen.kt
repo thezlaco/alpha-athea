@@ -53,18 +53,18 @@ import kotlinx.coroutines.launch
 fun MainScreen(viewModel: MainViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
+    if (state.showKeyBuilder) {
+        BackHandler { viewModel.setShowKeyBuilder(false) }
+        KeyBuilderScreen(
+            onAdd = { key ->
+                viewModel.addCustomKey(key)
+            },
+            onBack = { viewModel.setShowKeyBuilder(false) },
+        )
+        return
+    }
+
     if (state.showSettings) {
-        if (state.showKeyBuilder) {
-            BackHandler { viewModel.setShowKeyBuilder(false) }
-            KeyBuilderScreen(
-                onAdd = { key ->
-                    viewModel.addCustomKey(key)
-                },
-                onBack = { viewModel.setShowKeyBuilder(false) },
-            )
-        } else {
-            BackHandler { viewModel.setShowSettings(false) }
-            SettingsScreen(
             keyRowVisible = state.keyRowVisible,
             enterSends = state.enterSends,
             autoScrollOnSend = state.autoScrollOnSend,
