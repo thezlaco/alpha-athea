@@ -34,6 +34,14 @@ class StreamParserTest {
     }
 
     @Test
+    fun `crlf line endings keep their content`() {
+        // Real terminals emit CRLF; this exact shape once wiped every
+        // line and produced empty outputs.
+        val events = feedAll("ls: .: Permission denied\r\n")
+        assertEquals("ls: .: Permission denied\n", texts(events))
+    }
+
+    @Test
     fun `carriage return keeps final line state`() {
         val events = feedAll("10%\r50%\r100%\nnext\n")
         assertEquals("100%\nnext\n", texts(events))

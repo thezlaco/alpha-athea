@@ -66,6 +66,7 @@ fun SettingsScreen(
     onBubbleFontSizeChange: (Int) -> Unit,
     onCustomKeysChange: (List<com.athea.app.data.CustomKey>) -> Unit,
     onResetKeys: () -> Unit,
+    onOpenKeyBuilder: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -203,6 +204,12 @@ fun SettingsScreen(
                     TextButton(onClick = onResetKeys) {
                         Text(stringResource(R.string.settings_keys_reset))
                     }
+                }
+                TextButton(
+                    onClick = onOpenKeyBuilder,
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                ) {
+                    Text(stringResource(R.string.builder_open))
                 }
 
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))

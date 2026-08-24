@@ -1,6 +1,10 @@
 package com.athea.app.ui.main
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -10,14 +14,18 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.OpenInFull
 import androidx.compose.material.icons.filled.Search
@@ -38,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
@@ -45,6 +54,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.athea.app.R
 import com.athea.app.ui.SearchState
@@ -55,15 +65,18 @@ private val BUTTON_ROW_HEIGHT = 44.dp
 
 /** Space the buttons occupy at the tail of the field, shared by every
  *  layout that reserves room for them. */
-private val FIELD_END_SPACE = 84.dp
+private val FIELD_END_SPACE = 52.dp
 
 @Composable
 fun InputBar(
     draft: String,
     suggestion: String?,
+    attachments: List<com.athea.app.core.model.Attachment>,
     onDraftChange: (String) -> Unit,
     onSend: () -> Unit,
     onExpandEditor: () -> Unit,
+    onAddClick: () -> Unit,
+    onRemoveAttachment: (com.athea.app.core.model.Attachment) -> Unit,
     search: SearchState?,
     onSearchQueryChange: (String) -> Unit,
     onSearchNext: () -> Unit,
@@ -75,9 +88,12 @@ fun InputBar(
         DraftPanel(
             draft = draft,
             suggestion = suggestion,
+            attachments = attachments,
             onDraftChange = onDraftChange,
             onSend = onSend,
             onExpandEditor = onExpandEditor,
+            onAddClick = onAddClick,
+            onRemoveAttachment = onRemoveAttachment,
             enterSends = enterSends,
             modifier = modifier,
         )
@@ -112,9 +128,12 @@ private fun Modifier.barPadding(): Modifier =
 private fun DraftPanel(
     draft: String,
     suggestion: String?,
+    attachments: List<com.athea.app.core.model.Attachment>,
     onDraftChange: (String) -> Unit,
     onSend: () -> Unit,
     onExpandEditor: () -> Unit,
+    onAddClick: () -> Unit,
+    onRemoveAttachment: (com.athea.app.core.model.Attachment) -> Unit,
     enterSends: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -133,100 +152,185 @@ private fun DraftPanel(
             .fillMaxWidth()
             .barPadding(),
     ) {
-        Box(Modifier.padding(horizontal = 4.dp, vertical = 4.dp)) {
-            BasicTextField(
-                value = draft,
-                onValueChange = onDraftChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        start = 10.dp,
-                        end = if (compact) FIELD_END_SPACE else 8.dp,
-                        top = if (compact) 0.dp else 10.dp,
-                        bottom = if (compact) 0.dp else BUTTON_ROW_HEIGHT,
-                    ),
-                textStyle = messageStyle().copy(color = MaterialTheme.colorScheme.onSurface),
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                maxLines = 6,
-                onTextLayout = { lineCount = it.lineCount },
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.None,
-                    keyboardType = KeyboardType.Ascii,
-                    // None keeps the IME newline key: multi-line drafts stay possible.
-                    imeAction = if (enterSends) ImeAction.Send else ImeAction.None,
-                ),
-                keyboardActions = KeyboardActions(
-                    onSend = { onSend() },
-                ),
-                decorationBox = { inner ->
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .then(if (compact) Modifier.heightIn(min = 36.dp) else Modifier),
-                        contentAlignment = Alignment.CenterStart,
-                    ) {
-                        if (draft.isEmpty()) {
-                            Text(
-                                stringResource(R.string.input_hint),
-                                style = messageStyle(),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                            )
-                        }
-                        // Ghost suggestion: the opaque draft text covers the
-                        // prefix, the gray tail sticks out past the cursor.
-                        if (suggestion != null && suggestion.startsWith(draft)) {
-                            Text(
-                                suggestion,
-                                style = messageStyle(),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    .copy(alpha = 0.45f),
-                                maxLines = 1,
-                            )
-                        }
-                        inner()
-                    }
-                },
-            )
-            Row(
-                Modifier
-                    .align(if (compact) Alignment.CenterEnd else Alignment.BottomEnd)
-                    .padding(end = 4.dp, bottom = if (compact) 0.dp else 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onExpandEditor, modifier = Modifier.size(36.dp)) {
-                    Icon(
-                        Icons.Default.OpenInFull,
-                        contentDescription = stringResource(R.string.cd_expand_editor),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                val hasText = draft.isNotBlank()
-                FilledIconButton(
-                    onClick = onSend,
-                    enabled = hasText,
-                    shape = CircleShape,
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = if (hasText) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.surfaceContainer
-                        },
-                        contentColor = if (hasText) {
-                            MaterialTheme.colorScheme.onPrimary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    ),
-                    modifier = Modifier.size(36.dp),
+        Column(Modifier.padding(horizontal = 4.dp, vertical = 4.dp)) {
+            if (attachments.isNotEmpty()) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Icon(
-                        Icons.Default.ArrowUpward,
-                        contentDescription = stringResource(R.string.cd_send),
-                    )
+                    attachments.forEach { attachment ->
+                        AttachmentChip(
+                            attachment = attachment,
+                            onRemove = { onRemoveAttachment(attachment) },
+                        )
+                    }
                 }
+            }
+
+            Box {
+                BasicTextField(
+                    value = draft,
+                    onValueChange = onDraftChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            start = if (compact) 50.dp else 16.dp,
+                            end = if (compact) FIELD_END_SPACE else 8.dp,
+                            top = if (compact) 0.dp else 10.dp,
+                            bottom = if (compact) 0.dp else BUTTON_ROW_HEIGHT,
+                        ),
+                    textStyle = messageStyle().copy(color = MaterialTheme.colorScheme.onSurface),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    maxLines = 6,
+                    onTextLayout = { lineCount = it.lineCount },
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.None,
+                        keyboardType = KeyboardType.Ascii,
+                        // None keeps the IME newline key: multi-line drafts stay possible.
+                        imeAction = if (enterSends) ImeAction.Send else ImeAction.None,
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onSend = { onSend() },
+                    ),
+                    decorationBox = { inner ->
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .then(if (compact) Modifier.heightIn(min = 36.dp) else Modifier),
+                            contentAlignment = Alignment.CenterStart,
+                        ) {
+                            if (draft.isEmpty()) {
+                                Text(
+                                    stringResource(R.string.input_hint),
+                                    style = messageStyle(),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                )
+                            }
+                            // Ghost suggestion: the opaque draft text covers the
+                            // prefix, the gray tail sticks out past the cursor.
+                            if (suggestion != null && suggestion.startsWith(draft)) {
+                                Text(
+                                    suggestion,
+                                    style = messageStyle(),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        .copy(alpha = 0.45f),
+                                    maxLines = 1,
+                                )
+                            }
+                            inner()
+                        }
+                    },
+                )
+                if (compact) {
+                    IconButton(onClick = onAddClick, modifier = Modifier.align(Alignment.CenterStart)) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = stringResource(R.string.attach_add),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+                Row(
+                    Modifier
+                        .align(if (compact) Alignment.CenterEnd else Alignment.BottomEnd)
+                        .padding(end = 4.dp, bottom = if (compact) 0.dp else 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (!compact) {
+                        IconButton(onClick = onExpandEditor, modifier = Modifier.size(36.dp)) {
+                            Icon(
+                                Icons.Default.OpenInFull,
+                                contentDescription = stringResource(R.string.cd_expand_editor),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    val hasText = draft.isNotBlank() || attachments.isNotEmpty()
+                    FilledIconButton(
+                        onClick = onSend,
+                        enabled = hasText,
+                        shape = CircleShape,
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = if (hasText) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.surfaceContainer
+                            },
+                            contentColor = if (hasText) {
+                                MaterialTheme.colorScheme.onPrimary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
+                        modifier = Modifier.size(36.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.ArrowUpward,
+                            contentDescription = stringResource(R.string.cd_send),
+                        )
+                    }
+                }
+                if (!compact) {
+                    IconButton(
+                        onClick = onAddClick,
+                        modifier = Modifier.align(Alignment.BottomStart),
+                    ) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = stringResource(R.string.attach_add),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AttachmentChip(
+    attachment: com.athea.app.core.model.Attachment,
+    onRemove: () -> Unit,
+) {
+    Box(
+        Modifier
+            .width(104.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer),
+    ) {
+        Column(Modifier.padding(start = 10.dp, end = 10.dp, top = 8.dp, bottom = 8.dp)) {
+            Icon(
+                Icons.Default.Code,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = attachment.name,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 6.dp),
+            )
+        }
+        Box(
+            Modifier
+                .align(Alignment.TopEnd)
+                .padding(2.dp),
+        ) {
+            IconButton(onClick = onRemove, modifier = Modifier.size(24.dp)) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = stringResource(R.string.cd_close),
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(14.dp),
+                )
             }
         }
     }

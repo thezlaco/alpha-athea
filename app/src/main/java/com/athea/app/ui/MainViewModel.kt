@@ -1,6 +1,7 @@
 package com.athea.app.ui
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.athea.app.R
@@ -33,6 +34,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.io.File
 
 /** Search within one session transcript. */
 data class SearchState(
@@ -71,11 +73,14 @@ data class UiState(
     val bubbleFontSizeSp: Int = 16,
     val showSettings: Boolean = false,
     val showFavorites: Boolean = false,
+    val showAttachChooser: Boolean = false,
+    val showKeyBuilder: Boolean = false,
     val renameTargetId: Long? = null,
     val deleteTargetId: Long? = null,
     val selectTextPayload: String? = null,
     val suggestion: String? = null,
     val customKeys: List<com.athea.app.data.CustomKey> = emptyList(),
+    val attachments: List<com.athea.app.core.model.Attachment> = emptyList(),
 )
 
 sealed interface UiEvent {
@@ -202,6 +207,64 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun resetKeysToDefaults() {
         setCustomKeys(emptyList())
+    }
+
+    /**
+     * Stages a picked file: bytes land in the app attachment folder and a
+     * ready-to-edit command is attached to the next submission.
+     */
+    fun importAttachment(
+        uri: android.net.Uri,
+        action: String,
+        context: Context,
+    ) {
+        viewModelScope.launch(Dispatchers.Default) {
+            try {
+                val resolver = context.contentResolver
+                val name = runCatching {
+                    resolver.query(
+                        uri,
+                        arrayOf(android.provider.OpenableColumns.DISPLAY_NAME),
+                        null,
+                        null,
+                        null,
+                    )?.use { cursor ->
+                        val idx = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                        if (cursor.moveToFirst() && idx >= 0) cursor.getString(idx) else null
+                    }
+                }.getOrNull() ?: "file"
+
+                val safeName = name.replace(Regex("[^A-Za-z0-9._-]"), "_")
+                val dir = File(context.filesDir, "attachments").apply { mkdirs() }
+                val target = File(dir, "${System.currentTimeMillis()}_$safeName")
+                resolver.openInputStream(uri)?.use { input ->
+                    target.outputStream().use { output -> input.copyTo(output) }
+                } ?: throw IllegalStateException("cannot open $uri")
+
+                val quoted = "'" + target.absolutePath.replace("'", "'\\''") + "'"
+                val command = when (action) {
+                    "move" -> "mv $quoted ./"
+                    "link" -> "ln -s $quoted ./'$safeName'"
+                    "name" -> quoted
+                    else -> "cp $quoted ./"
+                }
+                com.athea.app.util.AtheaLog.log("attach", "imported $safeName action=$action")
+                _state.update {
+                    it.copy(
+                        attachments = it.attachments + com.athea.app.core.model.Attachment(
+                            name = safeName,
+                            command = command,
+                        )
+                    )
+                }
+            } catch (e: Exception) {
+                com.athea.app.util.AtheaLog.error("attach", "import failed", e)
+            }
+        }
+    }
+
+    fun removeAttachment(attachment: com.athea.app.core.model.Attachment) {
+        _state.update { it.copy(attachments = it.attachments - attachment) }
     }
 
     private fun restoreSettings() {
@@ -445,8 +508,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun sendDraft() {
         val id = _state.value.currentSessionId ?: return
         val draft = metas[id]?.draft.orEmpty().trimEnd('\n')
-        if (draft.isBlank()) return
-        submit(id, draft)
+        val attachments = _state.value.attachments
+        if (draft.isBlank() && attachments.isEmpty()) return
+        // Staged files go first, each as its own command.
+        for (attachment in attachments) {
+            submit(id, attachment.command)
+        }
+        if (draft.isNotBlank()) {
+            submit(id, draft)
+        }
+        if (attachments.isNotEmpty()) {
+            _state.update { it.copy(attachments = emptyList()) }
+        }
         mutateMeta(id) { it.copy(draft = "") }
         persistTransientState()
         jumpIfEnabled()
@@ -563,6 +636,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setShowFavorites(visible: Boolean) = _state.update {
         it.copy(showFavorites = visible)
+    }
+
+    fun setShowAttachChooser(visible: Boolean) = _state.update {
+        it.copy(showAttachChooser = visible)
+    }
+
+    fun setShowKeyBuilder(visible: Boolean) = _state.update {
+        it.copy(showKeyBuilder = visible)
+    }
+
+    fun addCustomKey(key: com.athea.app.data.CustomKey) {
+        setCustomKeys(_state.value.customKeys + key)
     }
 
     // --------------------------------------------------------------- search

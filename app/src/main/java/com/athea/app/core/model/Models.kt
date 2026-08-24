@@ -38,3 +38,10 @@ data class FavoriteCommand(
     val id: Long,
     val text: String,
 )
+
+/** A file staged for the next submission, already prepared as a command. */
+@Immutable
+data class Attachment(
+    val name: String,
+    val command: String,
+)

@@ -4,6 +4,8 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +22,8 @@ import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -47,8 +51,17 @@ fun MainScreen(viewModel: MainViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     if (state.showSettings) {
-        BackHandler { viewModel.setShowSettings(false) }
-        SettingsScreen(
+        if (state.showKeyBuilder) {
+            BackHandler { viewModel.setShowKeyBuilder(false) }
+            KeyBuilderScreen(
+                onAdd = { key ->
+                    viewModel.addCustomKey(key)
+                },
+                onBack = { viewModel.setShowKeyBuilder(false) },
+            )
+        } else {
+            BackHandler { viewModel.setShowSettings(false) }
+            SettingsScreen(
             keyRowVisible = state.keyRowVisible,
             enterSends = state.enterSends,
             autoScrollOnSend = state.autoScrollOnSend,
@@ -70,6 +83,7 @@ fun MainScreen(viewModel: MainViewModel) {
             onBubbleFontSizeChange = viewModel::setBubbleFontSize,
             onCustomKeysChange = viewModel::setCustomKeys,
             onResetKeys = viewModel::resetKeysToDefaults,
+            onOpenKeyBuilder = { viewModel.setShowKeyBuilder(true) },
             onBack = { viewModel.setShowSettings(false) },
         )
         return
@@ -93,6 +107,50 @@ fun MainScreen(viewModel: MainViewModel) {
             onDelete = viewModel::deleteFavorite,
         )
         return
+    }
+
+    // ---- Attachment picker flow -----------------------------------------
+
+    var attachAction by remember { mutableStateOf<String?>(null) }
+    val filePicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        val action = attachAction
+        attachAction = null
+        if (uri != null && action != null) {
+            viewModel.importAttachment(uri, action, context)
+        }
+    }
+    if (state.showAttachChooser) {
+        val options = listOf(
+            "copy" to stringResource(R.string.attach_copy),
+            "move" to stringResource(R.string.attach_move),
+            "link" to stringResource(R.string.attach_link),
+            "name" to stringResource(R.string.attach_name),
+        )
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { viewModel.setShowAttachChooser(false) },
+            title = { Text(stringResource(R.string.attach_chooser_title)) },
+            text = {
+                Column {
+                    options.forEach { (action, label) ->
+                        TextButton(onClick = {
+                            attachAction = action
+                            viewModel.setShowAttachChooser(false)
+                            filePicker.launch(arrayOf("*/*"))
+                        }) {
+                            Text(label)
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { viewModel.setShowAttachChooser(false) }) {
+                    Text(stringResource(R.string.dialog_cancel))
+                }
+            },
+        )
     }
 
     CompositionLocalProvider(LocalOutputFontSize provides state.outputFontSizeSp) {
@@ -223,9 +281,12 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
                 InputBar(
                     draft = current?.draft.orEmpty(),
                     suggestion = if (state.search == null) state.suggestion else null,
+                    attachments = state.attachments,
                     onDraftChange = viewModel::updateDraft,
                     onSend = viewModel::sendDraft,
                     onExpandEditor = { viewModel.setEditorExpanded(true) },
+                    onAddClick = { viewModel.setShowAttachChooser(true) },
+                    onRemoveAttachment = viewModel::removeAttachment,
                     search = state.search,
                     onSearchQueryChange = viewModel::updateSearchQuery,
                     onSearchNext = viewModel::nextSearchMatch,

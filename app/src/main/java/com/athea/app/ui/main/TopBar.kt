@@ -55,7 +55,7 @@ fun TopBar(
         modifier = modifier
             .fillMaxWidth()
             .statusBarsPadding()
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .padding(horizontal = 10.dp, top = 14.dp, bottom = 6.dp),
         horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -79,13 +79,6 @@ fun TopBar(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (hasMessages) {
-                    IconButton(onClick = onSearch) {
-                        Icon(
-                            Icons.Default.Search,
-                            contentDescription = stringResource(R.string.cd_search),
-                            tint = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
                     IconButton(onClick = onNewSession) {
                         Icon(
                             Icons.Default.Add,
@@ -106,11 +99,13 @@ fun TopBar(
                         expanded = menuOpen,
                         onDismissRequest = { menuOpen = false },
                     ) {
-                        AtheaDropdownItem(
-                            icon = Icons.Default.Search,
-                            text = stringResource(R.string.menu_search),
-                            onClick = { menuOpen = false; onSearch() },
-                        )
+                        if (hasMessages) {
+                            AtheaDropdownItem(
+                                icon = Icons.Default.Search,
+                                text = stringResource(R.string.menu_search),
+                                onClick = { menuOpen = false; onSearch() },
+                            )
+                        }
                         AtheaDropdownItem(
                             icon = Icons.Default.Edit,
                             text = stringResource(R.string.menu_rename),

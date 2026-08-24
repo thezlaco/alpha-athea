@@ -140,12 +140,12 @@ private fun KeyChip(
         },
         // Fixed floor width keeps the row rhythm even: short labels do
         // not shrink below it, long ones still expand naturally.
-        modifier = Modifier.defaultMinSize(minWidth = 52.dp),
+        modifier = Modifier.defaultMinSize(minWidth = 44.dp),
     ) {
         Box(
             Modifier
-                .defaultMinSize(minWidth = 52.dp, minHeight = 40.dp)
-                .padding(horizontal = 10.dp),
+                .defaultMinSize(minWidth = 44.dp, minHeight = 40.dp)
+                .padding(horizontal = 8.dp),
             contentAlignment = Alignment.Center,
         ) {
             Text(

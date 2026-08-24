@@ -41,6 +41,13 @@ class StreamParser {
     private val pendingText = StringBuilder()
     private val events = ArrayList<StreamEvent>()
 
+    /**
+     * Set by a carriage return: the cursor is back at line start. Real
+     * terminals end lines with CRLF, so a following LF must keep the line
+     * intact; printable characters after CR overwrite it (progress bars).
+     */
+    private var cursorAtLineStart = false
+
     private val decoder = Charsets.UTF_8.newDecoder()
         .onMalformedInput(java.nio.charset.CodingErrorAction.REPLACE)
         .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPLACE)
@@ -148,14 +155,30 @@ class StreamParser {
         }
         when (ch) {
             '\n' -> {
+                // CRLF (the common line ending) must keep the line content.
                 pendingText.append(line)
                 pendingText.append('\n')
                 line.setLength(0)
+                cursorAtLineStart = false
             }
-            '\r' -> line.setLength(0)
-            '\b' -> if (line.isNotEmpty()) line.setLength(line.length - 1)
+            '\r' -> cursorAtLineStart = true
+            '\b' -> {
+                cursorAtLineStart = false
+                if (line.isNotEmpty()) line.setLength(line.length - 1)
+            }
             '\t' -> line.append(ch)
-            else -> if (ch >= ' ') line.append(ch) // drop other C0 controls and DEL
+            else -> {
+                if (ch >= ' ') {
+                    if (cursorAtLineStart) {
+                        // Overwrite semantics: progress bars redraw from
+                        // the start of the line.
+                        line.setLength(0)
+                        cursorAtLineStart = false
+                    }
+                    line.append(ch)
+                }
+                // Other C0 controls are dropped.
+            }
         }
     }
 

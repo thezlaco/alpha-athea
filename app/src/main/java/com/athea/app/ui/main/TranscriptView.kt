@@ -316,7 +316,9 @@ private fun CommandBubble(
             modifier = Modifier
                 .widthIn(max = maxWidth)
                 .combinedClickable(
-                    onClick = { if (collapsible) onToggle() },
+                    // Tapping the bubble body is reserved for text
+                    // selection; expand/collapse lives on the chevrons.
+                    onClick = {},
                     onLongClick = { menuOpen = true },
                 ),
         ) {
@@ -346,11 +348,12 @@ private fun CommandBubble(
                     }
                     Icon(
                         Icons.Default.KeyboardArrowDown,
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.cd_expand_editor),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
                             .padding(top = 2.dp)
-                            .size(20.dp),
+                            .size(20.dp)
+                            .clickable(onClick = onToggle),
                     )
                 } else {
                     Text(
@@ -370,7 +373,8 @@ private fun CommandBubble(
                                 .align(Alignment.CenterHorizontally)
                                 .padding(top = 2.dp)
                                 .size(20.dp)
-                                .rotate(180f),
+                                .rotate(180f)
+                                .clickable(onClick = onToggle),
                         )
                     }
                 }

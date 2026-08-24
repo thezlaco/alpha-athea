@@ -75,6 +75,11 @@ Java_com_athea_app_engine_PtyBridge_createPty(JNIEnv *env, jobject thiz,
     }
 
     if (pid == 0) {
+        /* Login shells inherit the parent CWD ("/"), which apps cannot
+         * read - start in the app home instead. */
+        if (chdir(home) != 0) {
+            /* Keep going anyway: a shell in "/" beats no shell. */
+        }
         char *argv[] = { (char *) "sh", (char *) "-l", NULL };
         char *envp[] = {
             home_entry,
