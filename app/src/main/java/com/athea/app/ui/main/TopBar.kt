@@ -51,43 +51,45 @@ fun TopBar(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
 
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(horizontal = 10.dp, top = 14.dp, bottom = 6.dp),
-        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Surface(
-            onClick = onOpenDrawer,
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    // The menu anchors to the very top-right (zero-size anchor), so it
+    // drops over the buttons region like chat apps do, not under them.
+    Box(modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 10.dp, top = 14.dp, bottom = 6.dp),
+            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
-                Icon(
-                    Icons.Default.Menu,
-                    contentDescription = stringResource(R.string.cd_open_drawer),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-        }
-
-        Surface(
-            shape = RoundedCornerShape(50),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (hasMessages) {
-                    IconButton(onClick = onNewSession) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = stringResource(R.string.cd_new_session),
-                            tint = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
+            Surface(
+                onClick = onOpenDrawer,
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            ) {
+                Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Default.Menu,
+                        contentDescription = stringResource(R.string.cd_open_drawer),
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
                 }
-                Box {
+            }
+
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (hasMessages) {
+                        IconButton(onClick = onNewSession) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = stringResource(R.string.cd_new_session),
+                                tint = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                    }
                     IconButton(onClick = { menuOpen = true }) {
                         Icon(
                             Icons.Default.MoreVert,
@@ -95,10 +97,20 @@ fun TopBar(
                             tint = MaterialTheme.colorScheme.onSurface,
                         )
                     }
-                    AtheaDropdownMenu(
-                        expanded = menuOpen,
-                        onDismissRequest = { menuOpen = false },
-                    ) {
+                }
+            }
+        }
+
+        Box(
+            Modifier
+                .align(Alignment.TopEnd)
+                .statusBarsPadding()
+                .size(1.dp),
+        ) {
+            AtheaDropdownMenu(
+                expanded = menuOpen,
+                onDismissRequest = { menuOpen = false },
+            ) {
                         if (hasMessages) {
                             AtheaDropdownItem(
                                 icon = Icons.Default.Search,
@@ -126,8 +138,6 @@ fun TopBar(
                                 onClick = { menuOpen = false; onDelete() },
                             )
                         }
-                    }
-                }
             }
         }
     }

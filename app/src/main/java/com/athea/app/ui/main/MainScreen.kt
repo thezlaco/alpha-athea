@@ -29,8 +29,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -89,13 +91,6 @@ fun MainScreen(viewModel: MainViewModel) {
         return
     }
 
-    CompositionLocalProvider(
-        LocalOutputFontSize provides state.outputFontSizeSp,
-        LocalMessageFontSize provides state.bubbleFontSizeSp,
-    ) {
-        MainScreenContent(viewModel, state)
-    }
-
     if (state.showFavorites) {
         BackHandler { viewModel.setShowFavorites(false) }
         FavoritesScreen(
@@ -111,6 +106,7 @@ fun MainScreen(viewModel: MainViewModel) {
 
     // ---- Attachment picker flow -----------------------------------------
 
+    val pickerContext = LocalContext.current
     var attachAction by remember { mutableStateOf<String?>(null) }
     val filePicker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -118,7 +114,7 @@ fun MainScreen(viewModel: MainViewModel) {
         val action = attachAction
         attachAction = null
         if (uri != null && action != null) {
-            viewModel.importAttachment(uri, action, context)
+            viewModel.importAttachment(uri, action, pickerContext)
         }
     }
     if (state.showAttachChooser) {
@@ -152,6 +148,14 @@ fun MainScreen(viewModel: MainViewModel) {
             },
         )
     }
+
+    CompositionLocalProvider(
+        LocalOutputFontSize provides state.outputFontSizeSp,
+        LocalMessageFontSize provides state.bubbleFontSizeSp,
+    ) {
+        MainScreenContent(viewModel, state)
+    }
+}
 
     CompositionLocalProvider(LocalOutputFontSize provides state.outputFontSizeSp) {
         MainScreenContent(viewModel, state)
