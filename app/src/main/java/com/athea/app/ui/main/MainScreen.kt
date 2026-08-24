@@ -160,11 +160,6 @@ fun MainScreen(viewModel: MainViewModel) {
     }
 }
 
-    CompositionLocalProvider(LocalOutputFontSize provides state.outputFontSizeSp) {
-        MainScreenContent(viewModel, state)
-    }
-}
-
 @Composable
 private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
     val context = LocalContext.current
