@@ -232,6 +232,7 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
 
                 if (state.keyRowVisible && state.search == null) {
                     KeyRow(
+                        keys = keyRowKeys(state),
                         stickyCtrl = state.stickyCtrl,
                         suggestionActive = state.suggestion != null,
                         onInsert = viewModel::insertIntoDraft,
@@ -285,6 +286,23 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
                 onConfirm = viewModel::confirmDelete,
             )
         }
+    }
+}
+
+/** User-configured keys, or the built-in row when nothing is customized. */
+private fun keyRowKeys(state: UiState): List<TerminalKey> {
+    val custom = state.customKeys
+    if (custom.isEmpty()) return DefaultKeys.row
+    return custom.map { key ->
+        TerminalKey(
+            label = key.label,
+            kind = when (key.kind) {
+                com.athea.app.data.KeyKind.INSERT -> KeyActionKind.INSERT_INTO_DRAFT
+                com.athea.app.data.KeyKind.SEND -> KeyActionKind.SEND_TO_TERMINAL
+                com.athea.app.data.KeyKind.CTRL -> KeyActionKind.TOGGLE_STICKY_CTRL
+            },
+            payload = key.payload,
+        )
     }
 }
 

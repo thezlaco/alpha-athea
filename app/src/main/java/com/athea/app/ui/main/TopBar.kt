@@ -16,13 +16,10 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -105,77 +102,35 @@ fun TopBar(
                             tint = MaterialTheme.colorScheme.onSurface,
                         )
                     }
-                    DropdownMenu(
+                    AtheaDropdownMenu(
                         expanded = menuOpen,
                         onDismissRequest = { menuOpen = false },
-                        shape = RoundedCornerShape(20.dp),
                     ) {
-                        DropdownMenuItem(
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Search,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            },
-                            text = { Text(stringResource(R.string.menu_search)) },
+                        AtheaDropdownItem(
+                            icon = Icons.Default.Search,
+                            text = stringResource(R.string.menu_search),
                             onClick = { menuOpen = false; onSearch() },
                         )
-                        DropdownMenuItem(
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Add,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            },
-                            text = { Text(stringResource(R.string.cd_new_session)) },
-                            onClick = { menuOpen = false; onNewSession() },
-                        )
-                        DropdownMenuItem(
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Edit,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            },
-                            text = { Text(stringResource(R.string.menu_rename)) },
+                        AtheaDropdownItem(
+                            icon = Icons.Default.Edit,
+                            text = stringResource(R.string.menu_rename),
                             onClick = { menuOpen = false; onRename() },
                         )
-                        DropdownMenuItem(
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.PushPin,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            },
-                            text = {
-                                Text(
-                                    stringResource(
-                                        if (pinned) R.string.menu_unpin else R.string.menu_pin
-                                    )
-                                )
-                            },
+                        AtheaDropdownItem(
+                            icon = Icons.Default.PushPin,
+                            text = stringResource(
+                                if (pinned) R.string.menu_unpin else R.string.menu_pin
+                            ),
                             onClick = { menuOpen = false; onTogglePin() },
                         )
-                        DropdownMenuItem(
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error,
-                                )
-                            },
-                            text = {
-                                Text(
-                                    stringResource(R.string.menu_delete),
-                                    color = MaterialTheme.colorScheme.error,
-                                )
-                            },
-                            onClick = { menuOpen = false; onDelete() },
-                        )
+                        if (hasMessages) {
+                            AtheaDropdownItem(
+                                icon = Icons.Default.Delete,
+                                text = stringResource(R.string.menu_delete),
+                                tinted = true,
+                                onClick = { menuOpen = false; onDelete() },
+                            )
+                        }
                     }
                 }
             }

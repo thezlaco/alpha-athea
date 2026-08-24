@@ -113,6 +113,19 @@ class AtheaStorage(root: File) {
             .writeTextAtomic(json.encodeToString(AtheaSettings.serializer(), settings))
     }
 
+    // ------------------------------------------------------------- key row
+
+    fun loadKeys(): KeysIndex =
+        runCatching {
+            json.decodeFromString(KeysIndex.serializer(), File(sessionsDir, "keys.json").readText())
+        }.getOrDefault(KeysIndex())
+
+    fun saveKeys(keys: KeysIndex) {
+        sessionsDir.mkdirs()
+        File(sessionsDir, "keys.json")
+            .writeTextAtomic(json.encodeToString(KeysIndex.serializer(), keys))
+    }
+
     // ----------------------------------------------------------------- files
 
     /**

@@ -34,9 +34,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.TextSelect
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -48,6 +49,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -166,7 +168,29 @@ fun TranscriptView(
             derivedStateOf { listState.canScrollForward }
         }
 
+        // The jump button only follows downward scrolling: moving up hides
+        // it, moving down (with room below) brings it back.
+        var showJumpDown by remember { mutableStateOf(false) }
+        var lastScrollPos by remember { mutableStateOf(-1) }
+        LaunchedEffect(listState) {
+            snapshotFlow {
+                listState.firstVisibleItemIndex * 100_000 +
+                    listState.firstVisibleItemScrollOffset
+            }.collect { pos ->
+                if (pos != lastScrollPos) {
+                    val movingDown = lastScrollPos in 0 until pos
+                    showJumpDown = movingDown && listState.canScrollForward
+                    lastScrollPos = pos
+                }
+            }
+        }
+
         val currentMatchId = search?.matchBlockIds?.getOrNull(search.index)
+
+        if (views.isEmpty()) {
+            EmptyGreeting(Modifier.align(Alignment.Center))
+            return@BoxWithConstraints
+        }
 
         LazyColumn(
             state = listState,
@@ -213,7 +237,7 @@ fun TranscriptView(
             }
         }
 
-        if (canScrollForward) {
+        if (showJumpDown) {
             val scope = rememberCoroutineScope()
             Surface(
                 onClick = {
@@ -234,6 +258,26 @@ fun TranscriptView(
                     }
             }
         }
+    }
+}
+
+@Composable
+private fun EmptyGreeting(modifier: Modifier = Modifier) {
+    Column(
+        modifier.padding(horizontal = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = stringResource(R.string.greeting_title),
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f),
+        )
+        Text(
+            text = stringResource(R.string.greeting_hint),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.35f),
+            modifier = Modifier.padding(top = 10.dp),
+        )
     }
 }
 
@@ -314,23 +358,41 @@ private fun CommandBubble(
                         style = bubbleStyle,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
+                    if (collapsible) {
+                        // Calm collapse affordance at the tail, mirroring
+                        // the expand chevron of the collapsed preview.
+                        Icon(
+                            Icons.Default.KeyboardArrowDown,
+                            contentDescription = stringResource(R.string.cd_collapse),
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                .copy(alpha = 0.6f),
+                            modifier = Modifier
+                                .align(Alignment.CenterHorizontally)
+                                .padding(top = 2.dp)
+                                .size(20.dp)
+                                .rotate(180f),
+                        )
+                    }
                 }
             }
 
-            DropdownMenu(
+            AtheaDropdownMenu(
                 expanded = menuOpen,
                 onDismissRequest = { menuOpen = false },
             ) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.copy)) },
+                AtheaDropdownItem(
+                    icon = Icons.Default.ContentCopy,
+                    text = stringResource(R.string.copy),
                     onClick = { menuOpen = false; onCopy() },
                 )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.select_text)) },
+                AtheaDropdownItem(
+                    icon = Icons.Default.TextSelect,
+                    text = stringResource(R.string.select_text),
                     onClick = { menuOpen = false; onSelectText() },
                 )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.add_to_favorites)) },
+                AtheaDropdownItem(
+                    icon = Icons.Default.Star,
+                    text = stringResource(R.string.add_to_favorites),
                     onClick = { menuOpen = false; onFavorite() },
                 )
             }

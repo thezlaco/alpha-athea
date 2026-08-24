@@ -75,6 +75,7 @@ data class UiState(
     val deleteTargetId: Long? = null,
     val selectTextPayload: String? = null,
     val suggestion: String? = null,
+    val customKeys: List<com.athea.app.data.CustomKey> = emptyList(),
 )
 
 sealed interface UiEvent {
@@ -145,6 +146,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         restoreSettings()
         restoreSessions()
         restoreFavorites()
+        restoreKeys()
     }
 
     // ----------------------------------------------------------- restoration
@@ -185,6 +187,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val favorites = storage.loadFavorites()
         favoriteCounter = favorites.nextFavoriteId
         _state.update { it.copy(favorites = favorites.items) }
+    }
+
+    private fun restoreKeys() {
+        val keys = storage.loadKeys()
+        _state.update { it.copy(customKeys = keys.items) }
+    }
+
+    /** Replaces the whole key row (used by the settings editor). */
+    fun setCustomKeys(keys: List<com.athea.app.data.CustomKey>) {
+        _state.update { it.copy(customKeys = keys) }
+        storage.saveKeys(com.athea.app.data.KeysIndex(items = keys))
+    }
+
+    fun resetKeysToDefaults() {
+        setCustomKeys(emptyList())
     }
 
     private fun restoreSettings() {
@@ -234,7 +251,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val next = queue.tryReceive().getOrNull() ?: break
                     batch.add(next)
                 }
-                processBatch(meta.id, batch)
+                // One dead event must never kill the pipeline forever.
+                try {
+                    processBatch(meta.id, batch)
+                } catch (e: Exception) {
+                    com.athea.app.util.AtheaLog.error("pipeline", "processBatch failed", e)
+                }
             }
         }
     }
@@ -263,12 +285,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
             }
+            com.athea.app.util.AtheaLog.log(
+                "pipeline",
+                "batch size=${batch.size} bytes=${bytes?.size ?: 0} exited=$shellExited",
+            )
 
             bytes?.let { data ->
                 // Raw bytes hit the journal before parsing: the log stays
                 // the single source of truth regardless of parsing rules.
                 pipe.journal.append(JournalEvent.OutputArrived(data))
-                for (parsed in pipe.parser.feed(data)) {
+                val parsedEvents = pipe.parser.feed(data)
+                com.athea.app.util.AtheaLog.log(
+                    "pipeline",
+                    "parsed events=${parsedEvents.size} head=" +
+                        parsedEvents.firstOrNull().let { ev ->
+                            when (ev) {
+                                is StreamEvent.Text -> "Text(${ev.value.take(60)})"
+                                is StreamEvent.OutputBegin -> "OutputBegin"
+                                is StreamEvent.CommandEnd -> "CommandEnd(${ev.exitCode})"
+                                null -> "none"
+                            }
+                        },
+                )
+                for (parsed in parsedEvents) {
                     when (parsed) {
                         is StreamEvent.Text -> pipe.builder.applyOutput(parsed.value)
 
@@ -396,7 +435,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateDraft(text: String) {
         val id = _state.value.currentSessionId ?: return
-        mutateMeta(id) { it.copy(draft = text) }
+        // In-memory only: persisting on every keystroke means a disk write
+        // per character (visible as paste jank). Drafts flush on pause,
+        // send and session switch instead.
+        mutateMeta(id, persist = false) { it.copy(draft = text) }
         updateSuggestion(id, text)
     }
 
@@ -439,7 +481,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun submit(id: Long, text: String) {
-        val engine = engines[id] ?: return
+        val engine = engines[id]
+        if (engine == null) {
+            com.athea.app.util.AtheaLog.error("submit", "no engine for session $id")
+            return
+        }
         var seq = 0L
         synchronized(lock) {
             val pipe = pipes[id] ?: return
@@ -457,7 +503,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             histories[id] = (histories[id] ?: emptyList()) + text
             refreshSession(id)
         }
-        engine.write((text + "\n").toByteArray(Charsets.UTF_8))
+        // A multi-line draft must execute as ONE command: the canonical
+        // shell would otherwise run every line separately, shredding the
+        // transcript into per-line output fragments. Single-quote escaping
+        // keeps every byte of the draft intact inside eval.
+        val payload = if (text.contains('\n')) {
+            "eval '" + text.replace("'", "'\\''") + "'\n"
+        } else {
+            text + "\n"
+        }
+        com.athea.app.util.AtheaLog.log("submit", "seq=$seq payloadSize=${payload.size}")
+        engine.write(payload.toByteArray(Charsets.UTF_8))
     }
 
     // ------------------------------------------------------------- favorites
@@ -713,11 +769,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     // ------------------------------------------------------------- internals
 
-    private fun mutateMeta(id: Long, transform: (SessionMeta) -> SessionMeta) {
+    private fun mutateMeta(id: Long, persist: Boolean = true, transform: (SessionMeta) -> SessionMeta) {
         synchronized(lock) {
             val current = metas[id] ?: return
             metas[id] = transform(current)
-            persistIndexLocked()
+            if (persist) persistIndexLocked()
             refreshSession(id)
         }
     }

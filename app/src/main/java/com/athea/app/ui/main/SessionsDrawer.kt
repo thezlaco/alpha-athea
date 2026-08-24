@@ -29,11 +29,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.StarBorder
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -204,28 +204,23 @@ private fun SessionRow(
                 )
                 Spacer(Modifier.width(2.dp))
             }
-            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.menu_rename)) },
+            AtheaDropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                AtheaDropdownItem(
+                    icon = Icons.Default.Edit,
+                    text = stringResource(R.string.menu_rename),
                     onClick = { menuOpen = false; onRename() },
                 )
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            stringResource(
-                                if (session.pinned) R.string.menu_unpin else R.string.menu_pin
-                            )
-                        )
-                    },
+                AtheaDropdownItem(
+                    icon = Icons.Default.PushPin,
+                    text = stringResource(
+                        if (session.pinned) R.string.menu_unpin else R.string.menu_pin
+                    ),
                     onClick = { menuOpen = false; onTogglePin() },
                 )
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            stringResource(R.string.menu_delete),
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    },
+                AtheaDropdownItem(
+                    icon = Icons.Default.Delete,
+                    text = stringResource(R.string.menu_delete),
+                    tinted = true,
                     onClick = { menuOpen = false; onDelete() },
                 )
             }

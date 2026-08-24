@@ -57,6 +57,7 @@ object DefaultKeys {
 
 @Composable
 fun KeyRow(
+    keys: List<TerminalKey>,
     stickyCtrl: Boolean,
     suggestionActive: Boolean,
     onInsert: (String) -> Unit,
@@ -86,7 +87,7 @@ fun KeyRow(
                 .padding(horizontal = 8.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            DefaultKeys.row.forEach { key ->
+            keys.forEach { key ->
                 val selected = key.kind == KeyActionKind.TOGGLE_STICKY_CTRL && stickyCtrl
                 KeyChip(key = key, selected = selected) {
                     when (key.kind) {

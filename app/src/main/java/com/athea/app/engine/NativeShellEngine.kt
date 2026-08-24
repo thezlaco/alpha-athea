@@ -41,17 +41,24 @@ internal class NativeShellEngine(
     override fun start(initialRows: Int, initialCols: Int): Boolean {
         if (!started.compareAndSet(false, true)) return isAlive.value
         return try {
+            com.athea.app.util.AtheaLog.log(
+                "shell",
+                "start: home=$homeDir rc=$rcPath rows=$initialRows cols=$initialCols",
+            )
             val handle = PtyBridge.createPty(initialRows, initialCols, homeDir, rcPath)
-                ?: return false
+            if (handle == null) {
+                com.athea.app.util.AtheaLog.error("shell", "createPty returned null")
+                return false
+            }
             masterFd = handle[0]
             childPid = handle[1]
             _isAlive.value = true
-            android.util.Log.i("AtheaShell", "shell spawned, pid=$childPid fd=$masterFd")
+            com.athea.app.util.AtheaLog.log("shell", "spawned pid=$childPid fd=$masterFd")
             Thread({ readLoop(masterFd) }, "athea-pty-reader").start()
             Thread({ waitLoop(childPid) }, "athea-pty-waiter").start()
             true
         } catch (e: Exception) {
-            android.util.Log.e("AtheaShell", "start failed", e)
+            com.athea.app.util.AtheaLog.error("shell", "start failed", e)
             _isAlive.value = false
             false
         }
@@ -59,10 +66,21 @@ internal class NativeShellEngine(
 
     override fun write(data: ByteArray) {
         val fd = masterFd
-        if (fd < 0 || !_isAlive.value || data.isEmpty()) return
+        if (fd < 0 || !_isAlive.value || data.isEmpty()) {
+            com.athea.app.util.AtheaLog.log(
+                "shell",
+                "write skipped: fd=$fd alive=${_isAlive.value} size=${data.size}",
+            )
+            return
+        }
         try {
+            com.athea.app.util.AtheaLog.log(
+                "shell",
+                "write size=${data.size} head=" + data.decodeToString().take(80),
+            )
             PtyBridge.writePty(fd, data)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            com.athea.app.util.AtheaLog.error("shell", "write failed", e)
             // Process died mid-write; the waiter thread will report the exit.
         }
     }
@@ -88,13 +106,27 @@ internal class NativeShellEngine(
 
     private fun readLoop(fd: Int) {
         val buffer = ByteArray(READ_BUFFER_SIZE)
+        var total = 0L
         while (true) {
             val n = try {
                 PtyBridge.readPty(fd, buffer)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                com.athea.app.util.AtheaLog.error("shell", "read failed", e)
                 -1
             }
-            if (n <= 0) break
+            if (n <= 0) {
+                com.athea.app.util.AtheaLog.log("shell", "read loop ended, totalBytes=$total")
+                break
+            }
+            total += n
+            if (total <= READ_BUFFER_SIZE * 2L) {
+                // Log only the first chunks in detail; heavy output would
+                // drown the ring buffer otherwise.
+                com.athea.app.util.AtheaLog.log(
+                    "shell",
+                    "read n=$n head=" + buffer.copyOf(n).decodeToString().take(80),
+                )
+            }
             _events.tryEmit(EngineEvent.Output(buffer.copyOf(n)))
         }
     }
@@ -107,7 +139,7 @@ internal class NativeShellEngine(
         }
         if (exitReported.compareAndSet(false, true)) {
             _isAlive.value = false
-            android.util.Log.w("AtheaShell", "shell exited, code=$code")
+            com.athea.app.util.AtheaLog.log("shell", "waitpid done, code=$code")
             _events.tryEmit(EngineEvent.Exited(code))
             val fd = masterFd
             if (fd >= 0) {
