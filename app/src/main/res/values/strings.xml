@@ -14,6 +14,8 @@
     <string name="cd_expand_editor">Expand editor</string>
     <string name="cd_scroll_down">Scroll to bottom</string>
     <string name="cd_collapse">Collapse</string>
+    <string name="greeting_title">Athea</string>
+    <string name="greeting_hint">Type a command — the answer appears as a message</string>
 
     <!-- Main screen -->
     <string name="input_hint">Type a command…</string>

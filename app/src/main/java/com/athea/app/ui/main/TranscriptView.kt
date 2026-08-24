@@ -37,7 +37,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.TextSelect
+import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -386,7 +386,7 @@ private fun CommandBubble(
                     onClick = { menuOpen = false; onCopy() },
                 )
                 AtheaDropdownItem(
-                    icon = Icons.Default.TextSelect,
+                    icon = Icons.Default.TextFields,
                     text = stringResource(R.string.select_text),
                     onClick = { menuOpen = false; onSelectText() },
                 )

@@ -512,7 +512,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         } else {
             text + "\n"
         }
-        com.athea.app.util.AtheaLog.log("submit", "seq=$seq payloadSize=${payload.size}")
+        com.athea.app.util.AtheaLog.log("submit", "seq=$seq payloadSize=${payload.length}")
         engine.write(payload.toByteArray(Charsets.UTF_8))
     }
 

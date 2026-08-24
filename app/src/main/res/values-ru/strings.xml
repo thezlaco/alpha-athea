@@ -13,6 +13,8 @@
     <string name="cd_expand_editor">Развернуть редактор</string>
     <string name="cd_scroll_down">Прокрутить вниз</string>
     <string name="cd_collapse">Свернуть</string>
+    <string name="greeting_title">Athea</string>
+    <string name="greeting_hint">Введите команду — ответ придёт сообщением</string>
 
     <string name="input_hint">Введите команду…</string>
     <string name="editor_title">Редактор</string>

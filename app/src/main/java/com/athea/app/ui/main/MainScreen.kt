@@ -58,6 +58,7 @@ fun MainScreen(viewModel: MainViewModel) {
             outputFontSizeSp = state.outputFontSizeSp,
             previewLines = state.previewLines,
             bubbleFontSizeSp = state.bubbleFontSizeSp,
+            customKeys = state.customKeys,
             onKeyRowVisibleChange = viewModel::setKeyRowVisible,
             onEnterSendsChange = viewModel::setEnterSends,
             onAutoScrollOnSendChange = viewModel::setAutoScrollOnSend,
@@ -67,6 +68,8 @@ fun MainScreen(viewModel: MainViewModel) {
             onOutputFontSizeChange = viewModel::setOutputFontSize,
             onPreviewLinesChange = viewModel::setPreviewLines,
             onBubbleFontSizeChange = viewModel::setBubbleFontSize,
+            onCustomKeysChange = viewModel::setCustomKeys,
+            onResetKeys = viewModel::resetKeysToDefaults,
             onBack = { viewModel.setShowSettings(false) },
         )
         return

@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 fun AtheaDropdownMenu(
     expanded: Boolean,
     onDismissRequest: () -> Unit,
-    content: @Composable () -> Unit,
+    content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit,
 ) {
     DropdownMenu(
         expanded = expanded,
