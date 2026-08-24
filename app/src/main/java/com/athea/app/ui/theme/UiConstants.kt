@@ -19,14 +19,14 @@ object Ui {
     val dialogShape = RoundedCornerShape(20.dp)
 
     // ---- Menus ------------------------------------------------------------
-    val menuMinWidth = 240.dp
-    val menuItemMinHeight = 52.dp
+    val menuMinWidth = 190.dp
+    val menuItemMinHeight = 56.dp
     val menuIconSize = 24.dp
 
     // ---- Top bar ----------------------------------------------------------
     val topButtonSize = 48.dp
     val topBarHorizontalPadding = 10.dp
-    val topBarTopPadding = 24.dp
+    val topBarTopPadding = 32.dp
     val topBarBottomPadding = 6.dp
 
     // ---- Composer ---------------------------------------------------------

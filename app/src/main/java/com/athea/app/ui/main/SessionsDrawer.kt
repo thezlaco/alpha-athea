@@ -126,7 +126,7 @@ fun SessionsDrawerContent(
                 // same style as the top-right pill.
                 Surface(
                     shape = RoundedCornerShape(50),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    color = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.55f),
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
@@ -134,7 +134,7 @@ fun SessionsDrawerContent(
                 ) {
                     Row(
                         Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+                        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         IconButton(onClick = onSettings) {
