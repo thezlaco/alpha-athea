@@ -101,73 +101,50 @@ fun SessionsDrawerContent(
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
             )
 
-            // Sessions area: scrollable list with a gradient overlay at
-            // the bottom that fades the last items into darkness.
-            Box(Modifier.weight(1f)) {
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState()),
-                ) {
-                    ordered.forEach { session ->
-                        SessionRow(
-                            session = session,
-                            selected = session.id == currentSessionId,
-                            onSelect = { onSelectSession(session.id) },
-                            onRename = { onRenameSession(session.id) },
-                            onTogglePin = { onTogglePin(session.id) },
-                            onDelete = { onDeleteSession(session.id) },
-                        )
-                    }
+            // Sessions area: scrollable list, no gradient overlay.
+            Column(
+                Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                ordered.forEach { session ->
+                    SessionRow(
+                        session = session,
+                        selected = session.id == currentSessionId,
+                        onSelect = { onSelectSession(session.id) },
+                        onRename = { onRenameSession(session.id) },
+                        onTogglePin = { onTogglePin(session.id) },
+                        onDelete = { onDeleteSession(session.id) },
+                    )
                 }
-                // Gradient ON TOP of the list items — no extra space.
-                Box(
-                    Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .height(64.dp)
-                        .background(
-                            androidx.compose.ui.graphics.Brush.verticalGradient(
-                                listOf(
-                                    androidx.compose.ui.graphics.Color.Transparent,
-                                    androidx.compose.ui.graphics.Color.Black,
-                                )
-                            )
-                        ),
-                )
             }
 
-            // Two compact round buttons at the bottom-left, like the top
-            // bar style. The gradient above fades sessions into darkness.
-            Row(
-                Modifier
+            // Bottom bar: merged pill (settings + favorites) on a
+            // semi-transparent background, ChatGPT style. No gradient.
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.5f),
+                modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = Ui.drawerItemPaddingH, vertical = 10.dp),
-                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Surface(
-                    onClick = onOpenFavorites,
-                    shape = androidx.compose.foundation.shape.CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                Row(
+                    Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Outlined.StarBorder,
-                            contentDescription = stringResource(R.string.favorites),
-                            tint = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                }
-                Surface(
-                    onClick = onSettings,
-                    shape = androidx.compose.foundation.shape.CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                ) {
-                    Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
+                    IconButton(onClick = onSettings) {
                         Icon(
                             Icons.Default.Settings,
                             contentDescription = stringResource(R.string.settings),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    Spacer(Modifier.weight(1f))
+                    IconButton(onClick = onOpenFavorites) {
+                        Icon(
+                            Icons.Outlined.StarBorder,
+                            contentDescription = stringResource(R.string.favorites),
                             tint = MaterialTheme.colorScheme.onSurface,
                         )
                     }
