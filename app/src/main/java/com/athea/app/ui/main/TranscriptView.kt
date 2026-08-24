@@ -72,6 +72,7 @@ import com.athea.app.core.model.DisplayMode
 import com.athea.app.core.model.OutputBlock
 import com.athea.app.ui.SearchState
 import com.athea.app.ui.SessionUi
+import com.athea.app.ui.theme.CodeStyle
 import com.athea.app.ui.theme.HighlightColor
 import com.athea.app.ui.theme.OnHighlightColor
 import com.athea.app.ui.theme.codeStyle
