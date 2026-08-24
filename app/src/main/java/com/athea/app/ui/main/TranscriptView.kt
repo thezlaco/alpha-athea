@@ -161,27 +161,28 @@ fun TranscriptView(
         // Forced jumps to the very bottom (e.g. right after sending).
         LaunchedEffect(session.id) {
             jumpToBottom.collect {
-                if (itemCount > 0) listState.animateScrollToItem(itemCount - 1)
+                val last = listState.layoutInfo.totalItemsCount - 1
+                if (last >= 0) listState.animateScrollToItem(last)
             }
         }
 
-        val canScrollForward by remember {
-            derivedStateOf { listState.canScrollForward }
-        }
-
-        // The jump button only follows downward scrolling: moving up hides
-        // it, moving down (with room below) brings it back.
+        // Jump button: appears when scrolling down with room below,
+        // disappears when scrolling up or reaching the bottom.
         var showJumpDown by remember { mutableStateOf(false) }
-        var lastScrollPos by remember { mutableStateOf(-1) }
         LaunchedEffect(listState) {
+            var previous = -1L
             snapshotFlow {
-                listState.firstVisibleItemIndex * 100_000 +
+                listState.firstVisibleItemIndex.toLong() * 100_000L +
                     listState.firstVisibleItemScrollOffset
             }.collect { pos ->
-                if (pos != lastScrollPos) {
-                    val movingDown = lastScrollPos in 0 until pos
-                    showJumpDown = movingDown && listState.canScrollForward
-                    lastScrollPos = pos
+                if (pos != previous) {
+                    val movingDown = previous >= 0 && pos > previous
+                    if (movingDown) {
+                        showJumpDown = listState.canScrollForward
+                    } else if (!movingDown) {
+                        showJumpDown = false
+                    }
+                    previous = pos
                 }
             }
         }
@@ -242,7 +243,8 @@ fun TranscriptView(
             val scope = rememberCoroutineScope()
             Surface(
                 onClick = {
-                    if (itemCount > 0) scope.launch { listState.animateScrollToItem(itemCount - 1) }
+                    val last = listState.layoutInfo.totalItemsCount - 1
+                    if (last >= 0) scope.launch { listState.animateScrollToItem(last) }
                 },
                 shape = androidx.compose.foundation.shape.CircleShape,
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
