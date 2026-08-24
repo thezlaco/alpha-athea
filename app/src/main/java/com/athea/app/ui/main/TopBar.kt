@@ -58,7 +58,7 @@ fun TopBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(horizontal = 10.dp, top = 14.dp, bottom = 6.dp),
+                .padding(start = 10.dp, end = 10.dp, top = 14.dp, bottom = 6.dp),
             horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
