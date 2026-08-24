@@ -80,6 +80,26 @@ jobs:
       - name: Unit tests and debug APK
         run: gradle :app:testDebugUnitTest :app:assembleDebug --stacktrace --warning-mode summary
 
+      - name: Sign APK with apksigner
+        run: |
+          keytool -genkeypair -v \
+            -keystore signing.keystore \
+            -alias athea \
+            -storepass athea123 -keypass athea123 \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Athea,O=Athea,C=US"
+          APK=$(find app/build/outputs/apk/debug -name "*.apk" -print -quit)
+          echo "Signing: $APK"
+          ${ANDROID_HOME}/build-tools/${BUILD_TOOLS_VERSION}/apksigner sign \
+            --ks signing.keystore \
+            --ks-key-alias athea \
+            --ks-pass pass:athea123 \
+            --key-pass pass:athea123 \
+            --out "$APK" \
+            "$APK"
+          ${ANDROID_HOME}/build-tools/${BUILD_TOOLS_VERSION}/apksigner verify --verbose "$APK" | head -10
+          echo "APK signed successfully"
+
       - name: Collect outputs
         run: |
           mkdir -p build_out/apk
