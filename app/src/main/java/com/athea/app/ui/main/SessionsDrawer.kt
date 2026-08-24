@@ -80,7 +80,7 @@ fun SessionsDrawerContent(
     // Surface (not a bare background) so inner text picks up the proper
     // content color instead of the default dark one.
     Surface(
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        color = androidx.compose.ui.graphics.Color.Black,
         modifier = modifier
             .fillMaxHeight()
             .fillMaxWidth(Ui.drawerWidthFraction),

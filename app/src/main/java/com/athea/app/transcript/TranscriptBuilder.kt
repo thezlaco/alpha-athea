@@ -40,6 +40,7 @@ class TranscriptBuilder(
     private val blocks = ArrayList<Block>()
     private val expandedOverrides = HashMap<String, Boolean>()
     private var runningOutputId: String? = null
+    private val runningText = StringBuilder()
     private var outputCounter = 0
 
     // Raw projection kept as chunks: trimming drops whole head chunks in
@@ -74,13 +75,20 @@ class TranscriptBuilder(
         val id = runningOutputId
         if (id == null) {
             val newId = nextOutputId()
-            blocks.add(OutputBlock(id = newId, text = text, running = true))
+            runningText.clear()
+            runningText.append(text)
+            // Only the tail goes into the UI block; the journal has the
+            // full text. This prevents O(n²) String concatenation.
+            blocks.add(OutputBlock(id = newId, text = text.takeLast(RUNNING_RENDER_CAP), running = true))
             runningOutputId = newId
         } else {
+            runningText.append(text)
             val index = indexOfBlock(id)
             if (index >= 0) {
                 val current = blocks[index] as OutputBlock
-                blocks[index] = current.copy(text = current.text + text)
+                // O(1) append: just show the tail of the StringBuilder.
+                val tail = runningText.takeLast(RUNNING_RENDER_CAP)
+                blocks[index] = current.copy(text = tail)
             }
         }
         appendRaw(text)
@@ -118,7 +126,7 @@ class TranscriptBuilder(
         return TranscriptSnapshot(
             blocks = views,
             running = runningOutputId != null,
-            rawText = if (displayRaw) rawText() else "",
+            rawText = if (displayRaw) rawText().takeLast(RAW_RENDER_CAP) else "",
         )
     }
 
@@ -138,8 +146,11 @@ class TranscriptBuilder(
         val index = indexOfBlock(id)
         if (index >= 0) {
             val current = blocks[index] as OutputBlock
-            blocks[index] = current.copy(running = false, exitCode = exitCode)
+            // Commit the full text from the StringBuilder (up to a cap).
+            val finalText = runningText.takeLast(COMMIT_TEXT_CAP)
+            blocks[index] = current.copy(text = finalText, running = false, exitCode = exitCode)
         }
+        runningText.clear()
     }
 
     private fun indexOfBlock(id: String): Int =
@@ -182,6 +193,15 @@ class TranscriptBuilder(
     companion object {
         const val DEFAULT_RAW_CAP = 1 shl 20
         private const val RAW_TRIM_SLACK = 1 shl 16
+
+        /** Max chars rendered in the UI for a running output block. */
+        const val RUNNING_RENDER_CAP = 20_000
+
+        /** Max chars committed to a finished output block. */
+        const val COMMIT_TEXT_CAP = 200_000
+
+        /** Max chars rendered in raw view. */
+        const val RAW_RENDER_CAP = 50_000
 
         fun cmdId(seq: Long): String = "cmd-$seq"
 

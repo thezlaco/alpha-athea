@@ -110,7 +110,7 @@ fun TopBar(
             AtheaDropdownMenu(
                 expanded = menuOpen,
                 onDismissRequest = { menuOpen = false },
-                offset = androidx.compose.ui.unit.DpOffset(0.dp, (-48).dp),
+                offset = androidx.compose.ui.unit.DpOffset(0.dp, (-120).dp),
             ) {
                         if (hasMessages) {
                             AtheaDropdownItem(
