@@ -72,6 +72,7 @@ class SessionJournalTest {
     fun `torn binary tail is dropped instead of poisoning history`() {
         val (journal, file) = newJournal()
         journal.append(CommandSubmitted(1, "ls", 0))
+        journal.readAll() // flush writer to disk
         val good = file.readBytes()
         // Simulate a kill mid-record: append a partial header + payload.
         file.writeBytes(good + byteArrayOf(2) + byteArrayOf(0, 0, 0, 100) + byteArrayOf(1, 2))
@@ -85,6 +86,7 @@ class SessionJournalTest {
     fun `appended foreign garbage keeps the clean prefix without crashing`() {
         val (journal, file) = newJournal()
         journal.append(CommandSubmitted(1, "ls", 0))
+        journal.readAll() // flush writer to disk
         val good = file.readBytes()
         // Foreign bytes (not our framing) must never poison the reader:
         // the clean prefix stays readable, the garbage region is cut off.
