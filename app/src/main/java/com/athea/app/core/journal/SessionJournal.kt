@@ -31,19 +31,33 @@ class SessionJournal(private val file: File) {
     private var formatChecked = false
     private var binaryMode = false
 
+    // Persistent output stream: opened on first append, reused for all
+    // subsequent writes. Opening/closing a file per append is the single
+    // biggest I/O bottleneck for heavy terminal output.
+    private var writer: DataOutputStream? = null
+
     fun append(event: JournalEvent) {
         synchronized(lock) {
             ensureFormat()
             file.parentFile?.mkdirs()
-            DataOutputStream(BufferedOutputStream(FileOutputStream(file, true))).use { out ->
-                writeRecord(out, event)
+            val out = writer ?: DataOutputStream(BufferedOutputStream(FileOutputStream(file, true))).also {
+                writer = it
             }
+            writeRecord(out, event)
+            // No flush: BufferedOutputStream batches writes internally.
+            // On crash, torn tail detection handles partial records.
         }
+    }
+
+    private fun closeWriter() {
+        writer?.let { runCatching { it.close() } }
+        writer = null
     }
 
     fun readAll(): List<JournalEvent> {
         synchronized(lock) {
             ensureFormat()
+            closeWriter() // Flush buffered data before reading.
             if (!file.exists() || file.length() == 0L) return emptyList()
             return try {
                 DataInputStream(BufferedInputStream(file.inputStream())).use { input ->

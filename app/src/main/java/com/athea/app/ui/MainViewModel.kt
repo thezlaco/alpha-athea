@@ -354,13 +354,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val pipe = pipes[id] ?: return
 
         // Phase 1: extract data from batch — no lock, pure CPU.
-        var bytes: ByteArray? = null
+        // ByteArrayOutputStream avoids O(n²) intermediate array copies.
         var shellExited = false
         var shellExitCode: Int? = null
+        val byteBuffer = java.io.ByteArrayOutputStream()
         for (event in batch) {
             when (event) {
-                is EngineEvent.Output ->
-                    bytes = if (bytes == null) event.data else bytes + event.data
+                is EngineEvent.Output -> byteBuffer.write(event.data)
 
                 is EngineEvent.Exited -> {
                     shellExited = true
@@ -368,6 +368,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+        val bytes: ByteArray? = if (byteBuffer.size() > 0) byteBuffer.toByteArray() else null
 
         // Phase 2: journal write + parse — no lock. Journal is per-session
         // (single writer), parser is per-session (single feeder). Disk I/O
