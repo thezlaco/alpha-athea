@@ -123,8 +123,10 @@ fun TranscriptView(
         }
 
         if (session.displayMode == DisplayMode.RAW) {
+            // Cap raw view rendering: the full text lives in the journal.
+            val rawCapped = session.rawText.takeLast(10_000)
             RawStreamView(
-                text = session.rawText,
+                text = rawCapped,
                 query = search?.query,
                 modifier = Modifier.fillMaxSize(),
             )

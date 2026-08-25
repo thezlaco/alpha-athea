@@ -121,7 +121,18 @@ class TranscriptBuilder(
         val expandedOutput = expandedOutputId()
         val views = ArrayList<BlockView>(blocks.size)
         for (block in blocks) {
-            views.add(BlockView(block, computeCollapsed(block, expandedOutput)))
+            // Running block: only the tail goes to the UI. The full text
+            // lives in the StringBuilder and the journal — rendering
+            // 1MB in a Text composable on every throttle tick freezes
+            // the main thread. When the command finishes, the committed
+            // block carries the full text.
+            val viewBlock = if (block is OutputBlock && block.running) {
+                val tail = runningText.takeLast(STREAM_RENDER_TAIL).toString()
+                block.copy(text = tail)
+            } else {
+                block
+            }
+            views.add(BlockView(viewBlock, computeCollapsed(viewBlock, expandedOutput)))
         }
         return TranscriptSnapshot(
             blocks = views,
@@ -196,11 +207,10 @@ class TranscriptBuilder(
         const val DEFAULT_RAW_CAP = 1 shl 20
         private const val RAW_TRIM_SLACK = 1 shl 16
 
-        /** Max chars rendered in the UI for a running output block. */
-        const val RUNNING_RENDER_CAP = 20_000
-
-        /** Max chars committed to a finished output block. */
-        const val COMMIT_TEXT_CAP = 200_000
+        /** Chars shown in the UI while a command is streaming. The full
+         *  text lives in the StringBuilder + journal; when the command
+         *  finishes, the committed block carries everything. */
+        const val STREAM_RENDER_TAIL = 3000
 
         /** Max chars rendered in raw view. */
         const val RAW_RENDER_CAP = 50_000
