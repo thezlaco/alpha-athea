@@ -349,65 +349,57 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // -------------------------------------------------------- engine events
 
     private fun processBatch(id: Long, batch: List<EngineEvent>) {
-        synchronized(lock) {
-            val pipe = pipes[id] ?: return
-            var bytes: ByteArray? = null
-            var shellExited = false
-            var shellExitCode: Int? = null
-            for (event in batch) {
-                when (event) {
-                    is EngineEvent.Output ->
-                        bytes = if (bytes == null) event.data else bytes + event.data
+        // Capture per-session reference without lock: the pipe is only
+        // removed in performDelete, which cancels this worker first.
+        val pipe = pipes[id] ?: return
 
-                    is EngineEvent.Exited -> {
-                        shellExited = true
-                        shellExitCode = event.exitCode
-                    }
+        // Phase 1: extract data from batch — no lock, pure CPU.
+        var bytes: ByteArray? = null
+        var shellExited = false
+        var shellExitCode: Int? = null
+        for (event in batch) {
+            when (event) {
+                is EngineEvent.Output ->
+                    bytes = if (bytes == null) event.data else bytes + event.data
+
+                is EngineEvent.Exited -> {
+                    shellExited = true
+                    shellExitCode = event.exitCode
                 }
             }
-            com.athea.app.util.AtheaLog.log(
-                "pipeline",
-                "batch size=${batch.size} bytes=${bytes?.size ?: 0} exited=$shellExited",
-            )
+        }
 
-            bytes?.let { data ->
-                // Raw bytes hit the journal before parsing: the log stays
-                // the single source of truth regardless of parsing rules.
-                pipe.journal.append(JournalEvent.OutputArrived(data))
-                val parsedEvents = pipe.parser.feed(data)
-                com.athea.app.util.AtheaLog.log(
-                    "pipeline",
-                    "parsed events=${parsedEvents.size} head=" +
-                        parsedEvents.firstOrNull().let { ev ->
-                            when (ev) {
-                                is StreamEvent.Text -> "Text(${ev.value.take(60)})"
-                                is StreamEvent.OutputBegin -> "OutputBegin"
-                                is StreamEvent.CommandEnd -> "CommandEnd(${ev.exitCode})"
-                                null -> "none"
-                            }
-                        },
-                )
-                for (parsed in parsedEvents) {
-                    when (parsed) {
-                        is StreamEvent.Text -> pipe.builder.applyOutput(parsed.value)
+        // Phase 2: journal write + parse — no lock. Journal is per-session
+        // (single writer), parser is per-session (single feeder). Disk I/O
+        // and text processing MUST NOT hold the lock that the main thread
+        // needs for every keystroke.
+        var parsedEvents: List<StreamEvent> = emptyList()
+        if (bytes != null) {
+            pipe.journal.append(JournalEvent.OutputArrived(bytes))
+            parsedEvents = pipe.parser.feed(bytes)
+        }
 
-                        is StreamEvent.OutputBegin -> Unit
+        // Phase 3: apply to builder — brief lock. StringBuilder appends
+        // are O(1), so this block takes microseconds, not milliseconds.
+        synchronized(lock) {
+            if (pipes[id] == null) return // deleted while parsing
+            for (parsed in parsedEvents) {
+                when (parsed) {
+                    is StreamEvent.Text -> pipe.builder.applyOutput(parsed.value)
 
-                        is StreamEvent.CommandEnd -> pipe.builder.applyCommandEnd(parsed.exitCode)
-                    }
+                    is StreamEvent.OutputBegin -> Unit
+
+                    is StreamEvent.CommandEnd -> pipe.builder.applyCommandEnd(parsed.exitCode)
                 }
             }
 
             if (shellExited) {
-                // The shell itself died; its exit code belongs to the shell,
-                // not to the last command, so close without one.
                 pipe.builder.applyCommandEnd(null)
                 _events.tryEmit(UiEvent.ShellExited(shellExitCode ?: -1))
             }
-            // Mark dirty instead of refreshing immediately: the throttle
-            // loop batches UI updates to at most 10 per second.
             dirtySessions.add(id)
         }
+
     }
 
     // -------------------------------------------------------------- sessions
