@@ -125,11 +125,11 @@ fun MainScreen(viewModel: MainViewModel) {
         }
     }
     if (state.showAttachChooser) {
-        val attachOptions = listOf(
-            Triple("copy", stringResource(R.string.attach_copy), androidx.compose.material.icons.Icons.Default.ContentCopy),
-            Triple("move", stringResource(R.string.attach_move), androidx.compose.material.icons.Icons.Default.Folder),
-            Triple("link", stringResource(R.string.attach_link), androidx.compose.material.icons.Icons.Default.Link),
-            Triple("name", stringResource(R.string.attach_name), androidx.compose.material.icons.Icons.Default.Edit),
+        val attachOptions: List<Triple<String, String, androidx.compose.ui.graphics.vector.ImageVector>> = listOf(
+            Triple("copy", stringResource(R.string.attach_copy), androidx.compose.material.icons.Icons.Filled.ContentCopy),
+            Triple("move", stringResource(R.string.attach_move), androidx.compose.material.icons.Icons.Filled.Folder),
+            Triple("link", stringResource(R.string.attach_link), androidx.compose.material.icons.Icons.Filled.Link),
+            Triple("name", stringResource(R.string.attach_name), androidx.compose.material.icons.Icons.Filled.Edit),
         )
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { viewModel.setShowAttachChooser(false) },
