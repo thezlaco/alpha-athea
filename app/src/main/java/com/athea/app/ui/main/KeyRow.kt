@@ -1,15 +1,16 @@
 package com.athea.app.ui.main
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -17,10 +18,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.athea.app.ui.theme.Ui
 
 enum class KeyActionKind {
@@ -68,37 +71,39 @@ fun KeyRow(
     onConsumeStickyCtrl: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // No solid strip behind the row: chips float on the canvas, with a
-    // soft background darkening that starts at half the row height.
-    Box(modifier.fillMaxWidth()) {
-        Box(
-            Modifier
-                .matchParentSize()
-                .background(
-                    Brush.verticalGradient(
-                        0.5f to androidx.compose.ui.graphics.Color.Transparent,
-                        1f to androidx.compose.ui.graphics.Color.Black,
-                    )
-                ),
-        )
+    // Fixed bar with thin separators — not floating chips. Tighter to the
+    // composer, larger tap targets, calmer than spaced chips.
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = modifier.fillMaxWidth(),
+    ) {
         Row(
             Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 2.dp, vertical = Ui.keySpacing),
-            horizontalArrangement = Arrangement.spacedBy(Ui.keySpacing),
+                .padding(horizontal = 2.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            keys.forEach { key ->
+            keys.forEachIndexed { index, key ->
+                if (index > 0) {
+                    Box(
+                        Modifier
+                            .width(1.dp)
+                            .height(22.dp)
+                            .background(
+                                MaterialTheme.colorScheme.outline.copy(alpha = 0.28f)
+                            ),
+                    )
+                }
                 val selected = key.kind == KeyActionKind.TOGGLE_STICKY_CTRL && stickyCtrl
-                KeyChip(key = key, selected = selected) {
+                KeyCell(key = key, selected = selected) {
                     when (key.kind) {
                         KeyActionKind.INSERT_INTO_DRAFT -> onInsert(key.payload)
 
                         KeyActionKind.SEND_TO_TERMINAL -> {
                             if (key == DefaultKeys.TAB && suggestionActive) {
-                                // Tab with a live ghost suggestion accepts it.
                                 onAcceptSuggestion()
-                                return@KeyChip
+                                return@KeyCell
                             }
                             val ch = key.payload.singleOrNull()
                             val combinable = ch != null &&
@@ -121,39 +126,33 @@ fun KeyRow(
 }
 
 @Composable
-private fun KeyChip(
+private fun KeyCell(
     key: TerminalKey,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    Surface(
-        onClick = onClick,
-        shape = Ui.chipShape,
-        color = if (selected) {
-            MaterialTheme.colorScheme.primaryContainer
-        } else {
-            MaterialTheme.colorScheme.surfaceContainerHigh
-        },
-        border = if (selected) {
-            BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
-        } else {
-            null
-        },
-        // Fixed floor width keeps the row rhythm even: short labels do
-        // not shrink below it, long ones still expand naturally.
-        modifier = Modifier.defaultMinSize(minWidth = Ui.keyMinWidth),
-    ) {
-        Box(
-            Modifier
-                .defaultMinSize(minWidth = Ui.keyMinWidth, minHeight = Ui.keyMinHeight)
-                .padding(horizontal = 8.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = key.label,
-                style = MaterialTheme.typography.labelLarge.copy(fontFamily = FontFamily.Monospace),
-                textAlign = TextAlign.Center,
+    Box(
+        Modifier
+            .defaultMinSize(minWidth = Ui.keyMinWidth, minHeight = Ui.keyMinHeight)
+            .clip(RoundedCornerShape(8.dp))
+            .background(
+                if (selected) MaterialTheme.colorScheme.primaryContainer
+                else Color.Transparent
             )
-        }
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = key.label,
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontFamily = FontFamily.Monospace,
+                fontSize = 15.sp,
+                lineHeight = 20.sp,
+            ),
+            color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+            else MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+        )
     }
 }

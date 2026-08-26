@@ -113,7 +113,7 @@ fun SessionsDrawerContent(
                     Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(bottom = 88.dp),
+                        .padding(bottom = 104.dp),
                 ) {
                     ordered.forEach { session ->
                         SessionRow(
@@ -128,18 +128,18 @@ fun SessionsDrawerContent(
                 }
 
                 // Tier 1: translucent full-width panel behind the pill,
-                // smooth gradient — transparent at the top, darkest at the bottom,
-                // stretches edge-to-edge to the bottom.
+                // starts a bit higher above the pill and gets darker at the bottom.
                 Box(
                     Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .height(96.dp)
+                        .height(116.dp)
                         .background(
                             Brush.verticalGradient(
                                 0f to Color.Transparent,
-                                0.45f to Color.Black.copy(alpha = 0.32f),
-                                1f to Color.Black.copy(alpha = 0.78f),
+                                0.30f to Color.Black.copy(alpha = 0.28f),
+                                0.62f to Color.Black.copy(alpha = 0.62f),
+                                1f to Color.Black.copy(alpha = 0.92f),
                             )
                         ),
                 )

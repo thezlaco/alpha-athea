@@ -111,12 +111,12 @@ fun InputBar(
     }
 }
 
-/** Union of navigation-bar and IME insets: correct spacing with the keyboard open and closed. */
+/** Union of navigation-bar and IME insets: tighter to the key row. */
 @Composable
 private fun Modifier.barPadding(): Modifier =
     this
         .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
-        .padding(horizontal = 10.dp, vertical = 8.dp)
+        .padding(horizontal = 10.dp, vertical = 5.dp)
 
 /**
  * One morphing panel, chat-app style:
