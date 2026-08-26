@@ -147,7 +147,7 @@ fun SessionsDrawerContent(
                 // Tier 2: compact pill — identical to TopBar right pill,
                 // now left-aligned as requested.
                 Surface(
-                    shape = RoundedCornerShape(50),
+                    shape = Ui.pillShape,
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
                     modifier = Modifier
                         .align(Alignment.BottomStart)

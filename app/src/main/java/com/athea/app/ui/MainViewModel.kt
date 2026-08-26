@@ -18,15 +18,16 @@ import com.athea.app.core.model.OutputBlock
 import com.athea.app.core.terminal.EngineEvent
 import com.athea.app.core.terminal.TerminalEngine
 import com.athea.app.engine.NativeShellEngine
-import com.athea.app.parse.StreamEvent
+import com.athea.app.util.dropOldestSharedFlow
+import com.athea.app.util.shellEval
+import com.athea.app.util.shellQuote
 import com.athea.app.parse.StreamParser
+import com.athea.app.parse.applyTo
 import com.athea.app.transcript.BlockView
 import com.athea.app.transcript.TranscriptBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -69,7 +70,7 @@ data class UiState(
     val rawStream: Boolean = false,
     val autocompleteEnabled: Boolean = true,
     val pinchZoomEnabled: Boolean = true,
-    val previewLines: Int = 3,
+    val previewLines: Int = com.athea.app.core.model.PREVIEW_LINES,
     val bubbleFontSizeSp: Int = 16,
     val showSettings: Boolean = false,
     val showFavorites: Boolean = false,
@@ -108,25 +109,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state
 
-    private val _events = MutableSharedFlow<UiEvent>(
-        replay = 1,
-        extraBufferCapacity = 8,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST,
-    )
+    private val _events = dropOldestSharedFlow<UiEvent>(replay = 1, extraBufferCapacity = 8)
     val events: SharedFlow<UiEvent> = _events.asSharedFlow()
 
     /** One-shot requests to scroll the transcript to a block (search jumps). */
-    private val _scrollRequests = MutableSharedFlow<String>(
-        extraBufferCapacity = 8,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST,
-    )
+    private val _scrollRequests = dropOldestSharedFlow<String>(extraBufferCapacity = 8)
     val scrollRequests: SharedFlow<String> = _scrollRequests.asSharedFlow()
 
     /** One-shot requests to force the transcript to its very bottom. */
-    private val _jumpToBottom = MutableSharedFlow<Unit>(
-        extraBufferCapacity = 4,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST,
-    )
+    private val _jumpToBottom = dropOldestSharedFlow<Unit>(extraBufferCapacity = 4)
     val jumpToBottom: SharedFlow<Unit> = _jumpToBottom.asSharedFlow()
 
     private val storage = AtheaStorage(application.filesDir)
@@ -258,7 +249,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     target.outputStream().use { output -> input.copyTo(output) }
                 } ?: throw IllegalStateException("cannot open $uri")
 
-                val quoted = "'" + target.absolutePath.replace("'", "'\\''") + "'"
+                val quoted = target.absolutePath.shellQuote()
                 val command = when (action) {
                     "move" -> "mv $quoted ./"
                     "link" -> "ln -s $quoted ./'$safeName'"
@@ -384,15 +375,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // are O(1), so this block takes microseconds, not milliseconds.
         synchronized(lock) {
             if (pipes[id] == null) return // deleted while parsing
-            for (parsed in parsedEvents) {
-                when (parsed) {
-                    is StreamEvent.Text -> pipe.builder.applyOutput(parsed.value)
-
-                    is StreamEvent.OutputBegin -> Unit
-
-                    is StreamEvent.CommandEnd -> pipe.builder.applyCommandEnd(parsed.exitCode)
-                }
-            }
+            for (parsed in parsedEvents) parsed.applyTo(pipe.builder)
 
             if (shellExited) {
                 pipe.builder.applyCommandEnd(null)
@@ -588,15 +571,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             histories[id] = (histories[id] ?: emptyList()) + text
             refreshSession(id)
         }
-        // A multi-line draft must execute as ONE command: the canonical
-        // shell would otherwise run every line separately, shredding the
-        // transcript into per-line output fragments. Single-quote escaping
-        // keeps every byte of the draft intact inside eval.
-        val payload = if (text.contains('\n')) {
-            "eval '" + text.replace("'", "'\\''") + "'\n"
-        } else {
-            text + "\n"
-        }
+        val payload = text.shellEval()
         com.athea.app.util.AtheaLog.log("submit", "seq=$seq payloadSize=${payload.length}")
         engine.write(payload.toByteArray(Charsets.UTF_8))
     }
@@ -677,7 +652,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     is CommandBlock -> block.text
                     is OutputBlock -> block.text
                 }
-                if (haystack.contains(query, ignoreCase = true)) view.block.id else null
+                if (haystack.lowercase().contains(query.lowercase())) view.block.id else null
             }
             .orEmpty()
         _state.update { st ->

@@ -17,6 +17,8 @@ object Ui {
     val chipShape = RoundedCornerShape(10.dp)
     val attachmentShape = RoundedCornerShape(14.dp)
     val dialogShape = RoundedCornerShape(20.dp)
+    val pillShape = RoundedCornerShape(50)
+    val smallShape = RoundedCornerShape(8.dp)
 
     // ---- Menus ------------------------------------------------------------
     val menuMinWidth = 190.dp
@@ -54,6 +56,21 @@ object Ui {
     val drawerWidthFraction = 0.72f
     val drawerItemPaddingH = 20.dp
     val drawerItemPaddingV = 12.dp
+
+    // ---- Common paddings --------------------------------------------------
+    val screenPadding = 16.dp
+    val titleEndPadding = 48.dp
+    val headerPaddingH = 8.dp
+    val headerPaddingV = 4.dp
+    val contentPaddingH = 16.dp
+    val contentPaddingV = 8.dp
+
+    // ---- Fades & chevrons -------------------------------------------------
+    val fadeHeight = 24.dp
+    val tailFadeHeight = 26.dp
+    val chevronExpandSize = 20.dp
+    val chevronCollapseSize = 16.dp
+    val spacerMedium = 12.dp
 
     // ---- Misc -------------------------------------------------------------
     val scrollbarButtonSize = 36.dp

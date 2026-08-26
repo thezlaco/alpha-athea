@@ -3,6 +3,8 @@ package com.athea.app.ui.main
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import com.athea.app.ui.theme.Ui
+import com.athea.app.util.copyToClipboard
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -80,7 +82,7 @@ fun SettingsScreen(
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                    .padding(horizontal = Ui.headerPaddingH, vertical = Ui.headerPaddingV),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = onBack) {
@@ -94,7 +96,7 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier
                         .weight(1f)
-                        .padding(end = 48.dp),
+                        .padding(end = Ui.titleEndPadding),
                 )
             }
             HorizontalDivider()
@@ -225,12 +227,7 @@ fun SettingsScreen(
                 TextButton(
                     onClick = {
                         val log = com.athea.app.util.AtheaLog.dump()
-                        val manager =
-                            context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
-                                as android.content.ClipboardManager
-                        manager.setPrimaryClip(
-                            android.content.ClipData.newPlainText("athea-logs", log)
-                        )
+                        context.copyToClipboard(log, "athea-logs")
                         android.widget.Toast.makeText(
                             context,
                             context.getString(R.string.settings_diag_copied),

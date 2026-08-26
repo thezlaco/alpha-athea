@@ -4,11 +4,10 @@ import android.system.Os
 import android.system.OsConstants
 import com.athea.app.core.terminal.EngineEvent
 import com.athea.app.core.terminal.TerminalEngine
-import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import com.athea.app.util.dropOldestSharedFlow
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -23,10 +22,7 @@ internal class NativeShellEngine(
     private val rcPath: String,
 ) : TerminalEngine {
 
-    private val _events = MutableSharedFlow<EngineEvent>(
-        extraBufferCapacity = 256,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST,
-    )
+    private val _events = dropOldestSharedFlow<EngineEvent>(extraBufferCapacity = 256)
     override val events: SharedFlow<EngineEvent> = _events
 
     private val _isAlive = MutableStateFlow(false)

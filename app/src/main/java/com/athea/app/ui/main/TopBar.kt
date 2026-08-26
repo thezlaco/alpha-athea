@@ -101,7 +101,7 @@ fun TopBar(
             }
 
             Surface(
-                shape = RoundedCornerShape(50),
+                shape = Ui.pillShape,
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

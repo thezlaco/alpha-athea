@@ -42,6 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.athea.app.R
 import com.athea.app.core.model.FavoriteCommand
+import com.athea.app.ui.theme.Ui
 
 /**
  * Full list of favorite commands: tap inserts into the editor, long
@@ -69,7 +70,7 @@ fun FavoritesScreen(
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
+                .padding(horizontal = Ui.headerPaddingH, vertical = Ui.headerPaddingV),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onBack) {
@@ -83,7 +84,7 @@ fun FavoritesScreen(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier
                     .weight(1f)
-                    .padding(end = 48.dp),
+                    .padding(end = Ui.titleEndPadding),
             )
         }
         HorizontalDivider()

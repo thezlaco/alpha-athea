@@ -3,6 +3,7 @@ package com.athea.app.data
 import com.athea.app.core.journal.SessionJournal
 import com.athea.app.core.model.DisplayMode
 import com.athea.app.core.model.FavoriteCommand
+import com.athea.app.util.writeTextAtomic
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -37,7 +38,7 @@ data class AtheaSettings(
     val autoScrollOnSend: Boolean = true,
     val rawStream: Boolean = false,
     val outputFontSizeSp: Int = 13,
-    val previewLines: Int = 3,
+    val previewLines: Int = com.athea.app.core.model.PREVIEW_LINES,
     val bubbleFontSizeSp: Int = 16,
     val autocompleteEnabled: Boolean = true,
     val pinchZoomEnabled: Boolean = true,
@@ -124,21 +125,6 @@ class AtheaStorage(root: File) {
         sessionsDir.mkdirs()
         File(sessionsDir, "keys.json")
             .writeTextAtomic(json.encodeToString(KeysIndex.serializer(), keys))
-    }
-
-    // ----------------------------------------------------------------- files
-
-    /**
-     * Crash-safe JSON write: temp file first, atomic rename second, so a
-     * kill mid-write can never leave a torn half-file under the real name.
-     */
-    private fun File.writeTextAtomic(text: String) {
-        val tmp = File(parentFile, "$name.tmp")
-        tmp.writeText(text)
-        if (!tmp.renameTo(this)) {
-            tmp.delete()
-            writeText(text)
-        }
     }
 
     // ----------------------------------------------------------------- files

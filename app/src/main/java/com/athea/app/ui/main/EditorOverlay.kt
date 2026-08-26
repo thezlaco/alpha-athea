@@ -51,7 +51,7 @@ fun EditorOverlay(
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                    .padding(horizontal = Ui.headerPaddingH, vertical = Ui.headerPaddingV),
                 horizontalArrangement = androidx.compose.foundation.layout.Arrangement.End,
             ) {
                 IconButton(onClick = onClose) {

@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.athea.app.R
+import com.athea.app.ui.theme.Ui
 import com.athea.app.ui.theme.codeStyle
 
 /**
@@ -46,7 +47,7 @@ fun SelectTextScreen(
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                    .padding(horizontal = Ui.headerPaddingH, vertical = Ui.headerPaddingV),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = onClose) {
@@ -60,7 +61,7 @@ fun SelectTextScreen(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier
                         .weight(1f)
-                        .padding(end = 48.dp),
+                        .padding(end = Ui.titleEndPadding),
                 )
             }
             HorizontalDivider()
@@ -75,7 +76,7 @@ fun SelectTextScreen(
                     modifier = Modifier
                         .verticalScroll(rememberScrollState())
                         .horizontalScroll(rememberScrollState())
-                        .padding(16.dp),
+                        .padding(Ui.screenPadding),
                 )
             }
         }

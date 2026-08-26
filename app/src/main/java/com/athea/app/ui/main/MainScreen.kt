@@ -1,9 +1,8 @@
 package com.athea.app.ui.main
 
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import androidx.activity.compose.BackHandler
+import com.athea.app.util.copyToClipboard
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -148,7 +147,7 @@ fun MainScreen(viewModel: MainViewModel) {
                         androidx.compose.foundation.layout.Row(
                             Modifier
                                 .fillMaxWidth()
-                                .clip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp))
+                                .clip(Ui.attachmentShape)
                                 .clickable {
                                     attachAction = action
                                     viewModel.setShowAttachChooser(false)
@@ -273,9 +272,7 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
                                     current.blocks.indexOfFirst { it.block.id == blockId }
                                 },
                                 onCopyCommand = { text ->
-                                    // Android 13+ shows its own confirmation
-                                    // for clipboard writes - no custom toast.
-                                    copyToClipboard(context, text)
+                                    context.copyToClipboard(text, "athea-command")
                                 },
                                 onSelectCommandText = viewModel::showSelectText,
                                 onAddToFavorites = viewModel::addFavorite,
@@ -408,8 +405,4 @@ private fun keyRowKeys(state: UiState): List<TerminalKey> {
     }
 }
 
-private fun copyToClipboard(context: Context, text: String) {
-    val manager =
-        context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    manager.setPrimaryClip(ClipData.newPlainText("athea-command", text))
-}
+

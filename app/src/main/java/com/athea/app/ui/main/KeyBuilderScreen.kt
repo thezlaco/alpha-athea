@@ -3,6 +3,9 @@ package com.athea.app.ui.main
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import com.athea.app.ui.theme.Ui
+import com.athea.app.util.isCtrlCombinable
+import com.athea.app.util.toControlChar
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -69,9 +72,9 @@ fun KeyBuilderScreen(
     var ctrlArmed by remember { mutableStateOf(false) }
 
     fun append(raw: String) {
-        buffer += if (ctrlArmed && raw.length == 1 && raw[0] in 'a'..'z') {
+        buffer += if (ctrlArmed && raw.length == 1 && raw[0].isCtrlCombinable()) {
             ctrlArmed = false
-            (raw[0].code and 0x1F).toChar().toString()
+            raw[0].toControlChar().toString()
         } else {
             raw
         }
@@ -86,7 +89,7 @@ fun KeyBuilderScreen(
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                    .padding(horizontal = Ui.headerPaddingH, vertical = Ui.headerPaddingV),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = onBack) {

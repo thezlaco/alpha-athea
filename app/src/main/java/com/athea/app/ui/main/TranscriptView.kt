@@ -81,8 +81,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
 private const val TAIL_LINES = 5
-private val FADE_HEIGHT = 24.dp
-private val TAIL_FADE_HEIGHT = 26.dp
 private const val VIRTUALIZE_THRESHOLD = 30_000
 private const val CHUNK_LINES = 200
 
@@ -256,7 +254,7 @@ fun TranscriptView(
                     .align(Alignment.BottomEnd)
                     .padding(end = 16.dp, bottom = 10.dp),
             ) {
-                    Box(Modifier.size(36.dp), contentAlignment = Alignment.Center) {
+                    Box(Modifier.size(Ui.scrollbarButtonSize), contentAlignment = Alignment.Center) {
                         Icon(
                             Icons.Default.KeyboardArrowDown,
                             contentDescription = stringResource(R.string.cd_scroll_down),
@@ -276,7 +274,7 @@ private fun EmptyGreeting(modifier: Modifier = Modifier) {
             style = CodeStyle,
             color = MaterialTheme.colorScheme.onBackground,
         )
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(Ui.spacerMedium))
         Text(
             text = "Working with the terminal:\n" +
                 "- Type:   enter a command below\n" +
@@ -285,7 +283,7 @@ private fun EmptyGreeting(modifier: Modifier = Modifier) {
             style = CodeStyle,
             color = MaterialTheme.colorScheme.onBackground,
         )
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(Ui.spacerMedium))
         Text(
             text = "Working with sessions:\n" +
                 "- Drawer:  tap the menu icon (top left)\n" +
@@ -294,7 +292,7 @@ private fun EmptyGreeting(modifier: Modifier = Modifier) {
             style = CodeStyle,
             color = MaterialTheme.colorScheme.onBackground,
         )
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(Ui.spacerMedium))
         Text(
             text = "Long-press a sent command to add it to favorites.",
             style = CodeStyle,
@@ -357,7 +355,7 @@ private fun CommandBubble(
                             Modifier
                                 .align(Alignment.BottomCenter)
                                 .fillMaxWidth()
-                                .height(TAIL_FADE_HEIGHT)
+                                .height(Ui.tailFadeHeight)
                                 .background(
                                     Brush.verticalGradient(
                                         listOf(
@@ -375,7 +373,7 @@ private fun CommandBubble(
                         modifier = Modifier
                             .align(Alignment.CenterHorizontally)
                             .padding(top = 2.dp)
-                            .size(20.dp)
+                            .size(Ui.chevronExpandSize)
                             .clickable(onClick = onToggle),
                     )
                 } else {
@@ -395,7 +393,7 @@ private fun CommandBubble(
                             modifier = Modifier
                                 .align(Alignment.CenterHorizontally)
                                 .padding(top = 2.dp)
-                                .size(20.dp)
+                                .size(Ui.chevronExpandSize)
                                 .rotate(180f)
                                 .clickable(onClick = onToggle),
                         )
@@ -474,7 +472,7 @@ private fun OutputPanel(
                     Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .height(FADE_HEIGHT)
+                        .height(Ui.fadeHeight)
                         .background(
                             Brush.verticalGradient(
                                 listOf(
@@ -493,7 +491,7 @@ private fun OutputPanel(
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .padding(top = 2.dp)
-                    .size(20.dp)
+                    .size(Ui.chevronExpandSize)
                     .clickable(onClick = onToggle),
             )
         } else if (text.length > VIRTUALIZE_THRESHOLD) {
@@ -509,7 +507,7 @@ private fun OutputPanel(
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
                         .padding(top = 2.dp)
-                        .size(16.dp)
+                        .size(Ui.chevronCollapseSize)
                         .rotate(180f)
                         .clickable(onClick = onToggle),
                 )
@@ -535,7 +533,7 @@ private fun OutputPanel(
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
                         .padding(top = 2.dp)
-                        .size(16.dp)
+                        .size(Ui.chevronCollapseSize)
                         .rotate(180f)
                         .clickable(onClick = onToggle),
                 )

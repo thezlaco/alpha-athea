@@ -305,7 +305,7 @@ private fun AttachmentChip(
     Box(
         Modifier
             .width(104.dp)
-            .clip(RoundedCornerShape(14.dp))
+            .clip(Ui.attachmentShape)
             .background(MaterialTheme.colorScheme.surfaceContainer),
     ) {
         Column(Modifier.padding(start = 10.dp, end = 10.dp, top = 8.dp, bottom = 8.dp)) {

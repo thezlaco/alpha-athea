@@ -25,6 +25,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.athea.app.ui.theme.Ui
+import com.athea.app.util.isCtrlCombinable
+import com.athea.app.util.toControlChar
 
 enum class KeyActionKind {
     /** Plain text appended to the editor draft. */
@@ -106,10 +108,9 @@ fun KeyRow(
                                 return@KeyCell
                             }
                             val ch = key.payload.singleOrNull()
-                            val combinable = ch != null &&
-                                (ch in 'a'..'z' || ch in 'A'..'Z')
+                            val combinable = ch?.isCtrlCombinable() == true
                             if (stickyCtrl && combinable && ch != null) {
-                                val control = (ch.uppercaseChar().code and 0x1F).toChar()
+                                val control = ch.toControlChar()
                                 onSendBytes(control.toString())
                                 onConsumeStickyCtrl()
                             } else {
@@ -134,7 +135,7 @@ private fun KeyCell(
     Box(
         Modifier
             .defaultMinSize(minWidth = Ui.keyMinWidth, minHeight = Ui.keyMinHeight)
-            .clip(RoundedCornerShape(8.dp))
+            .clip(Ui.smallShape)
             .background(
                 if (selected) MaterialTheme.colorScheme.primaryContainer
                 else Color.Transparent
