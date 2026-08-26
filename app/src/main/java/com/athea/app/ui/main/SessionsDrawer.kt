@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import com.athea.app.R
 import com.athea.app.ui.SessionUi
 import com.athea.app.ui.theme.Ui
+import com.athea.app.ui.theme.messageStyle
 
 /**
  * Persistent navigation drawer: sessions on top (pinned first),
@@ -187,29 +188,31 @@ private fun SessionRow(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
 
+    // Unified with message bubble: same background, shape, text size.
+    val bubbleBg = MaterialTheme.colorScheme.surfaceContainerHigh
     Box(
         Modifier
             .fillMaxWidth()
-            // Selection spans the full row edge to edge, no rounding -
-            // calmer, like chat apps do it.
-            .background(
-                if (selected) {
-                    MaterialTheme.colorScheme.surfaceContainerHigh
-                } else {
-                    androidx.compose.ui.graphics.Color.Transparent
-                }
-            )
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .clip(Ui.bubbleShape)
+            .background(if (selected) bubbleBg else androidx.compose.ui.graphics.Color.Transparent)
             .combinedClickable(onClick = onSelect, onLongClick = { menuOpen = true }),
     ) {
         Row(
             Modifier
-                .padding(start = 20.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
+                .padding(
+                    start = Ui.bubblePaddingH,
+                    end = Ui.bubblePaddingH,
+                    top = Ui.bubblePaddingTop,
+                    bottom = Ui.bubblePaddingBottom,
+                ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             ProcessDot(running = session.running)
             Text(
                 text = session.name,
-                style = MaterialTheme.typography.bodyLarge,
+                style = messageStyle(),
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier

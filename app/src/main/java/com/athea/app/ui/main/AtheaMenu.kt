@@ -32,6 +32,7 @@ fun AtheaDropdownMenu(
         onDismissRequest = onDismissRequest,
         offset = offset,
         shape = Ui.menuShape,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = Modifier.widthIn(min = Ui.menuMinWidth),
         content = content,
     )

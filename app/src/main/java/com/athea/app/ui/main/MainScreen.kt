@@ -7,6 +7,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -17,7 +18,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.ui.draw.clip
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
@@ -122,24 +125,44 @@ fun MainScreen(viewModel: MainViewModel) {
         }
     }
     if (state.showAttachChooser) {
-        val options = listOf(
-            "copy" to stringResource(R.string.attach_copy),
-            "move" to stringResource(R.string.attach_move),
-            "link" to stringResource(R.string.attach_link),
-            "name" to stringResource(R.string.attach_name),
+        val attachOptions = listOf(
+            Triple("copy", stringResource(R.string.attach_copy), androidx.compose.material.icons.Icons.Default.ContentCopy),
+            Triple("move", stringResource(R.string.attach_move), androidx.compose.material.icons.Icons.Default.Folder),
+            Triple("link", stringResource(R.string.attach_link), androidx.compose.material.icons.Icons.Default.Link),
+            Triple("name", stringResource(R.string.attach_name), androidx.compose.material.icons.Icons.Default.Edit),
         )
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { viewModel.setShowAttachChooser(false) },
-            title = { Text(stringResource(R.string.attach_chooser_title)) },
+            shape = Ui.dialogShape,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            title = { Text(stringResource(R.string.attach_chooser_title), style = MaterialTheme.typography.titleMedium) },
             text = {
-                Column {
-                    options.forEach { (action, label) ->
-                        TextButton(onClick = {
-                            attachAction = action
-                            viewModel.setShowAttachChooser(false)
-                            filePicker.launch(arrayOf("*/*"))
-                        }) {
-                            Text(label)
+                Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(4.dp)) {
+                    attachOptions.forEach { (action, label, icon) ->
+                        androidx.compose.foundation.layout.Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp))
+                                .clickable {
+                                    attachAction = action
+                                    viewModel.setShowAttachChooser(false)
+                                    filePicker.launch(arrayOf("*/*"))
+                                }
+                                .padding(horizontal = 14.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            androidx.compose.material3.Icon(
+                                icon,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(22.dp),
+                            )
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(start = 16.dp),
+                            )
                         }
                     }
                 }

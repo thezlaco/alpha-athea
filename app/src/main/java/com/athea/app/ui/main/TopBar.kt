@@ -125,46 +125,44 @@ fun TopBar(
             }
         }
 
-        // Menu panel: overlaps buttons and content, right-aligned.
-        // Same dimensions as AtheaDropdownMenu (240dp min, 52dp items).
-        if (menuOpen) {
-            Surface(
-                shape = Ui.menuShape,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .statusBarsPadding()
-                    .padding(top = Ui.topBarTopPadding, end = Ui.topBarHorizontalPadding)
-                    .widthIn(min = Ui.menuMinWidth),
+        // Menu panel: unified with message/session long-press (same bubble
+        // size, color, text). Uses AtheaDropdownMenu so all three menus match.
+        Box(
+            Modifier
+                .align(Alignment.TopEnd)
+                .statusBarsPadding()
+                .padding(top = Ui.topBarTopPadding, end = Ui.topBarHorizontalPadding),
+        ) {
+            AtheaDropdownMenu(
+                expanded = menuOpen,
+                onDismissRequest = { menuOpen = false },
             ) {
-                Column(Modifier.padding(vertical = 8.dp)) {
-                    if (hasMessages) {
-                        MenuRow(
-                            icon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(Ui.menuIconSize)) },
-                            label = stringResource(R.string.menu_search),
-                            onClick = { menuOpen = false; onSearch() },
-                        )
-                    }
-                    MenuRow(
-                        icon = { Icon(Icons.Default.Edit, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                        label = stringResource(R.string.menu_rename),
-                        onClick = { menuOpen = false; onRename() },
+                if (hasMessages) {
+                    AtheaDropdownItem(
+                        icon = Icons.Default.Search,
+                        text = stringResource(R.string.menu_search),
+                        onClick = { menuOpen = false; onSearch() },
                     )
-                    MenuRow(
-                        icon = { Icon(Icons.Default.PushPin, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                        label = stringResource(
-                            if (pinned) R.string.menu_unpin else R.string.menu_pin
-                        ),
-                        onClick = { menuOpen = false; onTogglePin() },
+                }
+                AtheaDropdownItem(
+                    icon = Icons.Default.Edit,
+                    text = stringResource(R.string.menu_rename),
+                    onClick = { menuOpen = false; onRename() },
+                )
+                AtheaDropdownItem(
+                    icon = Icons.Default.PushPin,
+                    text = stringResource(
+                        if (pinned) R.string.menu_unpin else R.string.menu_pin
+                    ),
+                    onClick = { menuOpen = false; onTogglePin() },
+                )
+                if (hasMessages) {
+                    AtheaDropdownItem(
+                        icon = Icons.Default.Delete,
+                        text = stringResource(R.string.menu_delete),
+                        tinted = true,
+                        onClick = { menuOpen = false; onDelete() },
                     )
-                    if (hasMessages) {
-                        MenuRow(
-                            icon = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
-                            label = stringResource(R.string.menu_delete),
-                            tinted = true,
-                            onClick = { menuOpen = false; onDelete() },
-                        )
-                    }
                 }
             }
         }

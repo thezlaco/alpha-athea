@@ -26,7 +26,7 @@ object Ui {
     // ---- Top bar ----------------------------------------------------------
     val topButtonSize = 48.dp
     val topBarHorizontalPadding = 10.dp
-    val topBarTopPadding = 20.dp
+    val topBarTopPadding = 14.dp
     val topBarBottomPadding = 6.dp
 
     // ---- Composer ---------------------------------------------------------

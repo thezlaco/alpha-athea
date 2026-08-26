@@ -227,11 +227,15 @@ private fun DraftPanel(
                     },
                 )
                 if (compact) {
-                    IconButton(onClick = onAddClick, modifier = Modifier.align(Alignment.CenterStart)) {
+                    IconButton(
+                        onClick = onAddClick,
+                        modifier = Modifier.align(Alignment.CenterStart).size(Ui.composerButtonSize),
+                    ) {
                         Icon(
                             Icons.Default.Add,
                             contentDescription = stringResource(R.string.attach_add),
                             tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(20.dp),
                         )
                     }
                 }
@@ -280,12 +284,13 @@ private fun DraftPanel(
                 if (!compact) {
                     IconButton(
                         onClick = onAddClick,
-                        modifier = Modifier.align(Alignment.BottomStart),
+                        modifier = Modifier.align(Alignment.BottomStart).size(Ui.composerButtonSize),
                     ) {
                         Icon(
                             Icons.Default.Add,
                             contentDescription = stringResource(R.string.attach_add),
                             tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(20.dp),
                         )
                     }
                 }
