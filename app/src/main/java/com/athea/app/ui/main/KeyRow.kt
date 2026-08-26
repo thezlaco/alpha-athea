@@ -140,7 +140,7 @@ private fun KeyCell(
                 else Color.Transparent
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp),
+            .padding(horizontal = Ui.keyPaddingH),
         contentAlignment = Alignment.Center,
     ) {
         Text(

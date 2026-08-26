@@ -38,10 +38,10 @@ object Ui {
     val composerFieldTopGrown = 10.dp
 
     // ---- Key row ----------------------------------------------------------
-    val keyMinWidth = 52.dp
+    val keyMinWidth = 46.dp
     val keyMinHeight = 44.dp
     val keySpacing = 4.dp
-    val keyPaddingH = 12.dp
+    val keyPaddingH = 8.dp
 
     // ---- Bubbles ----------------------------------------------------------
     val bubblePaddingH = 16.dp

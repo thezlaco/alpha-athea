@@ -235,7 +235,6 @@ private fun DraftPanel(
                             Icons.Default.Add,
                             contentDescription = stringResource(R.string.attach_add),
                             tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(20.dp),
                         )
                     }
                 }
@@ -290,7 +289,6 @@ private fun DraftPanel(
                             Icons.Default.Add,
                             contentDescription = stringResource(R.string.attach_add),
                             tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(20.dp),
                         )
                     }
                 }

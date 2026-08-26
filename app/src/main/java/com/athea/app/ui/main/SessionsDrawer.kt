@@ -58,7 +58,6 @@ import androidx.compose.ui.unit.dp
 import com.athea.app.R
 import com.athea.app.ui.SessionUi
 import com.athea.app.ui.theme.Ui
-import com.athea.app.ui.theme.messageStyle
 
 /**
  * Persistent navigation drawer: sessions on top (pinned first),
@@ -188,31 +187,24 @@ private fun SessionRow(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
 
-    // Unified with message bubble: same background, shape, text size.
-    val bubbleBg = MaterialTheme.colorScheme.surfaceContainerHigh
     Box(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-            .clip(Ui.bubbleShape)
-            .background(if (selected) bubbleBg else androidx.compose.ui.graphics.Color.Transparent)
+            // Full-bleed selection, like before — edge to edge, no pill.
+            .background(
+                if (selected) MaterialTheme.colorScheme.surfaceContainerHigh
+                else androidx.compose.ui.graphics.Color.Transparent
+            )
             .combinedClickable(onClick = onSelect, onLongClick = { menuOpen = true }),
     ) {
         Row(
-            Modifier
-                .padding(
-                    start = Ui.bubblePaddingH,
-                    end = Ui.bubblePaddingH,
-                    top = Ui.bubblePaddingTop,
-                    bottom = Ui.bubblePaddingBottom,
-                ),
+            Modifier.padding(start = 20.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             ProcessDot(running = session.running)
             Text(
                 text = session.name,
-                style = messageStyle(),
-                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.bodyLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier

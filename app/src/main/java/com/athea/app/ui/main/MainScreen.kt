@@ -22,9 +22,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.InsertLink
+import androidx.compose.material.icons.filled.Title
 import androidx.compose.ui.draw.clip
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.MaterialTheme
@@ -132,9 +133,9 @@ fun MainScreen(viewModel: MainViewModel) {
     if (state.showAttachChooser) {
         val attachOptions: List<Triple<String, String, androidx.compose.ui.graphics.vector.ImageVector>> = listOf(
             Triple("copy", stringResource(R.string.attach_copy), Icons.Filled.ContentCopy),
-            Triple("move", stringResource(R.string.attach_move), Icons.Filled.Folder),
-            Triple("link", stringResource(R.string.attach_link), Icons.Filled.Link),
-            Triple("name", stringResource(R.string.attach_name), Icons.Filled.Edit),
+            Triple("move", stringResource(R.string.attach_move), Icons.Filled.ContentCut),
+            Triple("link", stringResource(R.string.attach_link), Icons.Filled.InsertLink),
+            Triple("name", stringResource(R.string.attach_name), Icons.Filled.Title),
         )
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { viewModel.setShowAttachChooser(false) },
