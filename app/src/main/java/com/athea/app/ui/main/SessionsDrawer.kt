@@ -50,6 +50,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -126,22 +128,30 @@ fun SessionsDrawerContent(
                 }
 
                 // Tier 1: translucent full-width panel behind the pill,
-                // starts slightly above the pill and stretches to the bottom.
+                // smooth gradient — transparent at the top, darkest at the bottom,
+                // stretches edge-to-edge to the bottom.
                 Box(
                     Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .height(82.dp)
-                        .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.55f)),
+                        .height(96.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                0f to Color.Transparent,
+                                0.45f to Color.Black.copy(alpha = 0.32f),
+                                1f to Color.Black.copy(alpha = 0.78f),
+                            )
+                        ),
                 )
 
-                // Tier 2: compact pill — identical to TopBar right pill.
+                // Tier 2: compact pill — identical to TopBar right pill,
+                // now left-aligned as requested.
                 Surface(
                     shape = RoundedCornerShape(50),
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
                     modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 18.dp),
+                        .align(Alignment.BottomStart)
+                        .padding(start = 14.dp, bottom = 16.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = onSettings) {

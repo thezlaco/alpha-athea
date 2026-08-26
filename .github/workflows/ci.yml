@@ -77,10 +77,10 @@ jobs:
         with:
           gradle-version: ${{ env.GRADLE_VERSION }}
 
-      - name: Unit tests and debug APK
-        run: gradle :app:testDebugUnitTest :app:assembleDebug --stacktrace --warning-mode summary
+      - name: Unit tests and APKs (debug + release)
+        run: gradle :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease --stacktrace --warning-mode summary
 
-      - name: Sign APK with apksigner
+      - name: Sign APKs with apksigner
         run: |
           keytool -genkeypair -v \
             -keystore signing.keystore \
@@ -88,31 +88,47 @@ jobs:
             -storepass athea123 -keypass athea123 \
             -keyalg RSA -keysize 2048 -validity 10000 \
             -dname "CN=Athea,O=Athea,C=US"
-          APK=$(find app/build/outputs/apk/debug -name "*.apk" -print -quit)
-          echo "Signing: $APK"
-          ${ANDROID_HOME}/build-tools/${BUILD_TOOLS_VERSION}/apksigner sign \
-            --ks signing.keystore \
-            --ks-key-alias athea \
-            --ks-pass pass:athea123 \
-            --key-pass pass:athea123 \
-            --out "$APK" \
-            "$APK"
-          ${ANDROID_HOME}/build-tools/${BUILD_TOOLS_VERSION}/apksigner verify --verbose "$APK" | head -10
-          echo "APK signed successfully"
+          for APK in $(find app/build/outputs/apk -name "*.apk"); do
+            echo "Signing: $APK"
+            ${ANDROID_HOME}/build-tools/${BUILD_TOOLS_VERSION}/apksigner sign \
+              --ks signing.keystore \
+              --ks-key-alias athea \
+              --ks-pass pass:athea123 \
+              --key-pass pass:athea123 \
+              --out "$APK" \
+              "$APK"
+            ${ANDROID_HOME}/build-tools/${BUILD_TOOLS_VERSION}/apksigner verify --verbose "$APK" | head -10
+          done
+          echo "APKs signed successfully"
 
       - name: Collect outputs
         run: |
           mkdir -p build_out/apk
           find app/build/outputs/apk/debug -name "*.apk" -print -quit \
             | xargs -r -I{} cp {} build_out/apk/Athea-debug.apk
-          unzip -l build_out/apk/Athea-debug.apk | awk '/lib\//{print $4}' > build_out/native_libs.txt || true
+          find app/build/outputs/apk/release -name "*.apk" -print -quit \
+            | xargs -r -I{} cp {} build_out/apk/Athea-arm64.apk
+          echo "=== debug (x86_64 + arm64) ===" > build_out/native_libs.txt
+          unzip -l build_out/apk/Athea-debug.apk | awk '/lib\//{print $4}' >> build_out/native_libs.txt || true
+          echo "=== release arm64 (optimized) ===" >> build_out/native_libs.txt
+          unzip -l build_out/apk/Athea-arm64.apk | awk '/lib\//{print $4}' >> build_out/native_libs.txt || true
+          ls -lh build_out/apk/
 
-      - name: Upload APK
+      - name: Upload debug APK
         uses: actions/upload-artifact@v7
         with:
           name: Athea-debug-apk
           path: build_out/apk/Athea-debug.apk
           if-no-files-found: error
+          compression-level: 0
+
+      - name: Upload arm64 APK (release, optimized)
+        uses: actions/upload-artifact@v7
+        with:
+          name: Athea-arm64-apk
+          path: build_out/apk/Athea-arm64.apk
+          if-no-files-found: error
+          compression-level: 0
 
       - name: Upload unit test results
         uses: actions/upload-artifact@v7

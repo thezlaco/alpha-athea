@@ -1,6 +1,7 @@
 package com.athea.app.ui.main
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -59,11 +60,16 @@ fun TopBar(
 
     Box(modifier.fillMaxSize()) {
         // Scrim: catches all outside taps to dismiss the menu.
+        // No ripple — matches drawer behaviour (drawer has no white flash).
         if (menuOpen) {
             Box(
                 Modifier
                     .fillMaxSize()
-                    .clickable(onClick = { menuOpen = false }),
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { menuOpen = false },
+                    ),
             )
         }
 

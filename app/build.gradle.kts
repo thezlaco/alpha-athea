@@ -36,7 +36,14 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
         release {
-            isMinifyEnabled = false
+            // Optimized release: R8 + resource shrink, not debuggable.
+            // Signed with debug keystore in CI so it installs without
+            // a release key; tests still use debug and are unaffected.
+            // Artifact is arm64-optimized (generic arch, not device-specific).
+            isMinifyEnabled = true
+            isShrinkResources = true
+            isDebuggable = false
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
