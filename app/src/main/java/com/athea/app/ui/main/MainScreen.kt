@@ -212,106 +212,112 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
         ) { padding ->
             val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
             val topScrimHeight = statusBarTop + 30.dp
-            Column(
+            // Outer Box overlays TopBar/scrim above the Column so the menu
+            // scrim covers the whole screen (transcript + composer + key row),
+            // not just the transcript area — dismiss works from any tap.
+            Box(
                 Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    // The whole column lifts above the IME, so the key row
-                    // under the composer stays visible while typing.
                     .imePadding()
                     .background(MaterialTheme.colorScheme.background),
             ) {
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .fillMaxSize(),
-                ) {
-                    if (current != null) {
-                        TranscriptView(
-                            session = current,
-                            search = state.search,
-                            scrollRequests = viewModel.scrollRequests,
-                            jumpToBottom = viewModel.jumpToBottom,
-                            previewLines = state.previewLines,
-                            contentTopPadding = statusBarTop + 62.dp,
-                            pinchZoomEnabled = state.pinchZoomEnabled,
-                            onOutputFontZoom = viewModel::onOutputFontZoom,
-                            onToggleBlock = viewModel::toggleBlockCollapsed,
-                            onRevealBlock = viewModel::revealBlock,
-                            onLocateBlock = { blockId ->
-                                current.blocks.indexOfFirst { it.block.id == blockId }
-                            },
-                            onCopyCommand = { text ->
-                                // Android 13+ shows its own confirmation
-                                // for clipboard writes - no custom toast.
-                                copyToClipboard(context, text)
-                            },
-                            onSelectCommandText = viewModel::showSelectText,
-                            onAddToFavorites = viewModel::addFavorite,
-                            onAreaResized = viewModel::onTranscriptAreaResized,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                    }
-
-                    // Scrim: full-width darkening that starts at half the
-                    // height of the top buttons and deepens toward the top
-                    // edge, so content scrolling underneath fades away.
+                Column(Modifier.fillMaxSize()) {
                     Box(
                         Modifier
-                            .fillMaxWidth()
-                            .height(topScrimHeight)
-                            .background(
-                                Brush.verticalGradient(
-                                    0f to Color.Black,
-                                    1f to Color.Transparent,
-                                )
-                            ),
+                            .weight(1f)
+                            .fillMaxSize(),
+                    ) {
+                        if (current != null) {
+                            TranscriptView(
+                                session = current,
+                                search = state.search,
+                                scrollRequests = viewModel.scrollRequests,
+                                jumpToBottom = viewModel.jumpToBottom,
+                                previewLines = state.previewLines,
+                                contentTopPadding = statusBarTop + 62.dp,
+                                pinchZoomEnabled = state.pinchZoomEnabled,
+                                onOutputFontZoom = viewModel::onOutputFontZoom,
+                                onToggleBlock = viewModel::toggleBlockCollapsed,
+                                onRevealBlock = viewModel::revealBlock,
+                                onLocateBlock = { blockId ->
+                                    current.blocks.indexOfFirst { it.block.id == blockId }
+                                },
+                                onCopyCommand = { text ->
+                                    // Android 13+ shows its own confirmation
+                                    // for clipboard writes - no custom toast.
+                                    copyToClipboard(context, text)
+                                },
+                                onSelectCommandText = viewModel::showSelectText,
+                                onAddToFavorites = viewModel::addFavorite,
+                                onAreaResized = viewModel::onTranscriptAreaResized,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
+                    }
+
+                    InputBar(
+                        draft = current?.draft.orEmpty(),
+                        suggestion = if (state.search == null) state.suggestion else null,
+                        attachments = state.attachments,
+                        onDraftChange = viewModel::updateDraft,
+                        onSend = viewModel::sendDraft,
+                        onExpandEditor = { viewModel.setEditorExpanded(true) },
+                        onAddClick = { viewModel.setShowAttachChooser(true) },
+                        onRemoveAttachment = viewModel::removeAttachment,
+                        search = state.search,
+                        onSearchQueryChange = viewModel::updateSearchQuery,
+                        onSearchNext = viewModel::nextSearchMatch,
+                        onExitSearch = viewModel::exitSearch,
+                        enterSends = state.enterSends,
                     )
 
-                    TopBar(
-                        modifier = Modifier.align(Alignment.TopCenter),
-                        hasMessages = current?.blocks?.isNotEmpty() == true,
-                        pinned = current?.pinned ?: false,
-                        onOpenDrawer = { scope.launch { drawerState.open() } },
-                        onNewSession = viewModel::newSession,
-                        onSearch = viewModel::enterSearch,
-                        onRename = { current?.let { viewModel.requestRename(it.id) } },
-                        onTogglePin = { current?.let { viewModel.togglePin(it.id) } },
-                        onDelete = { current?.let { viewModel.requestDelete(it.id) } },
-                    )
+                    if (state.keyRowVisible && state.search == null) {
+                        KeyRow(
+                            keys = keyRowKeys(state),
+                            stickyCtrl = state.stickyCtrl,
+                            suggestionActive = state.suggestion != null,
+                            onInsert = viewModel::insertIntoDraft,
+                            onSendBytes = viewModel::sendDirectText,
+                            onAcceptSuggestion = viewModel::acceptSuggestion,
+                            onToggleStickyCtrl = viewModel::toggleStickyCtrl,
+                            onConsumeStickyCtrl = viewModel::consumeStickyCtrl,
+                            // Bottom inset is handled by the row itself so it
+                            // sits flush under the composer.
+                            modifier = Modifier.navigationBarsPadding(),
+                        )
+                    }
                 }
 
-                InputBar(
-                    draft = current?.draft.orEmpty(),
-                    suggestion = if (state.search == null) state.suggestion else null,
-                    attachments = state.attachments,
-                    onDraftChange = viewModel::updateDraft,
-                    onSend = viewModel::sendDraft,
-                    onExpandEditor = { viewModel.setEditorExpanded(true) },
-                    onAddClick = { viewModel.setShowAttachChooser(true) },
-                    onRemoveAttachment = viewModel::removeAttachment,
-                    search = state.search,
-                    onSearchQueryChange = viewModel::updateSearchQuery,
-                    onSearchNext = viewModel::nextSearchMatch,
-                    onExitSearch = viewModel::exitSearch,
-                    enterSends = state.enterSends,
+                // Top scrim: same gradient as before, now sibling of Column
+                // so it sits above transcript but below TopBar.
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(topScrimHeight)
+                        .align(Alignment.TopStart)
+                        .background(
+                            Brush.verticalGradient(
+                                0f to Color.Black,
+                                1f to Color.Transparent,
+                            )
+                        ),
                 )
 
-                if (state.keyRowVisible && state.search == null) {
-                    KeyRow(
-                        keys = keyRowKeys(state),
-                        stickyCtrl = state.stickyCtrl,
-                        suggestionActive = state.suggestion != null,
-                        onInsert = viewModel::insertIntoDraft,
-                        onSendBytes = viewModel::sendDirectText,
-                        onAcceptSuggestion = viewModel::acceptSuggestion,
-                        onToggleStickyCtrl = viewModel::toggleStickyCtrl,
-                        onConsumeStickyCtrl = viewModel::consumeStickyCtrl,
-                        // Bottom inset is handled by the row itself so it
-                        // sits flush under the composer.
-                        modifier = Modifier.navigationBarsPadding(),
-                    )
-                }
+                // TopBar overlay — its internal menu scrim is now full-screen
+                // (covers transcript + composer + key row) because TopBar
+                // fills the outer Box, not just the transcript Box.
+                TopBar(
+                    modifier = Modifier.align(Alignment.TopCenter),
+                    hasMessages = current?.blocks?.isNotEmpty() == true,
+                    pinned = current?.pinned ?: false,
+                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                    onNewSession = viewModel::newSession,
+                    onSearch = viewModel::enterSearch,
+                    onRename = { current?.let { viewModel.requestRename(it.id) } },
+                    onTogglePin = { current?.let { viewModel.togglePin(it.id) } },
+                    onDelete = { current?.let { viewModel.requestDelete(it.id) } },
+                )
             }
         }
     }
