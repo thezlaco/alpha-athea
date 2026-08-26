@@ -102,13 +102,16 @@ fun SessionsDrawerContent(
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
             )
 
-            // Sessions area: scrollable list fills the space; the bottom
-            // bar overlays it so sessions scroll behind the pill.
+            // Sessions area: scrollable list fills the space.
+            // Two tiers at the bottom: (1) full-width translucent panel
+            // to the screen edge, (2) compact pill on top — same pill as
+            // the top-right in MainScreen.
             Box(Modifier.weight(1f)) {
                 Column(
                     Modifier
                         .fillMaxSize()
-                        .verticalScroll(rememberScrollState()),
+                        .verticalScroll(rememberScrollState())
+                        .padding(bottom = 88.dp),
                 ) {
                     ordered.forEach { session ->
                         SessionRow(
@@ -122,21 +125,25 @@ fun SessionsDrawerContent(
                     }
                 }
 
-                // Merged pill (settings + favorites) overlaid at the bottom,
-                // same style as the top-right pill.
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.55f),
-                    modifier = Modifier
+                // Tier 1: translucent full-width panel behind the pill,
+                // starts slightly above the pill and stretches to the bottom.
+                Box(
+                    Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .padding(horizontal = Ui.drawerItemPaddingH, vertical = 10.dp),
+                        .height(82.dp)
+                        .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.55f)),
+                )
+
+                // Tier 2: compact pill — identical to TopBar right pill.
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 18.dp),
                 ) {
-                    Row(
-                        Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = onSettings) {
                             Icon(
                                 Icons.Default.Settings,
