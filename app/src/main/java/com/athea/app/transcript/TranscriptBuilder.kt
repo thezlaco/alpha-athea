@@ -69,25 +69,25 @@ class TranscriptBuilder(
 
     fun applyOutput(text: String) {
         if (text.isEmpty()) return
-        // Stray whitespace with no running command would create a ghost
-        // one-line block; real output always carries content.
         if (text.isBlank() && runningOutputId == null) return
         val id = runningOutputId
         if (id == null) {
             val newId = nextOutputId()
             runningText.clear()
             runningText.append(text)
-            // Only the tail goes into the UI block; the journal has the
-            // full text. This prevents O(n²) String concatenation.
             blocks.add(OutputBlock(id = newId, text = text, running = true))
             runningOutputId = newId
         } else {
             runningText.append(text)
+            // Cap running buffer to avoid unbounded growth for huge streams
+            // (yes | head 100k = 1.2MB). Keep head for journal, but trim
+            // in-memory to prevent OOM on long runs.
+            if (runningText.length > MAX_RUNNING_CHARS) {
+                runningText.delete(0, runningText.length - MAX_RUNNING_CHARS)
+            }
             val index = indexOfBlock(id)
             if (index >= 0) {
                 val current = blocks[index] as OutputBlock
-                // Full text: StringBuilder appends are O(1), toString() is
-                // O(n) but throttled to 10/sec by the dirty-session loop.
                 blocks[index] = current.copy(text = runningText.toString())
             }
         }
@@ -121,16 +121,21 @@ class TranscriptBuilder(
         val expandedOutput = expandedOutputId()
         val views = ArrayList<BlockView>(blocks.size)
         for (block in blocks) {
-            // Running block: only the tail goes to the UI. The full text
-            // lives in the StringBuilder and the journal — rendering
-            // 1MB in a Text composable on every throttle tick freezes
-            // the main thread. When the command finishes, the committed
-            // block carries the full text.
-            val viewBlock = if (block is OutputBlock && block.running) {
-                val tail = runningText.takeLast(STREAM_RENDER_TAIL).toString()
-                block.copy(text = tail)
-            } else {
-                block
+            val viewBlock = when {
+                block is OutputBlock && block.running -> {
+                    // Streaming: only tail to keep 10Hz throttle cheap.
+                    val tail = runningText.takeLast(STREAM_RENDER_TAIL).toString()
+                    block.copy(text = tail)
+                }
+                block is OutputBlock && block.text.length > RAW_RENDER_CAP -> {
+                    // Finished huge output (yes | head 100k = 1.2MB): rendering
+                    // it all in one Text freezes/crashes and persists as
+                    // crash-on-replay. Keep full text in journal, but UI
+                    // shows tail with marker. Raw view still capped separately.
+                    val tail = block.text.takeLast(RAW_RENDER_CAP)
+                    block.copy(text = "…[output truncated, showing last $RAW_RENDER_CAP / ${block.text.length} chars]…\n$tail")
+                }
+                else -> block
             }
             views.add(BlockView(viewBlock, computeCollapsed(viewBlock, expandedOutput)))
         }
@@ -207,13 +212,14 @@ class TranscriptBuilder(
         const val DEFAULT_RAW_CAP = 1 shl 20
         private const val RAW_TRIM_SLACK = 1 shl 16
 
-        /** Chars shown in the UI while a command is streaming. The full
-         *  text lives in the StringBuilder + journal; when the command
-         *  finishes, the committed block carries everything. */
+        /** Chars shown in the UI while a command is streaming. */
         const val STREAM_RENDER_TAIL = 3000
 
-        /** Max chars rendered in raw view. */
+        /** Max chars rendered in raw view / finished block UI. */
         const val RAW_RENDER_CAP = 50_000
+
+        /** Cap for in-memory running buffer to avoid OOM on huge streams. */
+        private const val MAX_RUNNING_CHARS = 600_000
 
         fun cmdId(seq: Long): String = "cmd-$seq"
 

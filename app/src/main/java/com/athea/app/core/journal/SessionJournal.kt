@@ -44,9 +44,12 @@ class SessionJournal(private val file: File) {
                 writer = it
             }
             writeRecord(out, event)
-            // No flush: BufferedOutputStream batches writes internally.
-            // On crash, torn tail detection handles partial records.
+            out.flush()
         }
+    }
+
+    fun flush() {
+        synchronized(lock) { runCatching { writer?.flush() } }
     }
 
     private fun closeWriter() {
