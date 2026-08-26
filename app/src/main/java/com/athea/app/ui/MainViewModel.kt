@@ -21,6 +21,7 @@ import com.athea.app.engine.NativeShellEngine
 import com.athea.app.util.dropOldestSharedFlow
 import com.athea.app.util.shellEval
 import com.athea.app.util.shellQuote
+import com.athea.app.parse.StreamEvent
 import com.athea.app.parse.StreamParser
 import com.athea.app.parse.applyTo
 import com.athea.app.transcript.BlockView

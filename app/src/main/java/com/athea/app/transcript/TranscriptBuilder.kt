@@ -5,8 +5,9 @@ import com.athea.app.core.model.Block
 import com.athea.app.core.model.CommandBlock
 import com.athea.app.core.model.OutputBlock
 import com.athea.app.core.model.PREVIEW_LINES
-import com.athea.app.parse.applyTo
+import com.athea.app.parse.StreamEvent
 import com.athea.app.parse.StreamParser
+import com.athea.app.parse.applyTo
 
 /** A block plus its presentation-time collapse state. */
 data class BlockView(
