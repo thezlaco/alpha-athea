@@ -83,6 +83,8 @@ import kotlinx.coroutines.launch
 private const val TAIL_LINES = 5
 private val FADE_HEIGHT = 24.dp
 private val TAIL_FADE_HEIGHT = 26.dp
+private const val VIRTUALIZE_THRESHOLD = 30_000
+private const val CHUNK_LINES = 200
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -494,6 +496,24 @@ private fun OutputPanel(
                     .size(20.dp)
                     .clickable(onClick = onToggle),
             )
+        } else if (text.length > VIRTUALIZE_THRESHOLD) {
+            // Huge output: virtualized to avoid measuring 1MB in one Text
+            VirtualizedOutput(text = text, query = query)
+            if (block.running) {
+                BlinkingCursor()
+            } else if (collapsible) {
+                Icon(
+                    Icons.Default.KeyboardArrowDown,
+                    contentDescription = stringResource(R.string.cd_collapse),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(top = 2.dp)
+                        .size(16.dp)
+                        .rotate(180f)
+                        .clickable(onClick = onToggle),
+                )
+            }
         } else {
             SelectionContainer {
                 val annotated = remember(text, query) { buildHighlighted(text, query) }
@@ -521,6 +541,46 @@ private fun OutputPanel(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun VirtualizedOutput(text: String, query: String?) {
+    val chunks = remember(text) {
+        // Line-based chunking keeps search highlights correct and avoids
+        // splitting in the middle of a line. 200 lines ~ 2-4k chars.
+        val lines = text.split("\n")
+        lines.chunked(CHUNK_LINES).map { it.joinToString("\n") }
+    }
+    Column(Modifier.fillMaxWidth()) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(max = 500.dp)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.06f)),
+        ) {
+            androidx.compose.foundation.lazy.LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                items(chunks.size) { idx ->
+                    val chunk = chunks[idx]
+                    SelectionContainer {
+                        Text(
+                            text = remember(chunk, query) { buildHighlighted(chunk, query) },
+                            style = codeStyle(),
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+            }
+        }
+        Text(
+            text = "Virtualized \u00B7 ${text.lines().size} lines \u00B7 ${text.length} chars \u00B7 scroll inside",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp),
+        )
     }
 }
 

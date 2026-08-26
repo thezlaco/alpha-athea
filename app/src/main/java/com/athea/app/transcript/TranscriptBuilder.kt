@@ -121,21 +121,13 @@ class TranscriptBuilder(
         val expandedOutput = expandedOutputId()
         val views = ArrayList<BlockView>(blocks.size)
         for (block in blocks) {
-            val viewBlock = when {
-                block is OutputBlock && block.running -> {
-                    // Streaming: only tail to keep 10Hz throttle cheap.
-                    val tail = runningText.takeLast(STREAM_RENDER_TAIL).toString()
-                    block.copy(text = tail)
-                }
-                block is OutputBlock && block.text.length > RAW_RENDER_CAP -> {
-                    // Finished huge output (yes | head 100k = 1.2MB): rendering
-                    // it all in one Text freezes/crashes and persists as
-                    // crash-on-replay. Keep full text in journal, but UI
-                    // shows tail with marker. Raw view still capped separately.
-                    val tail = block.text.takeLast(RAW_RENDER_CAP)
-                    block.copy(text = "…[output truncated, showing last $RAW_RENDER_CAP / ${block.text.length} chars]…\n$tail")
-                }
-                else -> block
+            // Running: tail only to keep throttle cheap. Finished: full text
+            // (virtualized in UI), raw view capped separately.
+            val viewBlock = if (block is OutputBlock && block.running) {
+                val tail = runningText.takeLast(STREAM_RENDER_TAIL).toString()
+                block.copy(text = tail)
+            } else {
+                block
             }
             views.add(BlockView(viewBlock, computeCollapsed(viewBlock, expandedOutput)))
         }
@@ -219,7 +211,7 @@ class TranscriptBuilder(
         const val RAW_RENDER_CAP = 50_000
 
         /** Cap for in-memory running buffer to avoid OOM on huge streams. */
-        private const val MAX_RUNNING_CHARS = 600_000
+        private const val MAX_RUNNING_CHARS = 1_200_000
 
         fun cmdId(seq: Long): String = "cmd-$seq"
 
