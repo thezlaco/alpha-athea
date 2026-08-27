@@ -120,7 +120,7 @@ fun SettingsScreen(
                     onChange = onPinchZoomEnabledChange,
                 )
 
-                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                HorizontalDivider(Modifier.padding(vertical = Ui.dividerPadding))
 
                 SliderRow(
                     title = stringResource(R.string.settings_font_size),
@@ -141,7 +141,7 @@ fun SettingsScreen(
                     onChange = onBubbleFontSizeChange,
                 )
 
-                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                HorizontalDivider(Modifier.padding(vertical = Ui.dividerPadding))
 
                 // ---- Key row tools -----------------------------------
                 Text(
@@ -191,7 +191,7 @@ fun SettingsScreen(
                     Text(stringResource(R.string.builder_open))
                 }
 
-                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                HorizontalDivider(Modifier.padding(vertical = Ui.dividerPadding))
 
                 // ---- Diagnostics --------------------------------------
                 Text(

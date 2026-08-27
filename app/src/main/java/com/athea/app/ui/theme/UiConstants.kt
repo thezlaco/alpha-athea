@@ -64,6 +64,7 @@ object Ui {
     val headerPaddingV = 4.dp
     val contentPaddingH = 16.dp
     val contentPaddingV = 8.dp
+    val dividerPadding = 8.dp
 
     // ---- Fades & chevrons -------------------------------------------------
     val fadeHeight = 24.dp

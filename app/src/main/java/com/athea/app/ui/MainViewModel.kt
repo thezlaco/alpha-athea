@@ -18,14 +18,16 @@ import com.athea.app.core.model.OutputBlock
 import com.athea.app.core.terminal.EngineEvent
 import com.athea.app.core.terminal.TerminalEngine
 import com.athea.app.engine.NativeShellEngine
-import com.athea.app.util.dropOldestSharedFlow
-import com.athea.app.util.shellEval
-import com.athea.app.util.shellQuote
 import com.athea.app.parse.StreamEvent
 import com.athea.app.parse.StreamParser
 import com.athea.app.parse.applyTo
 import com.athea.app.transcript.BlockView
 import com.athea.app.transcript.TranscriptBuilder
+import com.athea.app.util.dropOldestSharedFlow
+import com.athea.app.util.normalizeCommand
+import com.athea.app.util.shellEval
+import com.athea.app.util.shellQuote
+import com.athea.app.util.trimCommand
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -507,7 +509,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun sendDraft() {
         val id = _state.value.currentSessionId ?: return
-        val draft = metas[id]?.draft.orEmpty().trimEnd('\n')
+        val draft = metas[id]?.draft.orEmpty().trimCommand()
         val attachments = _state.value.attachments
         if (draft.isBlank() && attachments.isEmpty()) return
         // Staged files go first, each as its own command.
@@ -537,7 +539,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     /** Runs a favorite or self-executing key payload straight to the shell. */
     fun executeDirectly(command: String) {
         val id = _state.value.currentSessionId ?: return
-        val text = command.trimEnd('\n')
+        val text = command.trimCommand()
         if (text.isBlank()) return
         submit(id, text)
         jumpIfEnabled()
@@ -587,7 +589,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // ------------------------------------------------------------- favorites
 
     fun addFavorite(text: String) {
-        val trimmed = text.trimEnd('\n')
+        val trimmed = text.trimCommand()
         if (trimmed.isEmpty()) return
         synchronized(lock) {
             val current = _state.value.favorites
@@ -605,7 +607,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun updateFavorite(id: Long, text: String) {
-        val trimmed = text.trim().trimEnd('\n')
+        val trimmed = text.normalizeCommand()
         if (trimmed.isEmpty()) return
         synchronized(lock) {
             val current = _state.value.favorites

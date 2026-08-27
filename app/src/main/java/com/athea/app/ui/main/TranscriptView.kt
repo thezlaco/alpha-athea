@@ -77,6 +77,7 @@ import com.athea.app.ui.theme.CodeStyle
 import com.athea.app.ui.theme.HighlightColor
 import com.athea.app.ui.theme.OnHighlightColor
 import com.athea.app.ui.theme.codeStyle
+import com.athea.app.util.trimCommand
 import com.athea.app.ui.theme.messageStyle
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
@@ -456,7 +457,7 @@ private fun OutputPanel(
             )
         }
 
-        val text = if (block.running) block.text else block.text.trimEnd('\n')
+        val text = if (block.running) block.text else block.text.trimCommand()
         val lineCount = text.lines().size
         val collapsible = lineCount > TAIL_LINES && !block.running
 
