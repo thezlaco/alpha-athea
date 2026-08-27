@@ -1,5 +1,6 @@
 package com.athea.app.parse
 
+import androidx.compose.ui.text.AnnotatedString
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -13,6 +14,8 @@ class StreamParserTest {
 
     private fun texts(events: List<StreamEvent>): String =
         events.filterIsInstance<StreamEvent.Text>().joinToString("") { it.value }
+
+    private fun textEvent(text: String) = StreamEvent.Text(AnnotatedString(text))
 
     @Test
     fun `plain text passes through`() {
@@ -70,7 +73,7 @@ class StreamParserTest {
         assertEquals(
             listOf<StreamEvent>(
                 StreamEvent.CommandEnd(2),
-                StreamEvent.Text("rest\n"),
+                textEvent("rest\n"),
             ),
             events,
         )
@@ -85,7 +88,7 @@ class StreamParserTest {
         assertEquals(
             listOf<StreamEvent>(
                 StreamEvent.CommandEnd(2),
-                StreamEvent.Text("rest\n"),
+                textEvent("rest\n"),
             ),
             second,
         )
@@ -97,7 +100,7 @@ class StreamParserTest {
         assertEquals(
             listOf<StreamEvent>(
                 StreamEvent.OutputBegin,
-                StreamEvent.Text("out\n"),
+                textEvent("out\n"),
             ),
             events,
         )
@@ -112,7 +115,7 @@ class StreamParserTest {
         val second = parser.feed("$ ls\n".toByteArray())
         assertTrue(first.isEmpty())
         assertEquals(
-            listOf<StreamEvent>(StreamEvent.Text("$ ls\n")),
+            listOf<StreamEvent>(textEvent("$ ls\n")),
             second,
         )
     }
@@ -128,7 +131,7 @@ class StreamParserTest {
         val events = feedAll("tail\u001B]133;D;0\u0007")
         assertEquals(
             listOf<StreamEvent>(
-                StreamEvent.Text("tail"),
+                textEvent("tail"),
                 StreamEvent.CommandEnd(0),
             ),
             events,
