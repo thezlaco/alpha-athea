@@ -72,40 +72,16 @@ fun SettingsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Surface gives every inner text and control the proper content colors.
-    Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
+    AtheaScaffold(
+        title = stringResource(R.string.settings),
+        onBack = onBack,
+        modifier = modifier,
+    ) {
         Column(
             Modifier
                 .fillMaxSize()
-                .safeDrawingPadding(),
+                .verticalScroll(rememberScrollState()),
         ) {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Ui.headerPaddingH, vertical = Ui.headerPaddingV),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(R.string.cd_back),
-                    )
-                }
-                Text(
-                    text = stringResource(R.string.settings),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = Ui.titleEndPadding),
-                )
-            }
-            HorizontalDivider()
-
-            Column(
-                Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
-            ) {
                 SwitchRow(
                     title = stringResource(R.string.settings_key_row),
                     subtitle = stringResource(R.string.settings_key_row_desc),
@@ -240,7 +216,6 @@ fun SettingsScreen(
                 }
                 Spacer(Modifier.height(24.dp))
             }
-        }
     }
 }
 

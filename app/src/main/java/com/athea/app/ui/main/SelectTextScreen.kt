@@ -24,7 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.athea.app.R
-import com.athea.app.ui.theme.Ui
+import com.athea.app.ui.common.AtheaScaffold
 import com.athea.app.ui.theme.codeStyle
 
 /**
@@ -38,47 +38,24 @@ fun SelectTextScreen(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(
+    AtheaScaffold(
+        title = stringResource(R.string.select_text_title),
+        onBack = onClose,
+        modifier = modifier,
+    ) {
+        SelectionContainer(
             Modifier
-                .fillMaxSize()
-                .safeDrawingPadding(),
+                .weight(1f)
+                .fillMaxWidth(),
         ) {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Ui.headerPaddingH, vertical = Ui.headerPaddingV),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onClose) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(R.string.cd_back),
-                    )
-                }
-                Text(
-                    text = stringResource(R.string.select_text_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = Ui.titleEndPadding),
-                )
-            }
-            HorizontalDivider()
-            SelectionContainer(
-                Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-            ) {
-                Text(
-                    text = text,
-                    style = codeStyle().copy(color = MaterialTheme.colorScheme.onBackground),
-                    modifier = Modifier
-                        .verticalScroll(rememberScrollState())
-                        .horizontalScroll(rememberScrollState())
-                        .padding(Ui.screenPadding),
-                )
-            }
+            Text(
+                text = text,
+                style = codeStyle().copy(color = MaterialTheme.colorScheme.onBackground),
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .horizontalScroll(rememberScrollState())
+                    .padding(Ui.screenPadding),
+            )
         }
     }
 }
