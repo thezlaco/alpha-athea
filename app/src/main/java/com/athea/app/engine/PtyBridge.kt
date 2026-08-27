@@ -10,8 +10,8 @@ internal object PtyBridge {
         System.loadLibrary("athea")
     }
 
-    /** Returns [masterFd, childPid], or null on failure. */
-    external fun createPty(rows: Int, cols: Int, homePath: String, rcPath: String): IntArray?
+    /** Returns [masterFd, childPid], or null on failure. Shell path overrides SHELL env. */
+    external fun createPty(rows: Int, cols: Int, homePath: String, rcPath: String, shellPath: String): IntArray?
 
     external fun writePty(fd: Int, data: ByteArray): Boolean
 

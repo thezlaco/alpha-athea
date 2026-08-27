@@ -42,6 +42,7 @@ data class AtheaSettings(
     val bubbleFontSizeSp: Int = 16,
     val autocompleteEnabled: Boolean = true,
     val pinchZoomEnabled: Boolean = true,
+    val shellPath: String = ShellBackend.SYSTEM_SH.shellPath,
 )
 
 /**

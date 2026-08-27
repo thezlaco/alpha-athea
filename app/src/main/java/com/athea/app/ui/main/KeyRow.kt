@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.athea.app.ui.theme.Ui
+import com.athea.app.util.TabCompletionHandler
 import com.athea.app.util.isCtrlCombinable
 import com.athea.app.util.toControlChar
 

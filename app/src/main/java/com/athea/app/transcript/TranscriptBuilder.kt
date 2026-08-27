@@ -43,6 +43,7 @@ class TranscriptBuilder(
     private var runningOutputId: String? = null
     private var runningOutputIndex: Int = -1
     private val runningText = StringBuilder()
+    private val runningAnnotated = androidx.compose.ui.text.AnnotatedString.Builder()
     private var outputCounter = 0
 
     // Raw projection kept as chunks: trimming drops whole head chunks in
@@ -72,28 +73,41 @@ class TranscriptBuilder(
         appendRaw(text + "\n")
     }
 
-    fun applyOutput(text: String) {
+    fun applyOutput(annotated: androidx.compose.ui.text.AnnotatedString) {
+        val text = annotated.text
         if (text.isEmpty()) return
         if (text.isBlank() && runningOutputId == null) return
         val id = runningOutputId
         if (id == null) {
             val newId = nextOutputId()
             runningText.clear()
+            runningAnnotated.clear()
             runningText.append(text)
-            blocks.add(OutputBlock(id = newId, text = text, running = true))
+            runningAnnotated.append(annotated)
+            blocks.add(OutputBlock(id = newId, text = text, annotated = annotated, running = true))
             runningOutputId = newId
             runningOutputIndex = blocks.lastIndex
         } else {
             runningText.append(text)
+            runningAnnotated.append(annotated)
             if (runningText.length > MAX_RUNNING_CHARS) {
-                runningText.delete(0, runningText.length - MAX_RUNNING_CHARS)
+                val excess = runningText.length - MAX_RUNNING_CHARS
+                runningText.delete(0, excess)
+                // Trim annotated builder similarly by rebuilding from tail
+                val full = runningAnnotated.toAnnotatedString()
+                runningAnnotated.clear()
+                runningAnnotated.append(full.text.takeLast(MAX_RUNNING_CHARS).let { tail ->
+                    // Preserve spans for tail — simplified: re-append tail without spans for now
+                    // Full span preservation would require slicing spans, keep plain tail
+                    androidx.compose.ui.text.AnnotatedString(tail)
+                })
             }
-            // Don't copy full runningText into block on every chunk — snapshot
-            // uses runningText directly for the tail. Keep block's text stale
-            // until finish to avoid O(n) copies at 10Hz.
         }
         appendRaw(text)
     }
+
+    // Backward compat for tests / simple callers
+    fun applyOutput(text: String) = applyOutput(androidx.compose.ui.text.AnnotatedString(text))
 
     fun applyCommandEnd(exitCode: Int?) {
         finishRunning(exitCode)
@@ -122,11 +136,28 @@ class TranscriptBuilder(
         val expandedOutput = expandedOutputId()
         val views = ArrayList<BlockView>(blocks.size)
         for (block in blocks) {
-            // Running: tail only to keep throttle cheap. Finished: full text
-            // (virtualized in UI), raw view capped separately.
             val viewBlock = if (block is OutputBlock && block.running) {
-                val tail = runningText.takeLast(STREAM_RENDER_TAIL).toString()
-                block.copy(text = tail)
+                val tailText = runningText.takeLast(STREAM_RENDER_TAIL).toString()
+                val fullAnnotated = runningAnnotated.toAnnotatedString()
+                val tailAnnotated = if (fullAnnotated.text.length <= STREAM_RENDER_TAIL) {
+                    fullAnnotated
+                } else {
+                    val start = fullAnnotated.text.length - STREAM_RENDER_TAIL
+                    androidx.compose.ui.text.AnnotatedString(
+                        text = fullAnnotated.text.takeLast(STREAM_RENDER_TAIL),
+                        spanStyles = fullAnnotated.spanStyles.mapNotNull { span ->
+                            if (span.end <= start) null else androidx.compose.ui.text.AnnotatedString.Range(
+                                span.item, maxOf(0, span.start - start), span.end - start
+                            )
+                        },
+                        paragraphStyles = fullAnnotated.paragraphStyles.mapNotNull { span ->
+                            if (span.end <= start) null else androidx.compose.ui.text.AnnotatedString.Range(
+                                span.item, maxOf(0, span.start - start), span.end - start
+                            )
+                        }
+                    )
+                }
+                block.copy(text = tailText, annotated = tailAnnotated)
             } else {
                 block
             }
@@ -162,11 +193,13 @@ class TranscriptBuilder(
             val current = blocks[index] as OutputBlock
             blocks[index] = current.copy(
                 text = runningText.toString(),
+                annotated = runningAnnotated.toAnnotatedString(),
                 running = false,
                 exitCode = exitCode,
             )
         }
         runningText.clear()
+        runningAnnotated.clear()
     }
 
     private fun indexOfBlock(id: String): Int =

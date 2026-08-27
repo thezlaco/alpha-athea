@@ -457,12 +457,18 @@ private fun OutputPanel(
             )
         }
 
-        val text = if (block.running) block.text else block.text.trimCommand()
-        val lineCount = text.lines().size
+        val plainText = if (block.running) block.text else block.text.trimCommand()
+        val displayAnnotated = if (block.running) block.annotated else {
+            // Trim trailing newline for display, keep spans aligned
+            val t = block.annotated.text.trimEnd('\n')
+            if (t.length == block.annotated.text.length) block.annotated
+            else AnnotatedString(t, block.annotated.spanStyles, block.annotated.paragraphStyles)
+        }
+        val lineCount = plainText.lines().size
         val collapsible = lineCount > TAIL_LINES && !block.running
 
         if (collapsed && collapsible) {
-            val allLines = text.lines()
+            val allLines = plainText.lines()
             Box {
                 Text(
                     text = allLines.takeLast(TAIL_LINES).joinToString("\n"),
@@ -496,9 +502,9 @@ private fun OutputPanel(
                     .size(Ui.chevronExpandSize)
                     .clickable(onClick = onToggle),
             )
-        } else if (text.length > VIRTUALIZE_THRESHOLD) {
-            // Huge output: virtualized to avoid measuring 1MB in one Text
-            VirtualizedOutput(text = text, query = query)
+        } else if (plainText.length > VIRTUALIZE_THRESHOLD) {
+            // Huge output: virtualized
+            VirtualizedOutput(annotated = displayAnnotated, query = query)
             if (block.running) {
                 BlinkingCursor()
             } else if (collapsible) {
@@ -516,7 +522,7 @@ private fun OutputPanel(
             }
         } else {
             SelectionContainer {
-                val annotated = remember(text, query) { buildHighlighted(text, query) }
+                val annotated = remember(displayAnnotated, query) { displayAnnotated.withSearchHighlights(query) }
                 Text(
                     text = annotated,
                     style = codeStyle(),
@@ -545,12 +551,24 @@ private fun OutputPanel(
 }
 
 @Composable
-private fun VirtualizedOutput(text: String, query: String?) {
-    val chunks = remember(text) {
-        // Line-based chunking keeps search highlights correct and avoids
-        // splitting in the middle of a line. 200 lines ~ 2-4k chars.
-        val lines = text.split("\n")
-        lines.chunked(CHUNK_LINES).map { it.joinToString("\n") }
+private fun VirtualizedOutput(annotated: AnnotatedString, query: String?) {
+    val chunks = remember(annotated) {
+        // Chunk by 4000 chars, preserving ANSI spans via subSequence
+        val total = annotated.text.length
+        val chunkSize = 4000
+        val list = mutableListOf<AnnotatedString>()
+        var offset = 0
+        while (offset < total) {
+            val end = minOf(offset + chunkSize, total)
+            // Find line boundary near end to avoid splitting mid-line
+            val chunkEnd = if (end < total) {
+                val nextNl = annotated.text.indexOf('\n', end)
+                if (nextNl != -1 && nextNl - offset < chunkSize + 500) nextNl + 1 else end
+            } else end
+            list.add(annotated.subSequence(offset, chunkEnd))
+            offset = chunkEnd
+        }
+        list
     }
     Column(Modifier.fillMaxWidth()) {
         Box(
@@ -566,7 +584,7 @@ private fun VirtualizedOutput(text: String, query: String?) {
                     val chunk = chunks[idx]
                     SelectionContainer {
                         Text(
-                            text = remember(chunk, query) { buildHighlighted(chunk, query) },
+                            text = remember(chunk, query) { chunk.withSearchHighlights(query) },
                             style = codeStyle(),
                             color = MaterialTheme.colorScheme.onBackground,
                             modifier = Modifier.fillMaxWidth(),
@@ -576,12 +594,30 @@ private fun VirtualizedOutput(text: String, query: String?) {
             }
         }
         Text(
-            text = "Virtualized \u00B7 ${text.lines().size} lines \u00B7 ${text.length} chars \u00B7 scroll inside",
+            text = "Virtualized \u00B7 ${annotated.text.lines().size} lines \u00B7 ${annotated.text.length} chars \u00B7 scroll inside",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp),
         )
     }
+}
+
+private fun AnnotatedString.withSearchHighlights(query: String?): AnnotatedString {
+    if (query.isNullOrBlank()) return this
+    val needle = query.lowercase()
+    val haystackLower = text.lowercase()
+    val builder = AnnotatedString.Builder(this)
+    var from = 0
+    while (true) {
+        val idx = haystackLower.indexOf(needle, from)
+        if (idx < 0) break
+        builder.addStyle(
+            SpanStyle(background = HighlightColor, color = OnHighlightColor),
+            idx, idx + needle.length
+        )
+        from = idx + needle.length
+    }
+    return builder.toAnnotatedString()
 }
 
 @Composable

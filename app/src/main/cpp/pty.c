@@ -33,7 +33,8 @@ JNIEXPORT jobjectArray JNICALL
 Java_com_athea_app_engine_PtyBridge_createPty(JNIEnv *env, jobject thiz,
                                               jint rows, jint cols,
                                               jstring home_path,
-                                              jstring rc_path) {
+                                              jstring rc_path,
+                                              jstring shell_path) {
     (void) thiz;
     const char *home = (*env)->GetStringUTFChars(env, home_path, NULL);
     if (home == NULL) {
@@ -44,6 +45,17 @@ Java_com_athea_app_engine_PtyBridge_createPty(JNIEnv *env, jobject thiz,
         (*env)->ReleaseStringUTFChars(env, home_path, home);
         return NULL;
     }
+    jboolean shell_allocated = JNI_FALSE;
+    const char *shell = NULL;
+    if (shell_path != NULL) {
+        shell = (*env)->GetStringUTFChars(env, shell_path, NULL);
+        if (shell != NULL) shell_allocated = JNI_TRUE;
+    }
+    if (shell == NULL || shell[0] == '\0') {
+        if (shell_allocated) (*env)->ReleaseStringUTFChars(env, shell_path, shell);
+        shell_allocated = JNI_FALSE;
+        shell = "/system/bin/sh";
+    }
 
     int master = -1;
     struct winsize ws;
@@ -51,16 +63,14 @@ Java_com_athea_app_engine_PtyBridge_createPty(JNIEnv *env, jobject thiz,
     ws.ws_row = (unsigned short) rows;
     ws.ws_col = (unsigned short) cols;
 
-    /*
-     * Per-invocation stack storage: after fork() the child owns a private
-     * copy of the address space, so parent stack reuse cannot corrupt it.
-     */
     char home_entry[512];
     char tmpdir_entry[512];
     char env_entry[512];
+    char shell_entry[512];
     char path_entry[] = "PATH=/data/local/tmp/bin:/system/bin:/system/xbin:/vendor/bin";
-    char shell_entry[] = "SHELL=/system/bin/sh";
     char term_entry[] = "TERM=xterm-256color";
+    // shell already resolved above; build SHELL env
+    snprintf(shell_entry, sizeof(shell_entry), "SHELL=%s", shell);
 
     snprintf(home_entry, sizeof(home_entry), "HOME=%s", home);
     snprintf(tmpdir_entry, sizeof(tmpdir_entry), "TMPDIR=%s", home);
@@ -70,17 +80,18 @@ Java_com_athea_app_engine_PtyBridge_createPty(JNIEnv *env, jobject thiz,
     if (pid < 0) {
         (*env)->ReleaseStringUTFChars(env, rc_path, rc);
         (*env)->ReleaseStringUTFChars(env, home_path, home);
+        if (shell_allocated) (*env)->ReleaseStringUTFChars(env, shell_path, shell);
         throw_io_exception(env, "forkpty failed");
         return NULL;
     }
 
     if (pid == 0) {
-        /* Login shells inherit the parent CWD ("/"), which apps cannot
-         * read - start in the app home instead. */
         if (chdir(home) != 0) {
-            /* Keep going anyway: a shell in "/" beats no shell. */
         }
-        char *argv[] = { (char *) "sh", (char *) "-l", NULL };
+        // Use basename of shell for argv[0]
+        const char *shell_name = strrchr(shell, '/');
+        shell_name = shell_name ? shell_name + 1 : shell;
+        char *argv[] = { (char *) shell_name, (char *) "-l", NULL };
         char *envp[] = {
             home_entry,
             tmpdir_entry,
@@ -90,7 +101,7 @@ Java_com_athea_app_engine_PtyBridge_createPty(JNIEnv *env, jobject thiz,
             term_entry,
             NULL
         };
-        execve("/system/bin/sh", argv, envp);
+        execve(shell, argv, envp);
         _exit(127);
     }
 
@@ -107,6 +118,7 @@ Java_com_athea_app_engine_PtyBridge_createPty(JNIEnv *env, jobject thiz,
 
     (*env)->ReleaseStringUTFChars(env, rc_path, rc);
     (*env)->ReleaseStringUTFChars(env, home_path, home);
+    if (shell_allocated) (*env)->ReleaseStringUTFChars(env, shell_path, shell);
 
     jintArray out = (*env)->NewIntArray(env, 2);
     if (out == NULL) {

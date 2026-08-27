@@ -21,6 +21,7 @@ data class CommandBlock(
 /**
  * Terminal output produced after a submission; rendered left-aligned,
  * full width. [running] is true while its command is still executing.
+ * [annotated] carries ANSI colors when present; falls back to plain [text].
  */
 @Immutable
 data class OutputBlock(
@@ -28,6 +29,7 @@ data class OutputBlock(
     val text: String,
     val running: Boolean = false,
     val exitCode: Int? = null,
+    val annotated: androidx.compose.ui.text.AnnotatedString = androidx.compose.ui.text.AnnotatedString(text),
 ) : Block
 
 enum class DisplayMode { BLOCKS, RAW }

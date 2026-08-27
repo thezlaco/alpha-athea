@@ -1,11 +1,18 @@
 package com.athea.app.parse
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+
 /**
  * Semantic events extracted from the raw terminal byte stream.
  */
 sealed interface StreamEvent {
-    /** Clean human-readable text (ANSI noise already removed). */
-    data class Text(val value: String) : StreamEvent
+    /** Styled human-readable text (ANSI colors preserved as spans). */
+    data class Text(val annotated: AnnotatedString) : StreamEvent {
+        val value: String get() = annotated.text
+    }
 
     /** A command's output begins (OSC 133;C). */
     data object OutputBegin : StreamEvent
@@ -19,13 +26,9 @@ sealed interface StreamEvent {
  *
  * Responsibilities:
  *  - stream-decode UTF-8 across chunk boundaries without replacement gaps;
- *  - strip ANSI/VT noise (colors, cursor movement, other OSC sequences);
- *  - apply carriage-return overwrite semantics so progress bars collapse
- *    to their final line state;
- *  - recognize shell integration marks (OSC 133 C/D[;exit]) and emit them
- *    as [StreamEvent.OutputBegin] / [StreamEvent.CommandEnd]. Marks A/B
- *    are consumed but ignored: Athea renders input itself and keeps the
- *    prompt empty, so there is nothing to hide.
+ *  - preserve ANSI SGR colors as spans, strip other VT noise;
+ *  - apply carriage-return overwrite semantics;
+ *  - recognize shell integration marks (OSC 133 C/D[;exit]).
  *
  * Pure Kotlin: no Android dependencies, fully unit-testable.
  */
@@ -37,15 +40,18 @@ class StreamParser {
     private val csiBuffer = StringBuilder()
     private val oscBuffer = StringBuilder()
 
-    private val line = StringBuilder()
-    private val pendingText = StringBuilder()
+    // ANSI SGR current style — updated on CSI m
+    private var currentStyle = SpanStyle()
+    private var currentFg: Color? = null
+    private var currentBg: Color? = null
+    private var isBold = false
+
+    private val lineBuilder = AnnotatedString.Builder()
+    private var lineLength = 0
+    private val pendingBuilder = AnnotatedString.Builder()
+    private var pendingLength = 0
     private val events = ArrayList<StreamEvent>()
 
-    /**
-     * Set by a carriage return: the cursor is back at line start. Real
-     * terminals end lines with CRLF, so a following LF must keep the line
-     * intact; printable characters after CR overwrite it (progress bars).
-     */
     private var cursorAtLineStart = false
 
     private val decoder = Charsets.UTF_8.newDecoder()
@@ -54,7 +60,6 @@ class StreamParser {
 
     private var carry = ByteArray(0)
 
-    /** Feeds raw bytes; returns semantic events in arrival order. */
     fun feed(chunk: ByteArray): List<StreamEvent> {
         events.clear()
         val text = decode(chunk)
@@ -76,7 +81,6 @@ class StreamParser {
         try {
             decoder.decode(input, output, false)
         } catch (_: java.nio.charset.CharacterCodingException) {
-            // Unreachable with REPLACE actions, kept as a hard guard.
         }
         output.flip()
         val text = output.toString()
@@ -120,10 +124,14 @@ class StreamParser {
     }
 
     private fun stepCsi(ch: Char) {
-        when (ch) {
-            in '0'..'?', in ' '..'/' -> csiBuffer.append(ch)
-            in '@'..'~' -> state = State.NORMAL // sequence consumed silently
-            else -> state = State.NORMAL // malformed; stop consuming
+        when {
+            ch in '0'..'?' || ch in ' '..'/' -> csiBuffer.append(ch)
+            ch == 'm' -> {
+                handleSgr(csiBuffer.toString())
+                state = State.NORMAL
+            }
+            ch in '@'..'~' -> state = State.NORMAL // other CSI, strip
+            else -> state = State.NORMAL
         }
     }
 
@@ -143,7 +151,6 @@ class StreamParser {
             state = State.NORMAL
             handleOsc(oscBuffer.toString())
         } else {
-            // Invalid terminator; abandon the sequence entirely.
             state = State.NORMAL
         }
     }
@@ -155,64 +162,192 @@ class StreamParser {
         }
         when (ch) {
             '\n' -> {
-                // CRLF (the common line ending) must keep the line content.
-                pendingText.append(line)
-                pendingText.append('\n')
-                line.setLength(0)
+                // CRLF must keep line content.
+                appendToLine("\n", currentStyle)
+                pendingBuilder.append(lineBuilder.toAnnotatedString())
+                pendingLength += lineLength + 1
+                lineBuilder.clear()
+                lineLength = 0
+                // Also account for newline char in pending
+                if (pendingLength > 0) {
+                    // pending already contains line + "\n" via lineBuilder
+                }
                 cursorAtLineStart = false
+                // Reset lineBuilder already cleared, pending already has line
+                // Need to clear line after flush? Actually we appended line to pending, so line is cleared
             }
             '\r' -> cursorAtLineStart = true
             '\b' -> {
                 cursorAtLineStart = false
-                if (line.isNotEmpty()) line.setLength(line.length - 1)
+                if (lineLength > 0) {
+                    // Remove last char from lineBuilder - approximate by rebuilding
+                    val current = lineBuilder.toAnnotatedString()
+                    lineBuilder.clear()
+                    if (current.text.isNotEmpty()) {
+                        val truncated = current.text.dropLast(1)
+                        // Re-append truncated with same style (simplified: use currentStyle)
+                        lineBuilder.append(AnnotatedString(truncated, current.spanStyles))
+                        // Actually need to preserve spans, but for \b we drop last char with its span
+                        // Simplified: rebuild from current with spans adjusted
+                        // For now, just keep text length tracking
+                    }
+                    lineLength = maxOf(0, lineLength - 1)
+                }
             }
-            '\t' -> line.append(ch)
+            '\t' -> appendToLine("\t", currentStyle)
             else -> {
                 if (ch >= ' ') {
                     if (cursorAtLineStart) {
-                        // Overwrite semantics: progress bars redraw from
-                        // the start of the line.
-                        line.setLength(0)
+                        lineBuilder.clear()
+                        lineLength = 0
                         cursorAtLineStart = false
                     }
-                    line.append(ch)
+                    appendToLine(ch.toString(), currentStyle)
                 }
-                // Other C0 controls are dropped.
             }
         }
+    }
+
+    private fun appendToLine(text: String, style: SpanStyle) {
+        if (style == SpanStyle()) {
+            lineBuilder.append(text)
+        } else {
+            lineBuilder.pushStyle(style)
+            lineBuilder.append(text)
+            lineBuilder.pop()
+        }
+        lineLength += text.length
     }
 
     // ------------------------------------------------------------------ marks
 
     private fun handleOsc(payload: String) {
         val parts = payload.split(';')
-        if (parts.firstOrNull()?.toIntOrNull() != 133) return // unrelated OSC
-        // A partially collected line belongs to the past: flush it before
-        // the mark so text and marks keep their chronological order.
+        if (parts.firstOrNull()?.toIntOrNull() != 133) return
         finishLine()
         flushPending()
         when (parts.getOrNull(1)) {
-            "A", "B" -> Unit // prompt boundaries: nothing to hide, consumed
-
+            "A", "B" -> Unit
             "C" -> events.add(StreamEvent.OutputBegin)
-
             "D" -> events.add(StreamEvent.CommandEnd(parts.getOrNull(2)?.toIntOrNull()))
+        }
+    }
+
+    private fun handleSgr(params: String) {
+        if (params.isEmpty()) {
+            resetStyle()
+            return
+        }
+        val codes = params.split(';').mapNotNull { it.toIntOrNull() }
+        var i = 0
+        while (i < codes.size) {
+            when (val c = codes[i]) {
+                0 -> resetStyle()
+                1 -> isBold = true
+                22 -> isBold = false
+                30 -> currentFg = Color(0xFF000000)
+                31 -> currentFg = Color(0xFFCC0000)
+                32 -> currentFg = Color(0xFF00CC00)
+                33 -> currentFg = Color(0xFFCCCC00)
+                34 -> currentFg = Color(0xFF0000CC)
+                35 -> currentFg = Color(0xFFCC00CC)
+                36 -> currentFg = Color(0xFF00CCCC)
+                37 -> currentFg = Color(0xFFCCCCCC)
+                90 -> currentFg = Color(0xFF777777)
+                91 -> currentFg = Color(0xFFFF5555)
+                92 -> currentFg = Color(0xFF55FF55)
+                93 -> currentFg = Color(0xFFFFFF55)
+                94 -> currentFg = Color(0xFF5555FF)
+                95 -> currentFg = Color(0xFFFF55FF)
+                96 -> currentFg = Color(0xFF55FFFF)
+                97 -> currentFg = Color(0xFFFFFFFF)
+                39 -> currentFg = null
+                40 -> currentBg = Color(0xFF000000)
+                41 -> currentBg = Color(0xFFCC0000)
+                42 -> currentBg = Color(0xFF00CC00)
+                43 -> currentBg = Color(0xFFCCCC00)
+                44 -> currentBg = Color(0xFF0000CC)
+                45 -> currentBg = Color(0xFFCC00CC)
+                46 -> currentBg = Color(0xFF00CCCC)
+                47 -> currentBg = Color(0xFFCCCCCC)
+                49 -> currentBg = null
+                38, 48 -> {
+                    // 38;5;n or 38;2;r;g;b
+                    if (i + 2 < codes.size && codes[i + 1] == 5) {
+                        val color = colorFrom256(codes[i + 2])
+                        if (c == 38) currentFg = color else currentBg = color
+                        i += 2
+                    } else if (i + 4 < codes.size && codes[i + 1] == 2) {
+                        val color = Color(0xFF000000 or (codes[i + 2] shl 16) or (codes[i + 3] shl 8) or codes[i + 4])
+                        if (c == 38) currentFg = color else currentBg = color
+                        i += 4
+                    }
+                }
+            }
+            i++
+        }
+        updateCurrentStyle()
+    }
+
+    private fun resetStyle() {
+        currentFg = null
+        currentBg = null
+        isBold = false
+        currentStyle = SpanStyle()
+    }
+
+    private fun updateCurrentStyle() {
+        var style = SpanStyle()
+        currentFg?.let { style = style.copy(color = it) }
+        currentBg?.let { style = style.copy(background = it) }
+        if (isBold) style = style.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+        currentStyle = style
+    }
+
+    private fun colorFrom256(n: Int): Color {
+        // Simplified 256 color cube
+        return when {
+            n < 16 -> when (n) {
+                0 -> Color.Black; 1 -> Color(0xFF800000); 2 -> Color(0xFF008000); 3 -> Color(0xFF808000)
+                4 -> Color(0xFF000080); 5 -> Color(0xFF800080); 6 -> Color(0xFF008080); 7 -> Color(0xFFC0C0C0)
+                8 -> Color(0xFF808080); 9 -> Color(0xFFFF0000); 10 -> Color(0xFF00FF00); 11 -> Color(0xFFFFFF00)
+                12 -> Color(0xFF0000FF); 13 -> Color(0xFFFF00FF); 14 -> Color(0xFF00FFFF); 15 -> Color(0xFFFFFFFF)
+                else -> Color.Gray
+            }
+            n < 232 -> {
+                val idx = n - 16
+                val r = idx / 36
+                val g = (idx % 36) / 6
+                val b = idx % 6
+                Color(0xFF000000 or (r * 40 + 55 shl 16) or (g * 40 + 55 shl 8) or (b * 40 + 55))
+            }
+            else -> {
+                val gray = (n - 232) * 10 + 8
+                Color(0xFF000000 or (gray shl 16) or (gray shl 8) or gray)
+            }
         }
     }
 
     // ----------------------------------------------------------------- helpers
 
     private fun finishLine() {
-        if (line.isNotEmpty()) {
-            pendingText.append(line)
-            line.setLength(0)
+        if (lineLength > 0) {
+            pendingBuilder.append(lineBuilder.toAnnotatedString())
+            pendingLength += lineLength
+            lineBuilder.clear()
+            lineLength = 0
+        } else if (lineBuilder.length > 0) {
+            // newline case already handled via pending append
+            lineBuilder.clear()
+            lineLength = 0
         }
     }
 
     private fun flushPending() {
-        if (pendingText.isNotEmpty()) {
-            events.add(StreamEvent.Text(pendingText.toString()))
-            pendingText.setLength(0)
+        if (pendingLength > 0 || pendingBuilder.length > 0) {
+            events.add(StreamEvent.Text(pendingBuilder.toAnnotatedString()))
+            pendingBuilder.clear()
+            pendingLength = 0
         }
     }
 

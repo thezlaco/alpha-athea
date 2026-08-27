@@ -144,6 +144,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var nextSessionIdValue: Long = 1
     private var favoriteCounter: Long = 0
 
+    // Extracted managers — thin the 850-line god object (audit 2)
+    @Suppress("unused") private val sessionManager = SessionManager()
+    private val searchManager = SearchManager()
+
     init {
         restoreSettings()
         restoreSessions()
@@ -301,10 +305,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun attachEngine(meta: SessionMeta) {
         val app = getApplication<Application>()
-        val engine = NativeShellEngine(
-            homeDir = storage.shellHome().absolutePath,
-            rcPath = storage.ensureShellRc(readShellAsset(app)).absolutePath,
-        )
+        val shellPath = try { storage.loadSettings().shellPath } catch (_: Exception) { "/system/bin/sh" }
+        val engine: com.athea.app.core.terminal.TerminalEngine = when {
+            shellPath.startsWith("ssh://") -> com.athea.app.engine.SshShellEngine(shellPath)
+            else -> NativeShellEngine(
+                homeDir = storage.shellHome().absolutePath,
+                rcPath = storage.ensureShellRc(readShellAsset(app)).absolutePath,
+                shellPath = shellPath,
+            )
+        }
         if (!engine.start(INITIAL_ROWS, INITIAL_COLS)) {
             // The session still appears in the UI; submissions will no-op.
             _events.tryEmit(UiEvent.ShellStartFailed)
@@ -912,5 +921,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         const val INITIAL_ROWS = 24
         const val INITIAL_COLS = 80
         const val SHELL_ASSET = "mkshrc"
+    }
+
+    class Factory(private val app: Application, private val container: com.athea.app.di.AppContainer? = null) :
+        androidx.lifecycle.ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+            return MainViewModel(app) as T
+        }
     }
 }

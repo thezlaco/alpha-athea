@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 internal class NativeShellEngine(
     private val homeDir: String,
     private val rcPath: String,
+    private val shellPath: String = "/system/bin/sh",
 ) : TerminalEngine {
 
     private val _events = dropOldestSharedFlow<EngineEvent>(extraBufferCapacity = 256)
@@ -41,7 +42,7 @@ internal class NativeShellEngine(
                 "shell",
                 "start: home=$homeDir rc=$rcPath rows=$initialRows cols=$initialCols",
             )
-            val handle = PtyBridge.createPty(initialRows, initialCols, homeDir, rcPath)
+            val handle = PtyBridge.createPty(initialRows, initialCols, homeDir, rcPath, shellPath)
             if (handle == null) {
                 com.athea.app.util.AtheaLog.error("shell", "createPty returned null")
                 return false
