@@ -166,24 +166,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // ----------------------------------------------------------- restoration
 
     private fun restoreSessions() {
+        // I/O outside lock — don't block keystrokes while replaying.
+        val index = storage.loadIndex()
+        val settings = storage.loadSettings()
+        val preview = settings.previewLines
+        val globalMode = if (settings.rawStream) DisplayMode.RAW else DisplayMode.BLOCKS
+        val replayed = index.items.map { meta ->
+            val journal = storage.journalFor(meta.id)
+            val events = journal.readAll()
+            val pipe = SessionPipe(
+                journal = journal,
+                parser = StreamParser(),
+                builder = TranscriptBuilder.replay(events, previewLines = preview),
+            )
+            val history = events.filterIsInstance<JournalEvent.CommandSubmitted>().map { it.text }
+            val nextSeq = (events.filterIsInstance<JournalEvent.CommandSubmitted>().maxOfOrNull { it.seq } ?: 0L) + 1
+            Triple(meta.copy(displayMode = globalMode), pipe, history to nextSeq)
+        }
         synchronized(lock) {
-            val index = storage.loadIndex()
-            val settings = storage.loadSettings()
-            val preview = settings.previewLines
-            val globalMode = if (settings.rawStream) DisplayMode.RAW else DisplayMode.BLOCKS
-            for (meta in index.items) {
-                metas[meta.id] = meta.copy(displayMode = globalMode)
-                val journal = storage.journalFor(meta.id)
-                val journalEvents = journal.readAll()
-                pipes[meta.id] = SessionPipe(
-                    journal = journal,
-                    parser = StreamParser(),
-                    builder = TranscriptBuilder.replay(journalEvents, previewLines = preview),
-                )
-                histories[meta.id] = journalEvents
-                    .filterIsInstance<JournalEvent.CommandSubmitted>()
-                    .map { it.text }
-                nextCommandSeqs[meta.id] = journal.nextCommandSeq() + 1
+            for ((meta, pipe, historySeq) in replayed) {
+                metas[meta.id] = meta
+                pipes[meta.id] = pipe
+                histories[meta.id] = historySeq.first
+                nextCommandSeqs[meta.id] = historySeq.second
                 attachEngine(meta)
                 refreshSession(meta.id)
             }

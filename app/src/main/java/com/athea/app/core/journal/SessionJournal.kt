@@ -40,7 +40,7 @@ class SessionJournal(private val file: File) {
         synchronized(lock) {
             ensureFormat()
             file.parentFile?.mkdirs()
-            val out = writer ?: DataOutputStream(BufferedOutputStream(FileOutputStream(file, true))).also {
+            val out = writer ?: DataOutputStream(BufferedOutputStream(FileOutputStream(file, true), 32 * 1024)).also {
                 writer = it
             }
             writeRecord(out, event)

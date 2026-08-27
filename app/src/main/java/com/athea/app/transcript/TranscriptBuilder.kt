@@ -41,6 +41,7 @@ class TranscriptBuilder(
     private val blocks = ArrayList<Block>()
     private val expandedOverrides = HashMap<String, Boolean>()
     private var runningOutputId: String? = null
+    private var runningOutputIndex: Int = -1
     private val runningText = StringBuilder()
     private var outputCounter = 0
 
@@ -60,10 +61,13 @@ class TranscriptBuilder(
     // ---------------------------------------------------------------- input
 
     fun applyCommandSubmitted(seq: Long, text: String) {
-        // Heuristic boundary for environments without marks: whatever was
-        // still running is closed silently before the next command starts.
         finishRunning(null)
-        blocks.filterIsInstance<OutputBlock>().forEach { expandedOverrides.remove(it.id) }
+        // Only the current expanded output's override matters; clearing all
+        // OutputBlock overrides is O(n). Keep map small by removing only
+        // out-* keys when needed (usually 0-1).
+        if (expandedOverrides.isNotEmpty()) {
+            expandedOverrides.keys.removeIf { it.startsWith("out-") }
+        }
         blocks.add(CommandBlock(id = cmdId(seq), text = text))
         appendRaw(text + "\n")
     }
@@ -78,19 +82,15 @@ class TranscriptBuilder(
             runningText.append(text)
             blocks.add(OutputBlock(id = newId, text = text, running = true))
             runningOutputId = newId
+            runningOutputIndex = blocks.lastIndex
         } else {
             runningText.append(text)
-            // Cap running buffer to avoid unbounded growth for huge streams
-            // (yes | head 100k = 1.2MB). Keep head for journal, but trim
-            // in-memory to prevent OOM on long runs.
             if (runningText.length > MAX_RUNNING_CHARS) {
                 runningText.delete(0, runningText.length - MAX_RUNNING_CHARS)
             }
-            val index = indexOfBlock(id)
-            if (index >= 0) {
-                val current = blocks[index] as OutputBlock
-                blocks[index] = current.copy(text = runningText.toString())
-            }
+            // Don't copy full runningText into block on every chunk — snapshot
+            // uses runningText directly for the tail. Keep block's text stale
+            // until finish to avoid O(n) copies at 10Hz.
         }
         appendRaw(text)
     }
@@ -142,7 +142,7 @@ class TranscriptBuilder(
     private fun computeCollapsed(block: Block, expandedOutputId: String?): Boolean {
         expandedOverrides[block.id]?.let { return it }
         return when (block) {
-            is CommandBlock -> block.text.lines().size > previewLines
+            is CommandBlock -> block.text.count { it == '\n' } + 1 > previewLines
             is OutputBlock -> !(block.running || block.id == expandedOutputId)
         }
     }
@@ -151,8 +151,13 @@ class TranscriptBuilder(
 
     private fun finishRunning(exitCode: Int?) {
         val id = runningOutputId ?: return
+        val index = if (runningOutputIndex >= 0 && runningOutputIndex < blocks.size && blocks[runningOutputIndex].id == id) {
+            runningOutputIndex
+        } else {
+            indexOfBlock(id)
+        }
         runningOutputId = null
-        val index = indexOfBlock(id)
+        runningOutputIndex = -1
         if (index >= 0) {
             val current = blocks[index] as OutputBlock
             blocks[index] = current.copy(
