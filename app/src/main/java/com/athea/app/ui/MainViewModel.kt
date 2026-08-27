@@ -152,12 +152,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.Default) {
             while (isActive) {
                 kotlinx.coroutines.delay(100)
+                if (dirtySessions.isEmpty()) continue
                 val toRefresh = dirtySessions.toList()
                 dirtySessions.removeAll(toRefresh)
-                if (toRefresh.isNotEmpty()) {
-                    synchronized(lock) {
-                        for (id in toRefresh) refreshSession(id)
-                    }
+                synchronized(lock) {
+                    for (id in toRefresh) refreshSession(id)
                 }
             }
         }
@@ -574,7 +573,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 ),
             )
             pipe.builder.applyCommandSubmitted(seq, text)
-            histories[id] = (histories[id] ?: emptyList()) + text
+            val hist = histories[id]?.toMutableList() ?: mutableListOf()
+            hist.add(text)
+            if (hist.size > 500) hist.removeAt(0)
+            histories[id] = hist
             refreshSession(id)
         }
         val payload = text.shellEval()
@@ -651,6 +653,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateSearchQuery(query: String) {
         val id = _state.value.currentSessionId ?: return
+        val needle = query.lowercase()
         val matches = _state.value.sessions.firstOrNull { it.id == id }
             ?.blocks
             ?.mapNotNull { view ->
@@ -658,7 +661,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     is CommandBlock -> block.text
                     is OutputBlock -> block.text
                 }
-                if (haystack.lowercase().contains(query.lowercase())) view.block.id else null
+                if (haystack.lowercase().contains(needle)) view.block.id else null
             }
             .orEmpty()
         _state.update { st ->
