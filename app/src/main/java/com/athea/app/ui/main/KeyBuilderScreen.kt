@@ -9,6 +9,7 @@ import com.athea.app.util.toControlChar
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import com.athea.app.ui.common.AtheaScaffold
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -80,37 +81,16 @@ fun KeyBuilderScreen(
         }
     }
 
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    AtheaScaffold(
+        title = stringResource(R.string.builder_title),
+        onBack = onBack,
+        modifier = modifier,
+    ) {
         Column(
             Modifier
-                .fillMaxSize()
-                .safeDrawingPadding(),
-        ) {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Ui.headerPaddingH, vertical = Ui.headerPaddingV),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(R.string.cd_back),
-                    )
-                }
-                Text(
-                    text = stringResource(R.string.builder_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            HorizontalDivider()
-
-            Column(
-                Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(Ui.screenPadding),
             ) {
                 Text(
                     text = stringResource(R.string.builder_buffer),
