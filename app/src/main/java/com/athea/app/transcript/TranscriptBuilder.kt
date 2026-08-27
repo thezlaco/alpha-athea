@@ -43,7 +43,7 @@ class TranscriptBuilder(
     private var runningOutputId: String? = null
     private var runningOutputIndex: Int = -1
     private val runningText = StringBuilder()
-    private val runningAnnotated = androidx.compose.ui.text.AnnotatedString.Builder()
+    private var runningAnnotated = androidx.compose.ui.text.AnnotatedString.Builder()
     private var outputCounter = 0
 
     // Raw projection kept as chunks: trimming drops whole head chunks in
@@ -80,8 +80,8 @@ class TranscriptBuilder(
         val id = runningOutputId
         if (id == null) {
             val newId = nextOutputId()
-            runningText.clear()
-            runningAnnotated.clear()
+            runningText.setLength(0)
+            runningAnnotated = androidx.compose.ui.text.AnnotatedString.Builder()
             runningText.append(text)
             runningAnnotated.append(annotated)
             blocks.add(OutputBlock(id = newId, text = text, annotated = annotated, running = true))
@@ -95,7 +95,7 @@ class TranscriptBuilder(
                 runningText.delete(0, excess)
                 // Trim annotated builder similarly by rebuilding from tail
                 val full = runningAnnotated.toAnnotatedString()
-                runningAnnotated.clear()
+                runningAnnotated = androidx.compose.ui.text.AnnotatedString.Builder()
                 runningAnnotated.append(full.text.takeLast(MAX_RUNNING_CHARS).let { tail ->
                     // Preserve spans for tail — simplified: re-append tail without spans for now
                     // Full span preservation would require slicing spans, keep plain tail
@@ -147,12 +147,12 @@ class TranscriptBuilder(
                         text = fullAnnotated.text.takeLast(STREAM_RENDER_TAIL),
                         spanStyles = fullAnnotated.spanStyles.mapNotNull { span ->
                             if (span.end <= start) null else androidx.compose.ui.text.AnnotatedString.Range(
-                                span.item, maxOf(0, span.start - start), span.end - start
+                                span.item, maxOf(0L, span.start.toLong() - start), span.end.toLong() - start
                             )
                         },
                         paragraphStyles = fullAnnotated.paragraphStyles.mapNotNull { span ->
                             if (span.end <= start) null else androidx.compose.ui.text.AnnotatedString.Range(
-                                span.item, maxOf(0, span.start - start), span.end - start
+                                span.item, maxOf(0L, span.start.toLong() - start), span.end.toLong() - start
                             )
                         }
                     )
@@ -198,8 +198,8 @@ class TranscriptBuilder(
                 exitCode = exitCode,
             )
         }
-        runningText.clear()
-        runningAnnotated.clear()
+        runningText.setLength(0)
+        runningAnnotated = androidx.compose.ui.text.AnnotatedString.Builder()
     }
 
     private fun indexOfBlock(id: String): Int =

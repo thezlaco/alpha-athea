@@ -46,9 +46,9 @@ class StreamParser {
     private var currentBg: Color? = null
     private var isBold = false
 
-    private val lineBuilder = AnnotatedString.Builder()
+    private var lineBuilder = AnnotatedString.Builder()
     private var lineLength = 0
-    private val pendingBuilder = AnnotatedString.Builder()
+    private var pendingBuilder = AnnotatedString.Builder()
     private var pendingLength = 0
     private val events = ArrayList<StreamEvent>()
 
@@ -166,7 +166,7 @@ class StreamParser {
                 appendToLine("\n", currentStyle)
                 pendingBuilder.append(lineBuilder.toAnnotatedString())
                 pendingLength += lineLength + 1
-                lineBuilder.clear()
+                lineBuilder = AnnotatedString.Builder()
                 lineLength = 0
                 // Also account for newline char in pending
                 if (pendingLength > 0) {
@@ -182,7 +182,7 @@ class StreamParser {
                 if (lineLength > 0) {
                     // Remove last char from lineBuilder - approximate by rebuilding
                     val current = lineBuilder.toAnnotatedString()
-                    lineBuilder.clear()
+                    lineBuilder = AnnotatedString.Builder()
                     if (current.text.isNotEmpty()) {
                         val truncated = current.text.dropLast(1)
                         // Re-append truncated with same style (simplified: use currentStyle)
@@ -198,7 +198,7 @@ class StreamParser {
             else -> {
                 if (ch >= ' ') {
                     if (cursorAtLineStart) {
-                        lineBuilder.clear()
+                        lineBuilder = AnnotatedString.Builder()
                         lineLength = 0
                         cursorAtLineStart = false
                     }
@@ -278,7 +278,7 @@ class StreamParser {
                         if (c == 38) currentFg = color else currentBg = color
                         i += 2
                     } else if (i + 4 < codes.size && codes[i + 1] == 2) {
-                        val color = Color(0xFF000000 or (codes[i + 2] shl 16) or (codes[i + 3] shl 8) or codes[i + 4])
+                        val color = Color((0xFF000000L or (codes[i + 2].toLong() shl 16) or (codes[i + 3].toLong() shl 8) or codes[i + 4].toLong()))
                         if (c == 38) currentFg = color else currentBg = color
                         i += 4
                     }
@@ -319,11 +319,11 @@ class StreamParser {
                 val r = idx / 36
                 val g = (idx % 36) / 6
                 val b = idx % 6
-                Color(0xFF000000 or (r * 40 + 55 shl 16) or (g * 40 + 55 shl 8) or (b * 40 + 55))
+                Color(0xFF000000L or ((r * 40 + 55).toLong() shl 16) or ((g * 40 + 55).toLong() shl 8) or (b * 40 + 55).toLong())
             }
             else -> {
                 val gray = (n - 232) * 10 + 8
-                Color(0xFF000000 or (gray shl 16) or (gray shl 8) or gray)
+                Color(0xFF000000L or (gray.toLong() shl 16) or (gray.toLong() shl 8) or gray.toLong())
             }
         }
     }
@@ -334,19 +334,19 @@ class StreamParser {
         if (lineLength > 0) {
             pendingBuilder.append(lineBuilder.toAnnotatedString())
             pendingLength += lineLength
-            lineBuilder.clear()
+            lineBuilder = AnnotatedString.Builder()
             lineLength = 0
-        } else if (lineBuilder.length > 0) {
+        } else if (lineBuilder.toAnnotatedString().text.isNotEmpty()) {
             // newline case already handled via pending append
-            lineBuilder.clear()
+            lineBuilder = AnnotatedString.Builder()
             lineLength = 0
         }
     }
 
     private fun flushPending() {
-        if (pendingLength > 0 || pendingBuilder.length > 0) {
+        if (pendingLength > 0 || pendingBuilder.toAnnotatedString().text.isNotEmpty()) {
             events.add(StreamEvent.Text(pendingBuilder.toAnnotatedString()))
-            pendingBuilder.clear()
+            pendingBuilder = AnnotatedString.Builder()
             pendingLength = 0
         }
     }
