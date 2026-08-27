@@ -17,26 +17,21 @@ object AtheaLog {
     private val format = SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
 
     fun log(tag: String, message: String) {
-        val line = "${format.format(Date())} [$tag] $message"
-        synchronized(lock) {
-            lines.addLast(line)
-            while (lines.size > CAPACITY) lines.removeFirst()
-        }
-        android.util.Log.println(
-            android.util.Log.INFO,
-            "Athea",
-            message,
-        )
+        enqueue("${format.format(Date())} [$tag] $message")
+        android.util.Log.println(android.util.Log.INFO, "Athea", message)
     }
 
     fun error(tag: String, message: String, error: Throwable? = null) {
-        val line = "${format.format(Date())} [$tag] ERROR: $message" +
-            (error?.let { " :: ${it::class.java.simpleName}: ${it.message}" } ?: "")
-        synchronized(lock) {
-            lines.addLast(line)
-            while (lines.size > CAPACITY) lines.removeFirst()
-        }
+        enqueue(
+            "${format.format(Date())} [$tag] ERROR: $message" +
+                (error?.let { " :: ${it::class.java.simpleName}: ${it.message}" } ?: "")
+        )
         android.util.Log.e("Athea", message, error)
+    }
+
+    private fun enqueue(line: String) = synchronized(lock) {
+        lines.addLast(line)
+        while (lines.size > CAPACITY) lines.removeFirst()
     }
 
     fun dump(): String = synchronized(lock) { lines.joinToString("\n") }
