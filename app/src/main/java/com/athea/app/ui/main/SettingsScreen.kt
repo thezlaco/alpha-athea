@@ -3,6 +3,7 @@ package com.athea.app.ui.main
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import com.athea.app.ui.common.AtheaScaffold
 import com.athea.app.ui.theme.Ui
 import com.athea.app.util.copyToClipboard
 import androidx.compose.foundation.layout.Row
