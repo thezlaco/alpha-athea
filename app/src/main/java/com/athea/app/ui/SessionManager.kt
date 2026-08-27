@@ -17,7 +17,6 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class SessionManager {
     val metas = HashMap<Long, SessionMeta>()
-    val pipes = HashMap<Long, SessionPipe>()
     val engines = HashMap<Long, TerminalEngine>()
     val rawQueues = HashMap<Long, Channel<EngineEvent>>()
     val engineJobs = HashMap<Long, Job>()
@@ -29,7 +28,6 @@ class SessionManager {
 
     fun clear() {
         metas.clear()
-        pipes.clear()
         engines.clear()
         rawQueues.clear()
         engineJobs.clear()
@@ -38,9 +36,3 @@ class SessionManager {
         dirtySessions.clear()
     }
 }
-
-data class SessionPipe(
-    val journal: SessionJournal,
-    val parser: StreamParser,
-    val builder: TranscriptBuilder,
-)

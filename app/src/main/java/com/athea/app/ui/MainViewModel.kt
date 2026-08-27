@@ -93,7 +93,11 @@ sealed interface UiEvent {
 }
 
 /** Per-session pipeline pieces that always travel together. */
-typealias SessionPipe = com.athea.app.ui.SessionPipe
+private class SessionPipe(
+    val journal: SessionJournal,
+    val parser: StreamParser,
+    val builder: TranscriptBuilder,
+)
 
 /**
  * Owns live sessions end-to-end: persistence through [AtheaStorage],

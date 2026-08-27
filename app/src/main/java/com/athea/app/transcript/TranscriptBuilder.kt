@@ -147,12 +147,12 @@ class TranscriptBuilder(
                         text = fullAnnotated.text.takeLast(STREAM_RENDER_TAIL),
                         spanStyles = fullAnnotated.spanStyles.mapNotNull { span ->
                             if (span.end <= start) null else androidx.compose.ui.text.AnnotatedString.Range(
-                                span.item, maxOf(0L, span.start.toLong() - start), span.end.toLong() - start
+                                span.item, maxOf(0, span.start - start), span.end - start
                             )
                         },
                         paragraphStyles = fullAnnotated.paragraphStyles.mapNotNull { span ->
                             if (span.end <= start) null else androidx.compose.ui.text.AnnotatedString.Range(
-                                span.item, maxOf(0L, span.start.toLong() - start), span.end.toLong() - start
+                                span.item, maxOf(0, span.start - start), span.end - start
                             )
                         }
                     )
