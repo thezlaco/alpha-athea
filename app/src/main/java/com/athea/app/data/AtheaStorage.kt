@@ -129,13 +129,13 @@ class AtheaStorage(root: File) {
 
     // ----------------------------------------------------------------- files
 
-    /**
-     * Materializes the shell rc from packaged assets and returns its path.
-     * Rewritten on every call so updates ship with app updates.
-     */
     fun ensureShellRc(assetBytes: ByteArray): File {
         shellDir.mkdirs()
-        return File(shellDir, "mkshrc").apply { writeBytes(assetBytes) }
+        val rc = File(shellDir, "mkshrc")
+        if (!rc.exists() || !rc.readBytes().contentEquals(assetBytes)) {
+            rc.writeBytes(assetBytes)
+        }
+        return rc
     }
 
     fun shellHome(): File = homeDir

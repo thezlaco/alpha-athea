@@ -463,7 +463,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             rawQueues.remove(id)?.cancel()
             engineJobs.remove(id)?.cancel()
             metas.remove(id)
-            pipes.remove(id)
+            pipes.remove(id)?.journal?.close()
             nextCommandSeqs.remove(id)
             storage.deleteSession(id)
             val remaining = pipes.keys.toList()
@@ -902,6 +902,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     override fun onCleared() {
         engines.values.forEach { it.terminate() }
         rawQueues.values.forEach { it.cancel() }
+        pipes.values.forEach { it.journal.close() }
         super.onCleared()
     }
 

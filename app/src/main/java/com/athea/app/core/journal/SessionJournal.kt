@@ -52,6 +52,10 @@ class SessionJournal(private val file: File) {
         synchronized(lock) { runCatching { writer?.flush() } }
     }
 
+    fun close() {
+        synchronized(lock) { closeWriter() }
+    }
+
     private fun closeWriter() {
         writer?.let { runCatching { it.close() } }
         writer = null
