@@ -143,13 +143,16 @@ fun TranscriptView(
             (views.lastOrNull()?.block as? OutputBlock)?.text?.length ?: 0
 
         // Stick to the bottom while the user is near it and output grows.
+        // Termux-like: always pinned to very end if near bottom. Use large
+        // scrollOffset so huge blocks (taller than viewport) show their bottom,
+        // not top. Without offset, scrollToItem shows top of last block.
         LaunchedEffect(itemCount, lastTextLength) {
             if (itemCount == 0) return@LaunchedEffect
             val info = listState.layoutInfo
             val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: 0
             val nearBottom = info.totalItemsCount == 0 ||
-                lastVisible >= info.totalItemsCount - 2
-            if (nearBottom) listState.scrollToItem(itemCount - 1)
+                lastVisible >= info.totalItemsCount - 2 || !info.canScrollForward
+            if (nearBottom) listState.scrollToItem(itemCount - 1, scrollOffset = 100000)
         }
 
         // Search navigation: reveal the block, then scroll to it.
@@ -164,10 +167,11 @@ fun TranscriptView(
         }
 
         // Forced jumps to the very bottom (e.g. right after sending).
+        // Use large offset to show bottom of huge block, not its top.
         LaunchedEffect(session.id) {
             jumpToBottom.collect {
                 val last = listState.layoutInfo.totalItemsCount - 1
-                if (last >= 0) listState.animateScrollToItem(last)
+                if (last >= 0) listState.animateScrollToItem(last, scrollOffset = 100000)
             }
         }
 
@@ -251,7 +255,7 @@ fun TranscriptView(
             Surface(
                 onClick = {
                     val last = listState.layoutInfo.totalItemsCount - 1
-                    if (last >= 0) scope.launch { listState.animateScrollToItem(last) }
+                    if (last >= 0) scope.launch { listState.animateScrollToItem(last, scrollOffset = 100000) }
                 },
                 shape = androidx.compose.foundation.shape.CircleShape,
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -469,7 +473,8 @@ private fun OutputPanel(
             if (t.length == block.annotated.text.length) block.annotated
             else AnnotatedString(t, block.annotated.spanStyles, block.annotated.paragraphStyles)
         }
-        val lineCount = plainText.lines().size
+        // Fast line count without allocating list (huge text 1.2M would allocate 20k strings)
+        val lineCount = plainText.count { it == '\n' } + 1
         val collapsible = lineCount > TAIL_LINES && !block.running
 
         if (collapsed && collapsible) {
@@ -567,14 +572,14 @@ private fun OutputPanel(
 
 private fun chunkAnnotated(annotated: AnnotatedString): List<AnnotatedString> {
     val total = annotated.text.length
-    val chunkSize = 4000
+    val chunkSize = 8000
     val list = mutableListOf<AnnotatedString>()
     var offset = 0
     while (offset < total) {
         val end = minOf(offset + chunkSize, total)
         val chunkEnd = if (end < total) {
             val nextNl = annotated.text.indexOf('\n', end)
-            if (nextNl != -1 && nextNl - offset < chunkSize + 500) nextNl + 1 else end
+            if (nextNl != -1 && nextNl - offset < chunkSize + 800) nextNl + 1 else end
         } else end
         list.add(annotated.subSequence(offset, chunkEnd))
         offset = chunkEnd
@@ -585,6 +590,11 @@ private fun chunkAnnotated(annotated: AnnotatedString): List<AnnotatedString> {
 @Composable
 private fun VirtualizedOutput(annotated: AnnotatedString, query: String?) {
     val chunks = remember(annotated) { chunkAnnotated(annotated) }
+    val innerState = rememberLazyListState()
+    // Termux-like: inner virtualized list also pinned to bottom when new output arrives
+    androidx.compose.runtime.LaunchedEffect(chunks.size) {
+        if (chunks.isNotEmpty()) innerState.scrollToItem(chunks.size - 1)
+    }
     val screenHeight = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp
     val maxH = screenHeight * 0.5f
     Column(Modifier.fillMaxWidth()) {
@@ -595,6 +605,7 @@ private fun VirtualizedOutput(annotated: AnnotatedString, query: String?) {
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.06f)),
         ) {
             androidx.compose.foundation.lazy.LazyColumn(
+                state = innerState,
                 modifier = Modifier.fillMaxSize(),
             ) {
                 items(chunks.size) { idx ->

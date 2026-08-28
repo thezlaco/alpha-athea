@@ -144,6 +144,13 @@ private fun KeyCell(
     cellWidth: androidx.compose.ui.unit.Dp,
     onClick: () -> Unit,
 ) {
+    // Autoshrink to fit 4-5 chars in one line, never wrap to 2 lines.
+    val fontSize = when (key.label.length) {
+        0, 1, 2 -> 15.sp
+        3 -> 13.sp
+        4 -> 12.sp
+        else -> 11.sp
+    }
     Box(
         Modifier
             .width(cellWidth)
@@ -161,12 +168,15 @@ private fun KeyCell(
             text = key.label,
             style = MaterialTheme.typography.labelLarge.copy(
                 fontFamily = FontFamily.Monospace,
-                fontSize = 15.sp,
-                lineHeight = 20.sp,
+                fontSize = fontSize,
+                lineHeight = 16.sp,
             ),
             color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
             else MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
+            maxLines = 1,
+            softWrap = false,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
         )
     }
 }
