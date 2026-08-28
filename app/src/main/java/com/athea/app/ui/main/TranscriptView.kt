@@ -151,7 +151,7 @@ fun TranscriptView(
             val info = listState.layoutInfo
             val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: 0
             val nearBottom = info.totalItemsCount == 0 ||
-                lastVisible >= info.totalItemsCount - 2 || !info.canScrollForward
+                lastVisible >= info.totalItemsCount - 2 || !listState.canScrollForward
             if (nearBottom) listState.scrollToItem(itemCount - 1, scrollOffset = 100000)
         }
 
