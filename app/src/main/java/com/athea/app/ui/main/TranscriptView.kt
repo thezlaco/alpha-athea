@@ -526,14 +526,24 @@ private fun OutputPanel(
                 )
             }
         } else {
-            SelectionContainer {
-                val annotated = remember(displayAnnotated, query) { displayAnnotated.withSearchHighlights(query) }
-                Text(
-                    text = annotated,
-                    style = codeStyle(),
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+            // Always chunk huge text to avoid Compose Text OOM, even when
+            // virtualize toggle is off. Off = fully expanded Column (no inner
+            // scroll, no label), on = bounded LazyColumn inside 50% box.
+            // Termux solves same via TerminalBuffer grid + canvas draw; we copy
+            // by chunking AnnotatedString (4k) and rendering per-chunk Texts.
+            val isHuge = lineCount > previewLines * VIRTUALIZE_LINES_FACTOR || plainText.length > 8000
+            if (isHuge) {
+                ChunkedExpanded(annotated = displayAnnotated, query = query)
+            } else {
+                SelectionContainer {
+                    val annotated = remember(displayAnnotated, query) { displayAnnotated.withSearchHighlights(query) }
+                    Text(
+                        text = annotated,
+                        style = codeStyle(),
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
             if (block.running) {
                 BlinkingCursor()
@@ -555,26 +565,26 @@ private fun OutputPanel(
     }
 }
 
+private fun chunkAnnotated(annotated: AnnotatedString): List<AnnotatedString> {
+    val total = annotated.text.length
+    val chunkSize = 4000
+    val list = mutableListOf<AnnotatedString>()
+    var offset = 0
+    while (offset < total) {
+        val end = minOf(offset + chunkSize, total)
+        val chunkEnd = if (end < total) {
+            val nextNl = annotated.text.indexOf('\n', end)
+            if (nextNl != -1 && nextNl - offset < chunkSize + 500) nextNl + 1 else end
+        } else end
+        list.add(annotated.subSequence(offset, chunkEnd))
+        offset = chunkEnd
+    }
+    return list
+}
+
 @Composable
 private fun VirtualizedOutput(annotated: AnnotatedString, query: String?) {
-    val chunks = remember(annotated) {
-        // Chunk by 4000 chars, preserving ANSI spans via subSequence
-        val total = annotated.text.length
-        val chunkSize = 4000
-        val list = mutableListOf<AnnotatedString>()
-        var offset = 0
-        while (offset < total) {
-            val end = minOf(offset + chunkSize, total)
-            // Find line boundary near end to avoid splitting mid-line
-            val chunkEnd = if (end < total) {
-                val nextNl = annotated.text.indexOf('\n', end)
-                if (nextNl != -1 && nextNl - offset < chunkSize + 500) nextNl + 1 else end
-            } else end
-            list.add(annotated.subSequence(offset, chunkEnd))
-            offset = chunkEnd
-        }
-        list
-    }
+    val chunks = remember(annotated) { chunkAnnotated(annotated) }
     val screenHeight = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp
     val maxH = screenHeight * 0.5f
     Column(Modifier.fillMaxWidth()) {
@@ -606,6 +616,25 @@ private fun VirtualizedOutput(annotated: AnnotatedString, query: String?) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp),
         )
+    }
+}
+
+@Composable
+private fun ChunkedExpanded(annotated: AnnotatedString, query: String?) {
+    // Termux-like: same chunking but fully expanded (no inner scroll, no label)
+    // Prevents single huge Text OOM while keeping default fully visible.
+    val chunks = remember(annotated) { chunkAnnotated(annotated) }
+    SelectionContainer {
+        Column(Modifier.fillMaxWidth()) {
+            chunks.forEach { chunk ->
+                Text(
+                    text = remember(chunk, query) { chunk.withSearchHighlights(query) },
+                    style = codeStyle(),
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
     }
 }
 
