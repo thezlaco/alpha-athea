@@ -152,7 +152,7 @@ fun TranscriptView(
             val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: 0
             val nearBottom = info.totalItemsCount == 0 ||
                 lastVisible >= info.totalItemsCount - 2 || !listState.canScrollForward
-            if (nearBottom) listState.scrollToItem(itemCount - 1, scrollOffset = 100000)
+            if (nearBottom) listState.scrollToItem(itemCount - 1, scrollOffset = Int.MAX_VALUE)
         }
 
         // Search navigation: reveal the block, then scroll to it.
@@ -168,10 +168,11 @@ fun TranscriptView(
 
         // Forced jumps to the very bottom (e.g. right after sending).
         // Use large offset to show bottom of huge block, not its top.
-        LaunchedEffect(session.id) {
+        // Use itemCount captured via derivedState to avoid stale layoutInfo.
+        LaunchedEffect(session.id, itemCount) {
             jumpToBottom.collect {
-                val last = listState.layoutInfo.totalItemsCount - 1
-                if (last >= 0) listState.animateScrollToItem(last, scrollOffset = 100000)
+                val last = itemCount - 1
+                if (last >= 0) listState.animateScrollToItem(last, scrollOffset = Int.MAX_VALUE)
             }
         }
 
@@ -244,6 +245,7 @@ fun TranscriptView(
                         currentMatch = block.id == currentMatchId,
                         virtualizeEnabled = virtualizeLargeOutput,
                         previewLines = previewLines,
+                        jumpToBottom = jumpToBottom,
                         onToggle = { onToggleBlock(block.id) },
                     )
                 }
@@ -254,8 +256,8 @@ fun TranscriptView(
             val scope = rememberCoroutineScope()
             Surface(
                 onClick = {
-                    val last = listState.layoutInfo.totalItemsCount - 1
-                    if (last >= 0) scope.launch { listState.animateScrollToItem(last, scrollOffset = 100000) }
+                    val last = itemCount - 1
+                    if (last >= 0) scope.launch { listState.animateScrollToItem(last, scrollOffset = Int.MAX_VALUE) }
                 },
                 shape = androidx.compose.foundation.shape.CircleShape,
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -442,6 +444,7 @@ private fun OutputPanel(
     currentMatch: Boolean,
     virtualizeEnabled: Boolean,
     previewLines: Int,
+    jumpToBottom: Flow<Unit>,
     onToggle: () -> Unit,
 ) {
     Column(
@@ -514,7 +517,7 @@ private fun OutputPanel(
             )
         } else if (virtualizeEnabled && lineCount > previewLines * VIRTUALIZE_LINES_FACTOR) {
             // Large output: internal scroll only when toggle on; threshold is 4× collapsed lines.
-            VirtualizedOutput(annotated = displayAnnotated, query = query)
+            VirtualizedOutput(annotated = displayAnnotated, query = query, jumpToBottom = jumpToBottom)
             if (block.running) {
                 BlinkingCursor()
             } else if (collapsible) {
@@ -588,12 +591,19 @@ private fun chunkAnnotated(annotated: AnnotatedString): List<AnnotatedString> {
 }
 
 @Composable
-private fun VirtualizedOutput(annotated: AnnotatedString, query: String?) {
+private fun VirtualizedOutput(annotated: AnnotatedString, query: String?, jumpToBottom: Flow<Unit>? = null) {
     val chunks = remember(annotated) { chunkAnnotated(annotated) }
     val innerState = rememberLazyListState()
     // Termux-like: inner virtualized list also pinned to bottom when new output arrives
     androidx.compose.runtime.LaunchedEffect(chunks.size) {
         if (chunks.isNotEmpty()) innerState.scrollToItem(chunks.size - 1)
+    }
+    if (jumpToBottom != null) {
+        androidx.compose.runtime.LaunchedEffect(jumpToBottom) {
+            jumpToBottom.collect {
+                if (chunks.isNotEmpty()) innerState.animateScrollToItem(chunks.size - 1)
+            }
+        }
     }
     val screenHeight = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp
     val maxH = screenHeight * 0.5f
