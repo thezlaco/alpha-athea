@@ -86,6 +86,17 @@ private const val TAIL_LINES = 5
 private const val VIRTUALIZE_LINES_FACTOR = 4
 private const val CHUNK_LINES = 200
 
+private sealed interface DisplayItem {
+    data class Block(val view: com.athea.app.transcript.BlockView) : DisplayItem
+    data class Chunk(
+        val blockId: String,
+        val chunk: AnnotatedString,
+        val isFirst: Boolean,
+        val isLast: Boolean,
+        val exitCode: Int?,
+    ) : DisplayItem
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TranscriptView(
@@ -138,40 +149,84 @@ fun TranscriptView(
 
         val listState = rememberLazyListState()
         val views = session.blocks
-        val itemCount = views.size
+        // Architectural: huge fully-expanded output is split into multiple outer
+        // LazyColumn items (chunks) so outer virtualization composes only visible
+        // chunks and scrollToItem(last) is truly very end — no large offset hack.
+        // Termux does same via TerminalBuffer grid, we do via chunked items.
+        val displayItems = remember(views, previewLines, virtualizeLargeOutput) {
+            val out = mutableListOf<DisplayItem>()
+            for (view in views) {
+                val block = view.block
+                if (block is OutputBlock && !view.collapsed && !virtualizeLargeOutput) {
+                    val plain = block.text.trimCommand()
+                    val lineCount = plain.count { it == '\n' } + 1
+                    val isHuge = lineCount > previewLines * VIRTUALIZE_LINES_FACTOR || plain.length > 8000
+                    if (isHuge) {
+                        val annotated = run {
+                            val t = block.annotated.text.trimEnd('\n')
+                            if (t.length == block.annotated.text.length) block.annotated
+                            else AnnotatedString(t, block.annotated.spanStyles, block.annotated.paragraphStyles)
+                        }
+                        val chunks = chunkAnnotated(annotated)
+                        chunks.forEachIndexed { idx, chunk ->
+                            out.add(DisplayItem.Chunk(block.id, chunk, idx == 0, idx == chunks.lastIndex, view.collapsed, block.exitCode))
+                        }
+                        continue
+                    }
+                }
+                out.add(DisplayItem.Block(view))
+            }
+            out
+        }
+        // Map blockId -> first display index for search navigation
+        val blockToDisplayIndex = remember(displayItems) {
+            val map = mutableMapOf<String, Int>()
+            displayItems.forEachIndexed { idx, item ->
+                val id = when (item) {
+                    is DisplayItem.Block -> item.view.block.id
+                    is DisplayItem.Chunk -> item.blockId
+                }
+                map.putIfAbsent(id, idx)
+            }
+            map
+        }
+        val itemCount = displayItems.size
         val lastTextLength =
             (views.lastOrNull()?.block as? OutputBlock)?.text?.length ?: 0
 
         // Stick to the bottom while the user is near it and output grows.
-        // Termux-like: always pinned to very end if near bottom. Use large
-        // scrollOffset so huge blocks (taller than viewport) show their bottom,
-        // not top. Without offset, scrollToItem shows top of last block.
+        // No offset hack needed — last display item is last chunk's bottom.
         LaunchedEffect(itemCount, lastTextLength) {
             if (itemCount == 0) return@LaunchedEffect
             val info = listState.layoutInfo
             val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: 0
             val nearBottom = info.totalItemsCount == 0 ||
                 lastVisible >= info.totalItemsCount - 2 || !listState.canScrollForward
-            if (nearBottom) listState.scrollToItem(itemCount - 1, scrollOffset = 100000)
+            if (nearBottom) listState.scrollToItem(itemCount - 1)
         }
 
-        // Search navigation: reveal the block, then scroll to it.
+        // Search navigation: reveal the block, then scroll to its first chunk.
         LaunchedEffect(session.id) {
             scrollRequests.collect { blockId ->
-                val index = onLocateBlock(blockId)
+                val index = blockToDisplayIndex[blockId] ?: onLocateBlock(blockId)
                 if (index >= 0) {
                     onRevealBlock(blockId)
                     listState.animateScrollToItem(index)
+                } else {
+                    val fallback = onLocateBlock(blockId)
+                    if (fallback >= 0) {
+                        onRevealBlock(blockId)
+                        listState.animateScrollToItem(blockToDisplayIndex[views[fallback].block.id] ?: fallback)
+                    }
                 }
             }
         }
 
         // Forced jumps to the very bottom (e.g. right after sending).
-        // Use large offset to show bottom of huge block, not its top.
         LaunchedEffect(session.id, itemCount) {
             jumpToBottom.collect {
                 val last = itemCount - 1
-                if (last >= 0) listState.animateScrollToItem(last, scrollOffset = 100000)
+                if (last >= 0) listState.animateScrollToItem(last)
             }
         }
 
@@ -223,30 +278,83 @@ fun TranscriptView(
                 bottom = 8.dp,
             ),
         ) {
-            items(views, key = { it.block.id }) { view ->
-                when (val block = view.block) {
-                    is CommandBlock -> CommandBubble(
-                        block = block,
-                        collapsed = view.collapsed,
-                        maxWidth = maxBubbleWidth,
-                        previewLines = previewLines,
-                        currentMatch = block.id == currentMatchId,
-                        onToggle = { onToggleBlock(block.id) },
-                        onCopy = { onCopyCommand(block.text) },
-                        onSelectText = { onSelectCommandText(block.text) },
-                        onFavorite = { onAddToFavorites(block.text) },
-                    )
-
-                    is OutputBlock -> OutputPanel(
-                        block = block,
-                        collapsed = view.collapsed,
-                        query = search?.query,
-                        currentMatch = block.id == currentMatchId,
-                        virtualizeEnabled = virtualizeLargeOutput,
-                        previewLines = previewLines,
-                        jumpToBottom = jumpToBottom,
-                        onToggle = { onToggleBlock(block.id) },
-                    )
+            items(displayItems, key = { item ->
+                when (item) {
+                    is DisplayItem.Block -> item.view.block.id
+                    is DisplayItem.Chunk -> "${item.blockId}-chunk-${item.chunk.text.hashCode()}-${item.isFirst}-${item.isLast}"
+                }
+            }) { item ->
+                when (item) {
+                    is DisplayItem.Block -> {
+                        val view = item.view
+                        when (val block = view.block) {
+                            is CommandBlock -> CommandBubble(
+                                block = block,
+                                collapsed = view.collapsed,
+                                maxWidth = maxBubbleWidth,
+                                previewLines = previewLines,
+                                currentMatch = block.id == currentMatchId,
+                                onToggle = { onToggleBlock(block.id) },
+                                onCopy = { onCopyCommand(block.text) },
+                                onSelectText = { onSelectCommandText(block.text) },
+                                onFavorite = { onAddToFavorites(block.text) },
+                            )
+                            is OutputBlock -> OutputPanel(
+                                block = block,
+                                collapsed = view.collapsed,
+                                query = search?.query,
+                                currentMatch = block.id == currentMatchId,
+                                virtualizeEnabled = virtualizeLargeOutput,
+                                previewLines = previewLines,
+                                jumpToBottom = jumpToBottom,
+                                onToggle = { onToggleBlock(block.id) },
+                            )
+                        }
+                    }
+                    is DisplayItem.Chunk -> {
+                        // Huge fully-expanded block split into outer items — true virtualization
+                        // No inner scroll, no label, fully visible but composed only when on screen.
+                        Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    if (item.blockId == currentMatchId) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                                    else androidx.compose.ui.graphics.Color.Transparent
+                                )
+                                .padding(horizontal = 12.dp, vertical = if (item.isFirst) 4.dp else 0.dp)
+                        ) {
+                            if (item.isFirst && item.exitCode != null && item.exitCode != 0) {
+                                Text(
+                                    text = stringResource(R.string.exit_code, item.exitCode),
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.padding(bottom = 2.dp),
+                                )
+                            }
+                            SelectionContainer {
+                                Text(
+                                    text = remember(item.chunk, search?.query) { item.chunk.withSearchHighlights(search?.query) },
+                                    style = codeStyle(),
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                            if (item.isLast) {
+                                val collapsible = true
+                                Icon(
+                                    Icons.Default.KeyboardArrowDown,
+                                    contentDescription = stringResource(R.string.cd_collapse),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                    modifier = Modifier
+                                        .align(Alignment.CenterHorizontally)
+                                        .padding(top = 2.dp)
+                                        .size(Ui.chevronCollapseSize)
+                                        .rotate(180f)
+                                        .clickable(onClick = { onToggleBlock(item.blockId) }),
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -255,8 +363,8 @@ fun TranscriptView(
             val scope = rememberCoroutineScope()
             Surface(
                 onClick = {
-                    val last = listState.layoutInfo.totalItemsCount - 1
-                    if (last >= 0) scope.launch { listState.animateScrollToItem(last, scrollOffset = 100000) }
+                    val last = itemCount - 1
+                    if (last >= 0) scope.launch { listState.animateScrollToItem(last) }
                 },
                 shape = androidx.compose.foundation.shape.CircleShape,
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
