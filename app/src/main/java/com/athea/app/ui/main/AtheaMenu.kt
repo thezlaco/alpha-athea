@@ -19,23 +19,38 @@ import com.athea.app.ui.theme.Ui
  * The one overflow menu style used everywhere (top bar, message
  * long-press, session long-press): large, rounded, iconed - like chat
  * apps render theirs.
+ * @param isPopup true=Popup DropdownMenu (message/session), false=inline Surface (TopBar) to avoid Popup window offset/rounded peek.
  */
 @Composable
 fun AtheaDropdownMenu(
     expanded: Boolean,
     onDismissRequest: () -> Unit,
     offset: DpOffset = DpOffset.Zero,
+    isPopup: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    DropdownMenu(
-        expanded = expanded,
-        onDismissRequest = onDismissRequest,
-        offset = offset,
-        shape = Ui.menuShape,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier.widthIn(min = Ui.menuMinWidth),
-        content = content,
-    )
+    if (isPopup) {
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = onDismissRequest,
+            offset = offset,
+            shape = Ui.menuShape,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            modifier = Modifier.widthIn(min = Ui.menuMinWidth),
+            content = content,
+        )
+    } else {
+        if (expanded) {
+            androidx.compose.material3.Surface(
+                shape = Ui.menuShape,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                shadowElevation = Ui.menuElevation,
+                modifier = Modifier.widthIn(min = Ui.menuMinWidth),
+            ) {
+                androidx.compose.foundation.layout.Column(content = content)
+            }
+        }
+    }
 }
 
 @Composable

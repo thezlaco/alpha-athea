@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
  */
 class SshShellEngine(private val sshUrl: String) : TerminalEngine {
 
-    private val _events = dropOldestSharedFlow<EngineEvent>(extraBufferCapacity = 16)
+    private val _events = dropOldestSharedFlow<EngineEvent>(extraBufferCapacity = com.athea.app.ui.theme.Ui.sshEventBuffer)
     override val events: SharedFlow<EngineEvent> = _events
 
     private val _isAlive = MutableStateFlow(false)

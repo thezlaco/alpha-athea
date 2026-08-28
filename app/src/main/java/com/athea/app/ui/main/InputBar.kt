@@ -218,7 +218,7 @@ private fun DraftPanel(
                                     suggestion,
                                     style = messageStyle(),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        .copy(alpha = 0.45f),
+                                        .copy(alpha = Ui.ghostAlpha),
                                     maxLines = 1,
                                 )
                             }

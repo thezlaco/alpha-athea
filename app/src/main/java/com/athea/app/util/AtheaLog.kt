@@ -11,7 +11,7 @@ import java.util.Locale
  */
 object AtheaLog {
 
-    private const val CAPACITY = 600
+    private const val CAPACITY = com.athea.app.ui.theme.Ui.logCapacity
     private val lines = ArrayDeque<String>()
     private val lock = Any()
     private val format = SimpleDateFormat("HH:mm:ss.SSS", Locale.US)

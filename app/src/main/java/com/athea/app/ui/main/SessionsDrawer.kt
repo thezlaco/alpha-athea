@@ -137,9 +137,9 @@ fun SessionsDrawerContent(
                         .background(
                             Brush.verticalGradient(
                                 0f to Color.Transparent,
-                                0.30f to Color.Black.copy(alpha = 0.28f),
-                                0.62f to Color.Black.copy(alpha = 0.62f),
-                                1f to Color.Black.copy(alpha = 0.92f),
+                                0.30f to Color.Black.copy(alpha = Ui.drawerScrimA),
+                                0.62f to Color.Black.copy(alpha = Ui.drawerScrimB),
+                                1f to Color.Black.copy(alpha = Ui.drawerScrimC),
                             )
                         ),
                 )
@@ -259,7 +259,7 @@ private fun ProcessDot(running: Boolean) {
             .clip(CircleShape)
             .background(
                 MaterialTheme.colorScheme.primary.copy(
-                    alpha = if (running) alpha else 0.85f
+                    alpha = if (running) alpha else Ui.dotAlpha
                 )
             ),
     )

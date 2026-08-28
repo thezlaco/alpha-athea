@@ -23,7 +23,7 @@ internal class NativeShellEngine(
     private val shellPath: String = "/system/bin/sh",
 ) : TerminalEngine {
 
-    private val _events = dropOldestSharedFlow<EngineEvent>(extraBufferCapacity = 256)
+    private val _events = dropOldestSharedFlow<EngineEvent>(extraBufferCapacity = com.athea.app.ui.theme.Ui.ptyEventBuffer)
     override val events: SharedFlow<EngineEvent> = _events
 
     private val _isAlive = MutableStateFlow(false)
@@ -149,6 +149,6 @@ internal class NativeShellEngine(
     }
 
     private companion object {
-        const val READ_BUFFER_SIZE = 8192
+        const val READ_BUFFER_SIZE = com.athea.app.ui.theme.Ui.ptyBufferSize
     }
 }

@@ -83,8 +83,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
 private const val TAIL_LINES = 5
-private const val VIRTUALIZE_LINES_FACTOR = 4
-private const val CHUNK_LINES = 200
+private const val VIRTUALIZE_LINES_FACTOR = Ui.virtualizeLinesFactor
+private const val CHUNK_LINES = 200 // kept for compat, not used (chunking via chunkSize)
 
 private sealed interface DisplayItem {
     data class Block(val view: com.athea.app.transcript.BlockView) : DisplayItem
@@ -121,7 +121,7 @@ fun TranscriptView(
     BoxWithConstraints(modifier) {
         val density = LocalDensity.current
         val maxBubbleWidth = with(density) {
-            (constraints.maxWidth * 0.85f).toInt().toDp()
+            (constraints.maxWidth * Ui.bubbleMaxWidthFraction).toInt().toDp()
         }
 
         // Report the real cell geometry to the engine so line wrapping matches.
@@ -274,8 +274,8 @@ fun TranscriptView(
                     }
                 ),
             contentPadding = PaddingValues(
-                top = contentTopPadding + 8.dp,
-                bottom = 8.dp,
+                top = contentTopPadding + Ui.contentPaddingV,
+                bottom = Ui.contentPaddingV,
             ),
         ) {
             items(displayItems, key = { item ->
@@ -318,17 +318,17 @@ fun TranscriptView(
                             Modifier
                                 .fillMaxWidth()
                                 .background(
-                                    if (item.blockId == currentMatchId) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                                    if (item.blockId == currentMatchId) MaterialTheme.colorScheme.primary.copy(alpha = Ui.highlightAlpha)
                                     else androidx.compose.ui.graphics.Color.Transparent
                                 )
-                                .padding(horizontal = 12.dp, vertical = if (item.isFirst) 4.dp else 0.dp)
+                                .padding(horizontal = Ui.outputPaddingH, vertical = if (item.isFirst) Ui.headerPaddingV else 0.dp)
                         ) {
                             if (item.isFirst && item.exitCode != null && item.exitCode != 0) {
                                 Text(
                                     text = stringResource(R.string.exit_code, item.exitCode),
                                     color = MaterialTheme.colorScheme.error,
                                     style = MaterialTheme.typography.labelSmall,
-                                    modifier = Modifier.padding(bottom = 2.dp),
+                                    modifier = Modifier.padding(bottom = Ui.keyRowPaddingV),
                                 )
                             }
                             SelectionContainer {
@@ -344,10 +344,10 @@ fun TranscriptView(
                                 Icon(
                                     Icons.Default.KeyboardArrowDown,
                                     contentDescription = stringResource(R.string.cd_collapse),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = Ui.chevronAlpha),
                                     modifier = Modifier
                                         .align(Alignment.CenterHorizontally)
-                                        .padding(top = 2.dp)
+                                        .padding(top = Ui.keyRowPaddingV)
                                         .size(Ui.chevronCollapseSize)
                                         .rotate(180f)
                                         .clickable(onClick = { onToggleBlock(item.blockId) }),
@@ -440,7 +440,7 @@ private fun CommandBubble(
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
+            .padding(horizontal = Ui.outputPaddingH, vertical = Ui.headerPaddingV),
         horizontalArrangement = Arrangement.End,
     ) {
         Surface(
@@ -490,7 +490,7 @@ private fun CommandBubble(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
                             .align(Alignment.CenterHorizontally)
-                            .padding(top = 2.dp)
+                            .padding(top = Ui.keyRowPaddingV)
                             .size(Ui.chevronExpandSize)
                             .clickable(onClick = onToggle),
                     )
@@ -507,10 +507,10 @@ private fun CommandBubble(
                             Icons.Default.KeyboardArrowDown,
                             contentDescription = stringResource(R.string.cd_collapse),
                             tint = MaterialTheme.colorScheme.onSecondaryContainer
-                                .copy(alpha = 0.6f),
+                                .copy(alpha = Ui.chevronAlphaCollapsedPreview),
                             modifier = Modifier
                                 .align(Alignment.CenterHorizontally)
-                                .padding(top = 2.dp)
+                                .padding(top = Ui.keyRowPaddingV)
                                 .size(Ui.chevronExpandSize)
                                 .rotate(180f)
                                 .clickable(onClick = onToggle),
@@ -557,10 +557,10 @@ private fun OutputPanel(
     Column(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .padding(horizontal = Ui.outputPaddingH, vertical = Ui.headerPaddingV)
             .then(
                 if (currentMatch) {
-                    Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                    Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = Ui.highlightAlpha))
                 } else {
                     Modifier
                 },
@@ -572,7 +572,7 @@ private fun OutputPanel(
                 text = stringResource(R.string.exit_code, code),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(bottom = 2.dp),
+                modifier = Modifier.padding(bottom = Ui.keyRowPaddingV),
             )
         }
 
@@ -612,16 +612,18 @@ private fun OutputPanel(
                 )
             }
             // Centered expand chevron, same pattern as command bubbles.
-            Icon(
-                Icons.Default.KeyboardArrowDown,
-                contentDescription = stringResource(R.string.cd_expand_editor),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .padding(top = 2.dp)
-                    .size(Ui.chevronExpandSize)
-                    .clickable(onClick = onToggle),
-            )
+                Icon(
+                    Icons.Default.KeyboardArrowDown,
+                    contentDescription = stringResource(R.string.cd_collapse),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = Ui.chevronAlpha),
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(top = Ui.keyRowPaddingV)
+                        .size(Ui.chevronCollapseSize)
+                        .rotate(180f)
+                        .clickable(onClick = onToggle),
+                )
+            }
         } else if (virtualizeEnabled && lineCount > previewLines * VIRTUALIZE_LINES_FACTOR) {
             // Large output: internal scroll only when toggle on; threshold is 4× collapsed lines.
             VirtualizedOutput(annotated = displayAnnotated, query = query, jumpToBottom = jumpToBottom)
@@ -631,10 +633,10 @@ private fun OutputPanel(
                 Icon(
                     Icons.Default.KeyboardArrowDown,
                     contentDescription = stringResource(R.string.cd_collapse),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = Ui.chevronAlpha),
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
-                        .padding(top = 2.dp)
+                        .padding(top = Ui.keyRowPaddingV)
                         .size(Ui.chevronCollapseSize)
                         .rotate(180f)
                         .clickable(onClick = onToggle),
@@ -646,7 +648,7 @@ private fun OutputPanel(
             // scroll, no label), on = bounded LazyColumn inside 50% box.
             // Termux solves same via TerminalBuffer grid + canvas draw; we copy
             // by chunking AnnotatedString (4k) and rendering per-chunk Texts.
-            val isHuge = lineCount > previewLines * VIRTUALIZE_LINES_FACTOR || plainText.length > 8000
+            val isHuge = lineCount > previewLines * Ui.virtualizeLinesFactor || plainText.length > Ui.hugeCharsThreshold
             if (isHuge) {
                 ChunkedExpanded(annotated = displayAnnotated, query = query)
             } else {
@@ -667,10 +669,10 @@ private fun OutputPanel(
                 Icon(
                     Icons.Default.KeyboardArrowDown,
                     contentDescription = stringResource(R.string.cd_collapse),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = Ui.chevronAlpha),
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
-                        .padding(top = 2.dp)
+                        .padding(top = Ui.keyRowPaddingV)
                         .size(Ui.chevronCollapseSize)
                         .rotate(180f)
                         .clickable(onClick = onToggle),
@@ -682,14 +684,14 @@ private fun OutputPanel(
 
 private fun chunkAnnotated(annotated: AnnotatedString): List<AnnotatedString> {
     val total = annotated.text.length
-    val chunkSize = 8000
+    val chunkSize = Ui.chunkSize
     val list = mutableListOf<AnnotatedString>()
     var offset = 0
     while (offset < total) {
         val end = minOf(offset + chunkSize, total)
         val chunkEnd = if (end < total) {
             val nextNl = annotated.text.indexOf('\n', end)
-            if (nextNl != -1 && nextNl - offset < chunkSize + 800) nextNl + 1 else end
+            if (nextNl != -1 && nextNl - offset < chunkSize + Ui.chunkSlack) nextNl + 1 else end
         } else end
         list.add(annotated.subSequence(offset, chunkEnd))
         offset = chunkEnd
@@ -713,13 +715,13 @@ private fun VirtualizedOutput(annotated: AnnotatedString, query: String?, jumpTo
         }
     }
     val screenHeight = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp
-    val maxH = screenHeight * 0.5f
+    val maxH = screenHeight * Ui.virtualizedMaxFraction
     Column(Modifier.fillMaxWidth()) {
         Box(
             Modifier
                 .fillMaxWidth()
                 .heightIn(max = maxH)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.06f)),
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = Ui.virtualizedBgAlpha)),
         ) {
             androidx.compose.foundation.lazy.LazyColumn(
                 state = innerState,
@@ -799,7 +801,7 @@ private fun RawStreamView(
             color = MaterialTheme.colorScheme.onBackground,
             modifier = modifier
                 .verticalScroll(scroll)
-                .padding(12.dp),
+                .padding(Ui.outputPaddingH),
         )
     }
 }
@@ -822,7 +824,7 @@ private fun BlinkingCursor() {
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier
             .alpha(alpha)
-            .padding(top = 2.dp),
+            .padding(top = Ui.keyRowPaddingV),
     )
 }
 

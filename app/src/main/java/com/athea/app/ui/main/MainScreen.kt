@@ -241,7 +241,7 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
         ) { padding ->
             val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-            val topScrimHeight = statusBarTop + 30.dp
+            val topScrimHeight = statusBarTop + Ui.topBarScrimHeight
             // Outer Box overlays TopBar/scrim above the Column so the menu
             // scrim covers the whole screen (transcript + composer + key row),
             // not just the transcript area — dismiss works from any tap.
@@ -265,7 +265,7 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
                                 scrollRequests = viewModel.scrollRequests,
                                 jumpToBottom = viewModel.jumpToBottom,
                                 previewLines = state.previewLines,
-                                contentTopPadding = statusBarTop + 62.dp,
+                                contentTopPadding = statusBarTop + Ui.topBarContentTop,
                                 pinchZoomEnabled = state.pinchZoomEnabled,
                                 virtualizeLargeOutput = state.virtualizeLargeOutput,
                                 onOutputFontZoom = viewModel::onOutputFontZoom,

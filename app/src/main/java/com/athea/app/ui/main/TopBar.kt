@@ -125,51 +125,44 @@ fun TopBar(
             }
         }
 
-        // Menu panel: inline Surface (not Popup) so it is part of composition
-        // and exactly covers the pill — DropdownMenu Popup has its own window
-        // and 8dp offset, which left pill peeking through rounded corners.
+        // Menu panel: inline (not Popup) so it exactly covers the pill — Popup has own window + 8dp offset.
         Box(
             Modifier
                 .align(Alignment.TopEnd)
                 .statusBarsPadding()
-                .padding(top = 4.dp, end = Ui.topBarHorizontalPadding),
+                .padding(top = Ui.menuTopOffset, end = Ui.topBarHorizontalPadding),
         ) {
-            if (menuOpen) {
-                Surface(
-                    shape = Ui.menuShape,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    shadowElevation = 8.dp,
-                    modifier = Modifier.widthIn(min = Ui.menuMinWidth),
-                ) {
-                    Column {
-                        if (hasMessages) {
-                            InlineMenuItem(
-                                icon = Icons.Default.Search,
-                                text = stringResource(R.string.menu_search),
-                                onClick = { menuOpen = false; onSearch() },
-                            )
-                        }
-                        InlineMenuItem(
-                            icon = Icons.Default.Edit,
-                            text = stringResource(R.string.menu_rename),
-                            onClick = { menuOpen = false; onRename() },
-                        )
-                        InlineMenuItem(
-                            icon = Icons.Default.PushPin,
-                            text = stringResource(
-                                if (pinned) R.string.menu_unpin else R.string.menu_pin
-                            ),
-                            onClick = { menuOpen = false; onTogglePin() },
-                        )
-                        if (hasMessages) {
-                            InlineMenuItem(
-                                icon = Icons.Default.Delete,
-                                text = stringResource(R.string.menu_delete),
-                                tinted = true,
-                                onClick = { menuOpen = false; onDelete() },
-                            )
-                        }
-                    }
+            AtheaDropdownMenu(
+                expanded = menuOpen,
+                onDismissRequest = { menuOpen = false },
+                isPopup = false,
+            ) {
+                if (hasMessages) {
+                    InlineMenuItem(
+                        icon = Icons.Default.Search,
+                        text = stringResource(R.string.menu_search),
+                        onClick = { menuOpen = false; onSearch() },
+                    )
+                }
+                InlineMenuItem(
+                    icon = Icons.Default.Edit,
+                    text = stringResource(R.string.menu_rename),
+                    onClick = { menuOpen = false; onRename() },
+                )
+                InlineMenuItem(
+                    icon = Icons.Default.PushPin,
+                    text = stringResource(
+                        if (pinned) R.string.menu_unpin else R.string.menu_pin
+                    ),
+                    onClick = { menuOpen = false; onTogglePin() },
+                )
+                if (hasMessages) {
+                    InlineMenuItem(
+                        icon = Icons.Default.Delete,
+                        text = stringResource(R.string.menu_delete),
+                        tinted = true,
+                        onClick = { menuOpen = false; onDelete() },
+                    )
                 }
             }
         }

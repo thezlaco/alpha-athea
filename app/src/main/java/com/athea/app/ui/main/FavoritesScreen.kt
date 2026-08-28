@@ -15,11 +15,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -113,25 +114,24 @@ fun FavoritesScreen(
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            DropdownMenu(
+                            AtheaDropdownMenu(
                                 expanded = menuOpen,
                                 onDismissRequest = { menuOpen = false },
                             ) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.favorites_run)) },
+                                AtheaDropdownItem(
+                                    icon = Icons.Default.PlayArrow,
+                                    text = stringResource(R.string.favorites_run),
                                     onClick = { menuOpen = false; onRun(favorite.text) },
                                 )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.favorites_edit)) },
+                                AtheaDropdownItem(
+                                    icon = Icons.Default.Edit,
+                                    text = stringResource(R.string.favorites_edit),
                                     onClick = { menuOpen = false; editTarget = favorite },
                                 )
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            stringResource(R.string.menu_delete),
-                                            color = MaterialTheme.colorScheme.error,
-                                        )
-                                    },
+                                AtheaDropdownItem(
+                                    icon = Icons.Default.Delete,
+                                    text = stringResource(R.string.menu_delete),
+                                    tinted = true,
                                     onClick = { menuOpen = false; onDelete(favorite.id) },
                                 )
                             }

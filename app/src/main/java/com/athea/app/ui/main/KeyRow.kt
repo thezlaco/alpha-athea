@@ -98,14 +98,14 @@ fun KeyRow(
             ) {
                 keys.forEachIndexed { index, key ->
                     if (index > 0) {
-                        Box(
-                            Modifier
-                                .width(1.dp)
-                                .height(22.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.28f)
-                                ),
-                        )
+                    Box(
+                        Modifier
+                            .width(Ui.keySeparatorWidth)
+                            .height(Ui.keySeparatorHeight)
+                            .background(
+                                MaterialTheme.colorScheme.outline.copy(alpha = Ui.dividerAlpha)
+                            ),
+                    )
                     }
                     val selected = key.kind == KeyActionKind.TOGGLE_STICKY_CTRL && stickyCtrl
                     KeyCell(key = key, selected = selected, cellWidth = cellWidth) {

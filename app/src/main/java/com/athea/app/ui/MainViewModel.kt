@@ -158,7 +158,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // second; without throttling each one triggers a full recompose.
         viewModelScope.launch(Dispatchers.Default) {
             while (isActive) {
-                kotlinx.coroutines.delay(100)
+                kotlinx.coroutines.delay(com.athea.app.ui.theme.Ui.throttleMs)
                 if (dirtySessions.isEmpty()) continue
                 val toRefresh = dirtySessions.toList()
                 dirtySessions.removeAll(toRefresh)
@@ -588,7 +588,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             pipe.builder.applyCommandSubmitted(seq, text)
             val hist = histories[id]?.toMutableList() ?: mutableListOf()
             hist.add(text)
-            if (hist.size > 500) hist.removeAt(0)
+            if (hist.size > com.athea.app.ui.theme.Ui.historyCap) hist.removeAt(0)
             histories[id] = hist
             refreshSession(id)
         }

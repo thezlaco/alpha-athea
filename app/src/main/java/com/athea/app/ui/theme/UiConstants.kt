@@ -17,19 +17,23 @@ object Ui {
     val chipShape = RoundedCornerShape(10.dp)
     val attachmentShape = RoundedCornerShape(14.dp)
     val dialogShape = RoundedCornerShape(20.dp)
-    val pillShape = RoundedCornerShape(50)
+    val pillShape = RoundedCornerShape(50.dp)
     val smallShape = RoundedCornerShape(8.dp)
 
     // ---- Menus ------------------------------------------------------------
     val menuMinWidth = 190.dp
     val menuItemMinHeight = 56.dp
     val menuIconSize = 24.dp
+    val menuElevation = 8.dp
+    val menuTopOffset = 4.dp
 
     // ---- Top bar ----------------------------------------------------------
     val topButtonSize = 48.dp
     val topBarHorizontalPadding = 10.dp
     val topBarTopPadding = 14.dp
     val topBarBottomPadding = 6.dp
+    val topBarScrimHeight = 30.dp
+    val topBarContentTop = 62.dp
 
     // ---- Composer ---------------------------------------------------------
     val composerButtonSize = 38.dp
@@ -44,6 +48,11 @@ object Ui {
     val keyMinHeight = 44.dp
     val keySpacing = 4.dp
     val keyPaddingH = 8.dp
+    val keyVisibleCount = 7
+    val keySeparatorWidth = 1.dp
+    val keySeparatorHeight = 22.dp
+    val keyRowPaddingH = 2.dp
+    val keyRowPaddingV = 2.dp
 
     // ---- Bubbles ----------------------------------------------------------
     val bubblePaddingH = 16.dp
@@ -75,4 +84,32 @@ object Ui {
 
     // ---- Misc -------------------------------------------------------------
     val scrollbarButtonSize = 36.dp
+
+    // ---- Alphas -----------------------------------------------------------
+    const val highlightAlpha = 0.08f
+    const val virtualizedBgAlpha = 0.06f
+    const val chevronAlpha = 0.5f
+    const val chevronAlphaCollapsedPreview = 0.6f
+    const val ghostAlpha = 0.45f
+    const val dividerAlpha = 0.28f
+    const val drawerScrimA = 0.28f
+    const val drawerScrimB = 0.62f
+    const val drawerScrimC = 0.92f
+    const val dotAlpha = 0.85f
+
+    // ---- Virtualization ---------------------------------------------------
+    const val virtualizedMaxFraction = 0.5f
+    const val chunkSize = 8000
+    const val chunkSlack = 800
+    const val hugeCharsThreshold = 8000
+    const val virtualizeLinesFactor = 4
+
+    // ---- Throttle / caps --------------------------------------------------
+    const val throttleMs = 100L
+    const val historyCap = 500
+    const val ptyBufferSize = 8192
+    const val ptyEventBuffer = 256
+    const val sshEventBuffer = 16
+    const val journalBufferSize = 32 * 1024
+    const val logCapacity = 600
 }
