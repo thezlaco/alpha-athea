@@ -152,7 +152,7 @@ fun TranscriptView(
             val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: 0
             val nearBottom = info.totalItemsCount == 0 ||
                 lastVisible >= info.totalItemsCount - 2 || !listState.canScrollForward
-            if (nearBottom) listState.scrollToItem(itemCount - 1, scrollOffset = Int.MAX_VALUE)
+            if (nearBottom) listState.scrollToItem(itemCount - 1, scrollOffset = 100000)
         }
 
         // Search navigation: reveal the block, then scroll to it.
@@ -168,16 +168,33 @@ fun TranscriptView(
 
         // Forced jumps to the very bottom (e.g. right after sending).
         // Use large offset to show bottom of huge block, not its top.
-        // Use itemCount captured via derivedState to avoid stale layoutInfo.
         LaunchedEffect(session.id, itemCount) {
             jumpToBottom.collect {
                 val last = itemCount - 1
-                if (last >= 0) listState.animateScrollToItem(last, scrollOffset = Int.MAX_VALUE)
+                if (last >= 0) listState.animateScrollToItem(last, scrollOffset = 100000)
             }
         }
 
-        // Jump button: visible whenever not at bottom (Termux-like), not only while moving down.
-        val showJumpDown by remember { derivedStateOf { listState.canScrollForward } }
+        // Jump button: appears when scrolling down with room below,
+        // disappears when scrolling up or reaching the bottom.
+        var showJumpDown by remember { mutableStateOf(false) }
+        LaunchedEffect(listState) {
+            var previous = -1L
+            snapshotFlow {
+                listState.firstVisibleItemIndex.toLong() * 100_000L +
+                    listState.firstVisibleItemScrollOffset
+            }.collect { pos ->
+                if (pos != previous) {
+                    val movingDown = previous >= 0 && pos > previous
+                    if (movingDown) {
+                        showJumpDown = listState.canScrollForward
+                    } else if (!movingDown) {
+                        showJumpDown = false
+                    }
+                    previous = pos
+                }
+            }
+        }
 
         val currentMatchId = search?.matchBlockIds?.getOrNull(search.index)
 
@@ -238,8 +255,8 @@ fun TranscriptView(
             val scope = rememberCoroutineScope()
             Surface(
                 onClick = {
-                    val last = itemCount - 1
-                    if (last >= 0) scope.launch { listState.animateScrollToItem(last, scrollOffset = Int.MAX_VALUE) }
+                    val last = listState.layoutInfo.totalItemsCount - 1
+                    if (last >= 0) scope.launch { listState.animateScrollToItem(last, scrollOffset = 100000) }
                 },
                 shape = androidx.compose.foundation.shape.CircleShape,
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
