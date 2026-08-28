@@ -86,9 +86,9 @@ fun KeyRow(
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             // Row padding 2dp each side = 4dp, 6 separators between 7 visible = 6dp
             val visibleCount = 7
-            val separatorsForVisible = (visibleCount - 1) * 1.dp
+            val separatorsForVisible = 1.dp * (visibleCount - 1)
             val rowPaddingH = 4.dp
-            val cellWidth = (maxWidth - rowPaddingH - separatorsForVisible) / visibleCount
+            val cellWidth = (maxWidth - rowPaddingH - separatorsForVisible) / visibleCount.toFloat()
             Row(
                 Modifier
                     .fillMaxWidth()
