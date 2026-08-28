@@ -91,6 +91,7 @@ private sealed interface DisplayItem {
     data class Chunk(
         val blockId: String,
         val chunk: AnnotatedString,
+        val chunkIndex: Int,
         val isFirst: Boolean,
         val isLast: Boolean,
         val exitCode: Int?,
@@ -169,7 +170,7 @@ fun TranscriptView(
                         }
                         val chunks = chunkAnnotated(annotated)
                         chunks.forEachIndexed { idx, chunk ->
-                            out.add(DisplayItem.Chunk(block.id, chunk, idx == 0, idx == chunks.lastIndex, block.exitCode))
+                            out.add(DisplayItem.Chunk(block.id, chunk, idx, idx == 0, idx == chunks.lastIndex, block.exitCode))
                         }
                         continue
                     }
@@ -202,7 +203,7 @@ fun TranscriptView(
             val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: 0
             val nearBottom = info.totalItemsCount == 0 ||
                 lastVisible >= info.totalItemsCount - 2 || !listState.canScrollForward
-            if (nearBottom) listState.scrollToItem(itemCount - 1)
+            if (nearBottom) try { listState.scrollToItem(itemCount - 1) } catch (_: Exception) {}
         }
 
         // Search navigation: reveal the block, then scroll to its first chunk.
@@ -226,7 +227,7 @@ fun TranscriptView(
         LaunchedEffect(session.id, itemCount) {
             jumpToBottom.collect {
                 val last = itemCount - 1
-                if (last >= 0) listState.animateScrollToItem(last)
+                if (last >= 0) try { listState.animateScrollToItem(last) } catch (_: Exception) {}
             }
         }
 
@@ -281,7 +282,7 @@ fun TranscriptView(
             items(displayItems, key = { item ->
                 when (item) {
                     is DisplayItem.Block -> item.view.block.id
-                    is DisplayItem.Chunk -> "${item.blockId}-chunk-${item.chunk.text.hashCode()}-${item.isFirst}-${item.isLast}"
+                    is DisplayItem.Chunk -> "${item.blockId}-chunk-${item.chunkIndex}"
                 }
             }) { item ->
                 when (item) {
@@ -364,7 +365,7 @@ fun TranscriptView(
             Surface(
                 onClick = {
                     val last = itemCount - 1
-                    if (last >= 0) scope.launch { listState.animateScrollToItem(last) }
+                    if (last >= 0) scope.launch { try { listState.animateScrollToItem(last) } catch (_: Exception) {} }
                 },
                 shape = androidx.compose.foundation.shape.CircleShape,
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -703,12 +704,12 @@ private fun VirtualizedOutput(annotated: AnnotatedString, query: String?, jumpTo
     val innerState = rememberLazyListState()
     // Termux-like: inner virtualized list also pinned to bottom when new output arrives
     androidx.compose.runtime.LaunchedEffect(chunks.size) {
-        if (chunks.isNotEmpty()) innerState.scrollToItem(chunks.size - 1)
+        if (chunks.isNotEmpty()) try { innerState.scrollToItem(chunks.size - 1) } catch (_: Exception) {}
     }
     if (jumpToBottom != null) {
         androidx.compose.runtime.LaunchedEffect(jumpToBottom) {
             jumpToBottom.collect {
-                if (chunks.isNotEmpty()) innerState.animateScrollToItem(chunks.size - 1)
+                if (chunks.isNotEmpty()) try { innerState.animateScrollToItem(chunks.size - 1) } catch (_: Exception) {}
             }
         }
     }
