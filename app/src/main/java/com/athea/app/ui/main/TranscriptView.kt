@@ -223,11 +223,11 @@ fun TranscriptView(
             }
         }
 
-        // Forced jumps to the very bottom (e.g. right after sending).
+        // Forced jumps to the very bottom (e.g. right after sending). Instant, not animated — much faster.
         LaunchedEffect(session.id, itemCount) {
             jumpToBottom.collect {
                 val last = itemCount - 1
-                if (last >= 0) try { listState.animateScrollToItem(last) } catch (_: Exception) {}
+                if (last >= 0) try { listState.scrollToItem(last) } catch (_: Exception) {}
             }
         }
 
@@ -365,7 +365,7 @@ fun TranscriptView(
             Surface(
                 onClick = {
                     val last = itemCount - 1
-                    if (last >= 0) scope.launch { try { listState.animateScrollToItem(last) } catch (_: Exception) {} }
+                    if (last >= 0) scope.launch { try { listState.scrollToItem(last) } catch (_: Exception) {} }
                 },
                 shape = androidx.compose.foundation.shape.CircleShape,
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -702,14 +702,14 @@ private fun chunkAnnotated(annotated: AnnotatedString): List<AnnotatedString> {
 private fun VirtualizedOutput(annotated: AnnotatedString, query: String?, jumpToBottom: Flow<Unit>? = null) {
     val chunks = remember(annotated) { chunkAnnotated(annotated) }
     val innerState = rememberLazyListState()
-    // Termux-like: inner virtualized list also pinned to bottom when new output arrives
+    // Termux-like: inner virtualized list also pinned to bottom when new output arrives — instant, not animated
     androidx.compose.runtime.LaunchedEffect(chunks.size) {
         if (chunks.isNotEmpty()) try { innerState.scrollToItem(chunks.size - 1) } catch (_: Exception) {}
     }
     if (jumpToBottom != null) {
         androidx.compose.runtime.LaunchedEffect(jumpToBottom) {
             jumpToBottom.collect {
-                if (chunks.isNotEmpty()) try { innerState.animateScrollToItem(chunks.size - 1) } catch (_: Exception) {}
+                if (chunks.isNotEmpty()) try { innerState.scrollToItem(chunks.size - 1) } catch (_: Exception) {}
             }
         }
     }
