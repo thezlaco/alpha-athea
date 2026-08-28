@@ -169,7 +169,7 @@ fun TranscriptView(
                         }
                         val chunks = chunkAnnotated(annotated)
                         chunks.forEachIndexed { idx, chunk ->
-                            out.add(DisplayItem.Chunk(block.id, chunk, idx == 0, idx == chunks.lastIndex, view.collapsed, block.exitCode))
+                            out.add(DisplayItem.Chunk(block.id, chunk, idx == 0, idx == chunks.lastIndex, block.exitCode))
                         }
                         continue
                     }
@@ -612,18 +612,16 @@ private fun OutputPanel(
                 )
             }
             // Centered expand chevron, same pattern as command bubbles.
-                Icon(
-                    Icons.Default.KeyboardArrowDown,
-                    contentDescription = stringResource(R.string.cd_collapse),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = Ui.chevronAlpha),
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .padding(top = Ui.keyRowPaddingV)
-                        .size(Ui.chevronCollapseSize)
-                        .rotate(180f)
-                        .clickable(onClick = onToggle),
-                )
-            }
+            Icon(
+                Icons.Default.KeyboardArrowDown,
+                contentDescription = stringResource(R.string.cd_expand_editor),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(top = Ui.keyRowPaddingV)
+                    .size(Ui.chevronExpandSize)
+                    .clickable(onClick = onToggle),
+            )
         } else if (virtualizeEnabled && lineCount > previewLines * VIRTUALIZE_LINES_FACTOR) {
             // Large output: internal scroll only when toggle on; threshold is 4× collapsed lines.
             VirtualizedOutput(annotated = displayAnnotated, query = query, jumpToBottom = jumpToBottom)
