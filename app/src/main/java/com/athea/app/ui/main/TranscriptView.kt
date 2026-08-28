@@ -176,26 +176,8 @@ fun TranscriptView(
             }
         }
 
-        // Jump button: appears when scrolling down with room below,
-        // disappears when scrolling up or reaching the bottom.
-        var showJumpDown by remember { mutableStateOf(false) }
-        LaunchedEffect(listState) {
-            var previous = -1L
-            snapshotFlow {
-                listState.firstVisibleItemIndex.toLong() * 100_000L +
-                    listState.firstVisibleItemScrollOffset
-            }.collect { pos ->
-                if (pos != previous) {
-                    val movingDown = previous >= 0 && pos > previous
-                    if (movingDown) {
-                        showJumpDown = listState.canScrollForward
-                    } else if (!movingDown) {
-                        showJumpDown = false
-                    }
-                    previous = pos
-                }
-            }
-        }
+        // Jump button: visible whenever not at bottom (Termux-like), not only while moving down.
+        val showJumpDown by remember { derivedStateOf { listState.canScrollForward } }
 
         val currentMatchId = search?.matchBlockIds?.getOrNull(search.index)
 
