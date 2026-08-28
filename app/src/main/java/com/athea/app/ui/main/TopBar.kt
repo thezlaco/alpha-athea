@@ -126,13 +126,13 @@ fun TopBar(
         }
 
         // Menu panel: unified with message/session long-press (same bubble
-        // size, color, text). Slightly higher than the pill so buttons do
-        // not peek from underneath — fixed offset.
+        // size, color, text). Aligned to pill top so buttons do not peek
+        // from underneath — uses same top padding as the row itself.
         Box(
             Modifier
                 .align(Alignment.TopEnd)
                 .statusBarsPadding()
-                .padding(top = 8.dp, end = Ui.topBarHorizontalPadding),
+                .padding(top = Ui.topBarTopPadding, end = Ui.topBarHorizontalPadding),
         ) {
             AtheaDropdownMenu(
                 expanded = menuOpen,

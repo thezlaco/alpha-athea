@@ -83,7 +83,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
 private const val TAIL_LINES = 5
-private const val VIRTUALIZE_THRESHOLD = 30_000
+private const val VIRTUALIZE_LINES_FACTOR = 4
 private const val CHUNK_LINES = 200
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -96,6 +96,7 @@ fun TranscriptView(
     previewLines: Int,
     contentTopPadding: Dp,
     pinchZoomEnabled: Boolean,
+    virtualizeLargeOutput: Boolean = false,
     onOutputFontZoom: (Float) -> Unit,
     onToggleBlock: (String) -> Unit,
     onRevealBlock: (String) -> Unit,
@@ -237,6 +238,8 @@ fun TranscriptView(
                         collapsed = view.collapsed,
                         query = search?.query,
                         currentMatch = block.id == currentMatchId,
+                        virtualizeEnabled = virtualizeLargeOutput,
+                        previewLines = previewLines,
                         onToggle = { onToggleBlock(block.id) },
                     )
                 }
@@ -433,6 +436,8 @@ private fun OutputPanel(
     collapsed: Boolean,
     query: String?,
     currentMatch: Boolean,
+    virtualizeEnabled: Boolean,
+    previewLines: Int,
     onToggle: () -> Unit,
 ) {
     Column(
@@ -502,8 +507,8 @@ private fun OutputPanel(
                     .size(Ui.chevronExpandSize)
                     .clickable(onClick = onToggle),
             )
-        } else if (plainText.length > VIRTUALIZE_THRESHOLD) {
-            // Huge output: virtualized
+        } else if (virtualizeEnabled && lineCount > previewLines * VIRTUALIZE_LINES_FACTOR) {
+            // Large output: internal scroll only when toggle on; threshold is 4× collapsed lines.
             VirtualizedOutput(annotated = displayAnnotated, query = query)
             if (block.running) {
                 BlinkingCursor()
@@ -570,11 +575,13 @@ private fun VirtualizedOutput(annotated: AnnotatedString, query: String?) {
         }
         list
     }
+    val screenHeight = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp
+    val maxH = screenHeight * 0.5f
     Column(Modifier.fillMaxWidth()) {
         Box(
             Modifier
                 .fillMaxWidth()
-                .heightIn(max = 500.dp)
+                .heightIn(max = maxH)
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.06f)),
         ) {
             androidx.compose.foundation.lazy.LazyColumn(
@@ -594,7 +601,7 @@ private fun VirtualizedOutput(annotated: AnnotatedString, query: String?) {
             }
         }
         Text(
-            text = "Virtualized \u00B7 ${annotated.text.lines().size} lines \u00B7 ${annotated.text.length} chars \u00B7 scroll inside",
+            text = stringResource(R.string.scroll_inside),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp),

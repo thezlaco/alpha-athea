@@ -43,6 +43,7 @@ data class AtheaSettings(
     val autocompleteEnabled: Boolean = true,
     val pinchZoomEnabled: Boolean = true,
     val shellPath: String = ShellBackend.SYSTEM_SH.shellPath,
+    val virtualizeLargeOutput: Boolean = false,
 )
 
 /**

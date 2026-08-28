@@ -70,6 +70,8 @@
     <string name="settings_autocomplete_desc">Ghost suggestion from history while typing; Tab accepts it</string>
     <string name="settings_pinch_zoom">Pinch to zoom text</string>
     <string name="settings_pinch_zoom_desc">Two-finger pinch on the transcript scales the font</string>
+    <string name="settings_virtualize">Large output inside scroll</string>
+    <string name="settings_virtualize_desc">When large, scroll inside instead of full page; uses same lines as collapsed view ×4</string>
     <string name="settings_keys_section">Key row tools</string>
     <string name="settings_keys_add">Add button</string>
     <string name="settings_keys_reset">Reset</string>
@@ -111,4 +113,5 @@
         <item quantity="one">%d line</item>
         <item quantity="other">%d lines</item>
     </plurals>
+    <string name="scroll_inside">scroll inside</string>
 </resources>

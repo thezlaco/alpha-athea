@@ -4,8 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -76,50 +76,60 @@ fun KeyRow(
 ) {
     // Fixed bar with thin separators — not floating chips. Tighter to the
     // composer, larger tap targets, calmer than spaced chips.
+    // Exactly 7 keys fill the viewport (no 7.5); extra keys scroll.
+    // Calculated from available width so result is universal across densities,
+    // not hardcoded 46dp that fractures on small screens.
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = modifier.fillMaxWidth(),
     ) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 2.dp, vertical = 2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            keys.forEachIndexed { index, key ->
-                if (index > 0) {
-                    Box(
-                        Modifier
-                            .width(1.dp)
-                            .height(22.dp)
-                            .background(
-                                MaterialTheme.colorScheme.outline.copy(alpha = 0.28f)
-                            ),
-                    )
-                }
-                val selected = key.kind == KeyActionKind.TOGGLE_STICKY_CTRL && stickyCtrl
-                KeyCell(key = key, selected = selected) {
-                    when (key.kind) {
-                        KeyActionKind.INSERT_INTO_DRAFT -> onInsert(key.payload)
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            // Row padding 2dp each side = 4dp, 6 separators between 7 visible = 6dp
+            val visibleCount = 7
+            val separatorsForVisible = (visibleCount - 1) * 1.dp
+            val rowPaddingH = 4.dp
+            val cellWidth = (maxWidth - rowPaddingH - separatorsForVisible) / visibleCount
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 2.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                keys.forEachIndexed { index, key ->
+                    if (index > 0) {
+                        Box(
+                            Modifier
+                                .width(1.dp)
+                                .height(22.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.28f)
+                                ),
+                        )
+                    }
+                    val selected = key.kind == KeyActionKind.TOGGLE_STICKY_CTRL && stickyCtrl
+                    KeyCell(key = key, selected = selected, cellWidth = cellWidth) {
+                        when (key.kind) {
+                            KeyActionKind.INSERT_INTO_DRAFT -> onInsert(key.payload)
 
-                        KeyActionKind.SEND_TO_TERMINAL -> {
-                            if (key == DefaultKeys.TAB && suggestionActive) {
-                                onAcceptSuggestion()
-                                return@KeyCell
+                            KeyActionKind.SEND_TO_TERMINAL -> {
+                                if (key == DefaultKeys.TAB && suggestionActive) {
+                                    onAcceptSuggestion()
+                                    return@KeyCell
+                                }
+                                val ch = key.payload.singleOrNull()
+                                val combinable = ch?.isCtrlCombinable() == true
+                                if (stickyCtrl && combinable && ch != null) {
+                                    val control = ch.toControlChar()
+                                    onSendBytes(control.toString())
+                                    onConsumeStickyCtrl()
+                                } else {
+                                    onSendBytes(key.payload)
+                                }
                             }
-                            val ch = key.payload.singleOrNull()
-                            val combinable = ch?.isCtrlCombinable() == true
-                            if (stickyCtrl && combinable && ch != null) {
-                                val control = ch.toControlChar()
-                                onSendBytes(control.toString())
-                                onConsumeStickyCtrl()
-                            } else {
-                                onSendBytes(key.payload)
-                            }
+
+                            KeyActionKind.TOGGLE_STICKY_CTRL -> onToggleStickyCtrl()
                         }
-
-                        KeyActionKind.TOGGLE_STICKY_CTRL -> onToggleStickyCtrl()
                     }
                 }
             }
@@ -131,11 +141,13 @@ fun KeyRow(
 private fun KeyCell(
     key: TerminalKey,
     selected: Boolean,
+    cellWidth: androidx.compose.ui.unit.Dp,
     onClick: () -> Unit,
 ) {
     Box(
         Modifier
-            .defaultMinSize(minWidth = Ui.keyMinWidth, minHeight = Ui.keyMinHeight)
+            .width(cellWidth)
+            .height(Ui.keyMinHeight)
             .clip(Ui.smallShape)
             .background(
                 if (selected) MaterialTheme.colorScheme.primaryContainer

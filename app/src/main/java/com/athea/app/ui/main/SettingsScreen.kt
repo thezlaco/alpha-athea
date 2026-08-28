@@ -54,6 +54,7 @@ fun SettingsScreen(
     rawStream: Boolean,
     autocompleteEnabled: Boolean,
     pinchZoomEnabled: Boolean,
+    virtualizeLargeOutput: Boolean,
     outputFontSizeSp: Int,
     previewLines: Int,
     bubbleFontSizeSp: Int,
@@ -64,6 +65,7 @@ fun SettingsScreen(
     onRawStreamChange: (Boolean) -> Unit,
     onAutocompleteEnabledChange: (Boolean) -> Unit,
     onPinchZoomEnabledChange: (Boolean) -> Unit,
+    onVirtualizeLargeOutputChange: (Boolean) -> Unit,
     onOutputFontSizeChange: (Int) -> Unit,
     onPreviewLinesChange: (Int) -> Unit,
     onBubbleFontSizeChange: (Int) -> Unit,
@@ -118,6 +120,12 @@ fun SettingsScreen(
                     subtitle = stringResource(R.string.settings_pinch_zoom_desc),
                     checked = pinchZoomEnabled,
                     onChange = onPinchZoomEnabledChange,
+                )
+                SwitchRow(
+                    title = stringResource(R.string.settings_virtualize),
+                    subtitle = stringResource(R.string.settings_virtualize_desc),
+                    checked = virtualizeLargeOutput,
+                    onChange = onVirtualizeLargeOutputChange,
                 )
 
                 HorizontalDivider(Modifier.padding(vertical = Ui.dividerPadding))

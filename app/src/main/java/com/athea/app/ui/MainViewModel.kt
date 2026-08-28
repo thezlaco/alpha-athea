@@ -75,6 +75,7 @@ data class UiState(
     val pinchZoomEnabled: Boolean = true,
     val previewLines: Int = com.athea.app.core.model.PREVIEW_LINES,
     val bubbleFontSizeSp: Int = 16,
+    val virtualizeLargeOutput: Boolean = false,
     val showSettings: Boolean = false,
     val showFavorites: Boolean = false,
     val showAttachChooser: Boolean = false,
@@ -299,6 +300,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 pinchZoomEnabled = settings.pinchZoomEnabled,
                 previewLines = settings.previewLines,
                 bubbleFontSizeSp = settings.bubbleFontSizeSp,
+                virtualizeLargeOutput = settings.virtualizeLargeOutput,
             )
         }
     }
@@ -762,6 +764,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         saveSettings()
     }
 
+    fun setVirtualizeLargeOutput(value: Boolean) {
+        _state.update { it.copy(virtualizeLargeOutput = value) }
+        saveSettings()
+    }
+
     /** Pinch on the transcript: scale the output font live. */
     fun onOutputFontZoom(factor: Float) {
         if (!_state.value.pinchZoomEnabled) return
@@ -832,6 +839,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 bubbleFontSizeSp = st.bubbleFontSizeSp,
                 autocompleteEnabled = st.autocompleteEnabled,
                 pinchZoomEnabled = st.pinchZoomEnabled,
+                virtualizeLargeOutput = st.virtualizeLargeOutput,
             ),
         )
     }
