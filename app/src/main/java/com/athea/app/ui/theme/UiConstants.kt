@@ -99,8 +99,8 @@ object Ui {
 
     // ---- Virtualization ---------------------------------------------------
     const val virtualizedMaxFraction = 0.5f
-    const val chunkSize = 12000
-    const val chunkSlack = 1200
+    const val chunkSize = 4000
+    const val chunkSlack = 400
     const val hugeCharsThreshold = 8000
     const val virtualizeLinesFactor = 4
 

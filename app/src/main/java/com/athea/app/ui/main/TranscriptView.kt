@@ -196,14 +196,14 @@ fun TranscriptView(
             (views.lastOrNull()?.block as? OutputBlock)?.text?.length ?: 0
 
         // Stick to the bottom while the user is near it and output grows.
-        // Use large offset so last chunk's bottom (not top) is visible — chunk may be taller than viewport.
+        // Architectural: each chunk is <= viewport height (4000 chars ~50 lines), so scrolling to last chunk's top is truly very end — no offset hack needed.
         LaunchedEffect(itemCount, lastTextLength) {
             if (itemCount == 0) return@LaunchedEffect
             val info = listState.layoutInfo
             val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: 0
             val nearBottom = info.totalItemsCount == 0 ||
                 lastVisible >= info.totalItemsCount - 2 || !listState.canScrollForward
-            if (nearBottom) try { listState.scrollToItem(itemCount - 1, scrollOffset = 100000) } catch (_: Exception) {}
+            if (nearBottom) try { listState.scrollToItem(itemCount - 1) } catch (_: Exception) {}
         }
 
         // Search navigation: reveal the block, then scroll to its first chunk.
@@ -223,11 +223,11 @@ fun TranscriptView(
             }
         }
 
-        // Forced jumps to the very bottom (e.g. right after sending). Slightly slower than instant — animate with offset to show bottom of tall last chunk.
+        // Forced jumps to the very bottom (e.g. right after sending). Slightly slower than instant — animate, no offset needed as chunk fits viewport.
         LaunchedEffect(session.id, itemCount) {
             jumpToBottom.collect {
                 val last = itemCount - 1
-                if (last >= 0) try { listState.animateScrollToItem(last, scrollOffset = 100000) } catch (_: Exception) {}
+                if (last >= 0) try { listState.animateScrollToItem(last) } catch (_: Exception) {}
             }
         }
 
@@ -364,12 +364,12 @@ fun TranscriptView(
             val scope = rememberCoroutineScope()
             Surface(
                 onClick = {
-                    // Use layoutInfo totalItemsCount at click time (fresh) and large offset to show bottom of tall last chunk; slightly slower than instant via animate
-                    val last = listState.layoutInfo.totalItemsCount - 1
-                    if (last >= 0) scope.launch { try { listState.animateScrollToItem(last, scrollOffset = 100000) } catch (_: Exception) {} }
+                    // Use itemCount at click time (fresh displayItems) — each chunk fits viewport, so animate to last chunk's top is truly very end, slightly slower than instant.
+                    val last = itemCount - 1
+                    if (last >= 0) scope.launch { try { listState.animateScrollToItem(last) } catch (_: Exception) {} }
                     else {
-                        val fallback = itemCount - 1
-                        if (fallback >= 0) scope.launch { try { listState.animateScrollToItem(fallback, scrollOffset = 100000) } catch (_: Exception) {} }
+                        val fallback = listState.layoutInfo.totalItemsCount - 1
+                        if (fallback >= 0) scope.launch { try { listState.animateScrollToItem(fallback) } catch (_: Exception) {} }
                     }
                 },
                 shape = androidx.compose.foundation.shape.CircleShape,
