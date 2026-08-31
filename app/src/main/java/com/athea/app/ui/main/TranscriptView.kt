@@ -150,25 +150,32 @@ fun TranscriptView(
 
         val listState = rememberLazyListState()
         val views = session.blocks
+        // Viewport-adaptive chunk size: one screen of text, so each chunk fits viewport and scrollToItem(last) is truly very end.
+        val viewportChunkSize = remember(constraints.maxHeight, constraints.maxWidth, cellStyle) {
+            val charLayout = measurer.measure(AnnotatedString("M"), cellStyle)
+            val rows = (constraints.maxHeight / charLayout.size.height.coerceAtLeast(1)).coerceAtLeast(20)
+            val cols = (constraints.maxWidth / charLayout.size.width.coerceAtLeast(1)).coerceAtLeast(40)
+            (rows * cols).coerceIn(2000, 8000)
+        }
         // Architectural: huge fully-expanded output is split into multiple outer
         // LazyColumn items (chunks) so outer virtualization composes only visible
         // chunks and scrollToItem(last) is truly very end — no large offset hack.
         // Termux does same via TerminalBuffer grid, we do via chunked items.
-        val displayItems = remember(views, previewLines, virtualizeLargeOutput) {
+        val displayItems = remember(views, viewportChunkSize, virtualizeLargeOutput) {
             val out = mutableListOf<DisplayItem>()
             for (view in views) {
                 val block = view.block
                 if (block is OutputBlock && !view.collapsed && !virtualizeLargeOutput) {
                     val plain = block.text.trimCommand()
                     val lineCount = plain.count { it == '\n' } + 1
-                    val isHuge = lineCount > previewLines * VIRTUALIZE_LINES_FACTOR || plain.length > 8000
+                    val isHuge = lineCount > Ui.hugeLinesThreshold || plain.length > Ui.hugeCharsThreshold
                     if (isHuge) {
                         val annotated = run {
                             val t = block.annotated.text.trimEnd('\n')
                             if (t.length == block.annotated.text.length) block.annotated
                             else AnnotatedString(t, block.annotated.spanStyles, block.annotated.paragraphStyles)
                         }
-                        val chunks = chunkAnnotated(annotated)
+                        val chunks = chunkAnnotated(annotated, viewportChunkSize)
                         chunks.forEachIndexed { idx, chunk ->
                             out.add(DisplayItem.Chunk(block.id, chunk, idx, idx == 0, idx == chunks.lastIndex, block.exitCode))
                         }
@@ -628,8 +635,8 @@ private fun OutputPanel(
                     .size(Ui.chevronExpandSize)
                     .clickable(onClick = onToggle),
             )
-        } else if (virtualizeEnabled && lineCount > previewLines * VIRTUALIZE_LINES_FACTOR) {
-            // Large output: internal scroll only when toggle on; threshold is 4× collapsed lines.
+        } else if (virtualizeEnabled && lineCount > Ui.hugeLinesThreshold) {
+            // Large output: internal scroll only when toggle on; threshold is TAIL_LINES*4.
             VirtualizedOutput(annotated = displayAnnotated, query = query, jumpToBottom = jumpToBottom)
             if (block.running) {
                 BlinkingCursor()
@@ -651,8 +658,8 @@ private fun OutputPanel(
             // virtualize toggle is off. Off = fully expanded Column (no inner
             // scroll, no label), on = bounded LazyColumn inside 50% box.
             // Termux solves same via TerminalBuffer grid + canvas draw; we copy
-            // by chunking AnnotatedString (4k) and rendering per-chunk Texts.
-            val isHuge = lineCount > previewLines * Ui.virtualizeLinesFactor || plainText.length > Ui.hugeCharsThreshold
+            // by chunking AnnotatedString and rendering per-chunk Texts.
+            val isHuge = lineCount > Ui.hugeLinesThreshold || plainText.length > Ui.hugeCharsThreshold
             if (isHuge) {
                 ChunkedExpanded(annotated = displayAnnotated, query = query)
             } else {
@@ -686,9 +693,8 @@ private fun OutputPanel(
     }
 }
 
-private fun chunkAnnotated(annotated: AnnotatedString): List<AnnotatedString> {
+private fun chunkAnnotated(annotated: AnnotatedString, chunkSize: Int = Ui.chunkSize): List<AnnotatedString> {
     val total = annotated.text.length
-    val chunkSize = Ui.chunkSize
     val list = mutableListOf<AnnotatedString>()
     var offset = 0
     while (offset < total) {
