@@ -695,10 +695,18 @@ private fun chunkAnnotated(annotated: AnnotatedString): List<AnnotatedString> {
         val end = minOf(offset + chunkSize, total)
         val chunkEnd = if (end < total) {
             val nextNl = annotated.text.indexOf('\n', end)
-            if (nextNl != -1 && nextNl - offset < chunkSize + Ui.chunkSlack) nextNl + 1 else end
+            // Do not include trailing \n — separate Text items already provide line break,
+            // including it would render an extra empty line at chunk boundary.
+            if (nextNl != -1 && nextNl - offset < chunkSize + Ui.chunkSlack) nextNl else end
         } else end
-        list.add(annotated.subSequence(offset, chunkEnd))
-        offset = chunkEnd
+        // Avoid empty chunks when nextNl == offset
+        if (chunkEnd == offset) {
+            list.add(annotated.subSequence(offset, offset + 1))
+            offset += 1
+        } else {
+            list.add(annotated.subSequence(offset, chunkEnd))
+            offset = if (chunkEnd < total && annotated.text[chunkEnd] == '\n') chunkEnd + 1 else chunkEnd
+        }
     }
     return list
 }
