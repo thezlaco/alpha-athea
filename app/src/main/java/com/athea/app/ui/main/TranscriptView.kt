@@ -202,14 +202,24 @@ fun TranscriptView(
         val lastTextLength =
             (views.lastOrNull()?.block as? OutputBlock)?.text?.length ?: 0
 
-        // Stick to the bottom while the user is near it and output grows.
-        // Architectural: each chunk is <= viewport height (4000 chars ~50 lines), so scrolling to last chunk's top is truly very end — no offset hack needed.
+        // Track previous visible state to decide if we were at bottom before new output arrived.
+        // Using prev values avoids the bug where new total makes lastVisible >= newTotal-2 false even though we were at bottom.
+        var prevLastVisible by remember { mutableStateOf(0) }
+        var prevTotal by remember { mutableStateOf(0) }
+        LaunchedEffect(listState) {
+            snapshotFlow {
+                listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 to listState.layoutInfo.totalItemsCount
+            }.collect { (lastVisible, total) ->
+                prevLastVisible = lastVisible
+                prevTotal = total
+            }
+        }
+        // Stick to the bottom while the user was near it before output grew.
         LaunchedEffect(itemCount, lastTextLength) {
             if (itemCount == 0) return@LaunchedEffect
-            val info = listState.layoutInfo
-            val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: 0
-            val nearBottom = info.totalItemsCount == 0 ||
-                lastVisible >= info.totalItemsCount - 2 || !listState.canScrollForward
+            val wasNearBottom = prevTotal == 0 || prevLastVisible >= prevTotal - 2
+            // Also consider current canScrollForward as fallback for initial
+            val nearBottom = wasNearBottom || !listState.canScrollForward
             if (nearBottom) try { listState.scrollToItem(itemCount - 1) } catch (_: Exception) {}
         }
 
