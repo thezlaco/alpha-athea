@@ -223,11 +223,11 @@ fun TranscriptView(
             }
         }
 
-        // Forced jumps to the very bottom (e.g. right after sending). Instant, not animated — much faster.
+        // Forced jumps to the very bottom (e.g. right after sending). Animate slightly slower than instant (250ms) as requested, but still much faster than default.
         LaunchedEffect(session.id, itemCount) {
             jumpToBottom.collect {
                 val last = itemCount - 1
-                if (last >= 0) try { listState.scrollToItem(last) } catch (_: Exception) {}
+                if (last >= 0) try { listState.animateScrollToItem(last) } catch (_: Exception) {}
             }
         }
 
@@ -364,8 +364,13 @@ fun TranscriptView(
             val scope = rememberCoroutineScope()
             Surface(
                 onClick = {
-                    val last = itemCount - 1
-                    if (last >= 0) scope.launch { try { listState.scrollToItem(last) } catch (_: Exception) {} }
+                    // Use layoutInfo totalItemsCount at click time (fresh), not captured itemCount, so repeated presses always go to true end even if new chunks arrived
+                    val last = listState.layoutInfo.totalItemsCount - 1
+                    if (last >= 0) scope.launch { try { listState.animateScrollToItem(last) } catch (_: Exception) {} }
+                    else {
+                        val fallback = itemCount - 1
+                        if (fallback >= 0) scope.launch { try { listState.animateScrollToItem(fallback) } catch (_: Exception) {} }
+                    }
                 },
                 shape = androidx.compose.foundation.shape.CircleShape,
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,

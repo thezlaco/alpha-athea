@@ -302,8 +302,9 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
                     )
 
                     if (state.keyRowVisible && state.search == null) {
+                        val keys = androidx.compose.runtime.remember(state.customKeys) { keyRowKeys(state) }
                         KeyRow(
-                            keys = keyRowKeys(state),
+                            keys = keys,
                             stickyCtrl = state.stickyCtrl,
                             suggestionActive = state.suggestion != null,
                             onInsert = viewModel::insertIntoDraft,
