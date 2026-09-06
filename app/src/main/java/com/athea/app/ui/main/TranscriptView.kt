@@ -155,7 +155,7 @@ fun TranscriptView(
             val charLayout = measurer.measure(AnnotatedString("M"), cellStyle)
             val rows = (constraints.maxHeight / charLayout.size.height.coerceAtLeast(1)).coerceAtLeast(20)
             val cols = (constraints.maxWidth / charLayout.size.width.coerceAtLeast(1)).coerceAtLeast(40)
-            (rows * cols).coerceIn(2000, 8000)
+            (rows * cols).coerceIn(Ui.chunkSize / 2, Ui.chunkSize * 2)
         }
         // Architectural: huge fully-expanded output is split into multiple outer
         // LazyColumn items (chunks) so outer virtualization composes only visible
@@ -217,6 +217,7 @@ fun TranscriptView(
             }
         }
         // Stick to the bottom while the user was near it before output grew.
+        // No offset hack — viewport-adaptive chunks fit viewport, so last chunk's top is very end.
         LaunchedEffect(itemCount, lastTextLength) {
             if (itemCount == 0) return@LaunchedEffect
             val wasNearBottom = prevTotal == 0 || prevLastVisible >= prevTotal - 2
@@ -242,7 +243,7 @@ fun TranscriptView(
             }
         }
 
-        // Forced jumps to the very bottom (e.g. right after sending). Slightly slower than instant — animate, no offset needed as chunk fits viewport.
+        // Forced jumps to the very bottom (e.g. right after sending). Slightly slower than instant — animate.
         LaunchedEffect(session.id, itemCount) {
             jumpToBottom.collect {
                 val last = itemCount - 1
@@ -254,21 +255,21 @@ fun TranscriptView(
         // disappears when scrolling up or reaching the bottom.
         var showJumpDown by remember { mutableStateOf(false) }
         LaunchedEffect(listState) {
-            var previous = -1L
-            snapshotFlow {
-                listState.firstVisibleItemIndex.toLong() * 100_000L +
-                    listState.firstVisibleItemScrollOffset
-            }.collect { pos ->
-                if (pos != previous) {
-                    val movingDown = previous >= 0 && pos > previous
-                    if (movingDown) {
-                        showJumpDown = listState.canScrollForward
-                    } else if (!movingDown) {
-                        showJumpDown = false
+            var prevIndex = -1
+            var prevOffset = -1
+            snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
+                .collect { (idx, offset) ->
+                    if (idx != prevIndex || offset != prevOffset) {
+                        val movingDown = prevIndex >= 0 && (idx > prevIndex || (idx == prevIndex && offset > prevOffset))
+                        if (movingDown) {
+                            showJumpDown = listState.canScrollForward
+                        } else if (prevIndex >= 0 && (idx < prevIndex || (idx == prevIndex && offset < prevOffset))) {
+                            showJumpDown = false
+                        }
+                        prevIndex = idx
+                        prevOffset = offset
                     }
-                    previous = pos
                 }
-            }
         }
 
         val currentMatchId = search?.matchBlockIds?.getOrNull(search.index)
@@ -383,12 +384,12 @@ fun TranscriptView(
             val scope = rememberCoroutineScope()
             Surface(
                 onClick = {
-                    // Use itemCount at click time (fresh displayItems) — each chunk fits viewport, so animate to last chunk's top is truly very end, slightly slower than instant.
+                    // Use large offset so last chunk's bottom is visible, slightly slower than instant via animate
                     val last = itemCount - 1
-                    if (last >= 0) scope.launch { try { listState.animateScrollToItem(last) } catch (_: Exception) {} }
+                    if (last >= 0) scope.launch { try { listState.animateScrollToItem(last, scrollOffset = constraints.maxHeight) } catch (_: Exception) {} }
                     else {
                         val fallback = listState.layoutInfo.totalItemsCount - 1
-                        if (fallback >= 0) scope.launch { try { listState.animateScrollToItem(fallback) } catch (_: Exception) {} }
+                        if (fallback >= 0) scope.launch { try { listState.animateScrollToItem(fallback, scrollOffset = constraints.maxHeight) } catch (_: Exception) {} }
                     }
                 },
                 shape = androidx.compose.foundation.shape.CircleShape,
