@@ -729,16 +729,17 @@ private fun chunkAnnotated(annotated: AnnotatedString, chunkSize: Int = Ui.chunk
 
 @Composable
 private fun VirtualizedOutput(annotated: AnnotatedString, query: String?, jumpToBottom: Flow<Unit>? = null) {
-    val chunks = remember(annotated) { chunkAnnotated(annotated) }
+    // Inner viewport is 50% screen, so chunk is half of outer viewport-adaptive size
+    val chunks = remember(annotated) { chunkAnnotated(annotated, Ui.chunkSize / 2) }
     val innerState = rememberLazyListState()
-    // Termux-like: inner virtualized list also pinned to bottom when new output arrives — instant, not animated
+    // Termux-like: inner virtualized list pinned to bottom — auto instant, jump slightly slower (animate)
     androidx.compose.runtime.LaunchedEffect(chunks.size) {
         if (chunks.isNotEmpty()) try { innerState.scrollToItem(chunks.size - 1) } catch (_: Exception) {}
     }
     if (jumpToBottom != null) {
         androidx.compose.runtime.LaunchedEffect(jumpToBottom) {
             jumpToBottom.collect {
-                if (chunks.isNotEmpty()) try { innerState.scrollToItem(chunks.size - 1) } catch (_: Exception) {}
+                if (chunks.isNotEmpty()) try { innerState.animateScrollToItem(chunks.size - 1) } catch (_: Exception) {}
             }
         }
     }
