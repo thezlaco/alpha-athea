@@ -208,10 +208,12 @@ fun TranscriptView(
         var prevTotal by remember { mutableStateOf(0) }
         LaunchedEffect(listState) {
             snapshotFlow {
-                listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 to listState.layoutInfo.totalItemsCount
-            }.collect { (lastVisible, total) ->
-                prevLastVisible = lastVisible
-                prevTotal = total
+                val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                val total = listState.layoutInfo.totalItemsCount
+                lastVisible to total
+            }.collect { pair ->
+                prevLastVisible = pair.first
+                prevTotal = pair.second
             }
         }
         // Stick to the bottom while the user was near it before output grew.
