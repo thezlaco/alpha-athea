@@ -285,9 +285,12 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
                         }
                     }
 
+                    // Remember draft/suggestion to avoid recomposing InputBar/KeyRow on every transcript throttle (100ms)
+                    val draft = androidx.compose.runtime.remember(current?.draft) { current?.draft.orEmpty() }
+                    val suggestion = androidx.compose.runtime.remember(state.suggestion, state.search) { if (state.search == null) state.suggestion else null }
                     InputBar(
-                        draft = current?.draft.orEmpty(),
-                        suggestion = if (state.search == null) state.suggestion else null,
+                        draft = draft,
+                        suggestion = suggestion,
                         attachments = state.attachments,
                         onDraftChange = viewModel::updateDraft,
                         onSend = viewModel::sendDraft,
@@ -303,10 +306,12 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
 
                     if (state.keyRowVisible && state.search == null) {
                         val keys = androidx.compose.runtime.remember(state.customKeys) { keyRowKeys(state) }
+                        val stickyCtrl = androidx.compose.runtime.remember(state.stickyCtrl) { state.stickyCtrl }
+                        val suggestionActive = androidx.compose.runtime.remember(suggestion) { suggestion != null }
                         KeyRow(
                             keys = keys,
-                            stickyCtrl = state.stickyCtrl,
-                            suggestionActive = state.suggestion != null,
+                            stickyCtrl = stickyCtrl,
+                            suggestionActive = suggestionActive,
                             onInsert = viewModel::insertIntoDraft,
                             onSendBytes = viewModel::sendDirectText,
                             onAcceptSuggestion = viewModel::acceptSuggestion,

@@ -163,30 +163,35 @@ fun TranscriptView(
         // LazyColumn items (chunks) so outer virtualization composes only visible
         // chunks and scrollToItem(last) is truly very end — no large offset hack.
         // Termux does same via TerminalBuffer grid, we do via chunked items.
-        val displayItems = remember(views, viewportChunkSize, virtualizeLargeOutput) {
-            val out = mutableListOf<DisplayItem>()
-            for (view in views) {
-                val block = view.block
-                if (block is OutputBlock && !view.collapsed && !virtualizeLargeOutput) {
-                    val plain = block.text.trimCommand()
-                    val lineCount = plain.count { it == '\n' } + 1
-                    val isHuge = lineCount > Ui.hugeLinesThreshold || plain.length > Ui.hugeCharsThreshold
-                    if (isHuge) {
-                        val annotated = run {
-                            val t = block.annotated.text.trimEnd('\n')
-                            if (t.length == block.annotated.text.length) block.annotated
-                            else AnnotatedString(t, block.annotated.spanStyles, block.annotated.paragraphStyles)
+        // Offload chunking from main thread to avoid jank when scrolling tools.
+        var displayItems by remember { mutableStateOf<List<DisplayItem>>(emptyList()) }
+        LaunchedEffect(views, viewportChunkSize, virtualizeLargeOutput) {
+            val out = with(kotlinx.coroutines.Dispatchers.Default) {
+                val list = mutableListOf<DisplayItem>()
+                for (view in views) {
+                    val block = view.block
+                    if (block is OutputBlock && !view.collapsed && !virtualizeLargeOutput) {
+                        val plain = block.text.trimCommand()
+                        val lineCount = plain.count { it == '\n' } + 1
+                        val isHuge = lineCount > Ui.hugeLinesThreshold || plain.length > Ui.hugeCharsThreshold
+                        if (isHuge) {
+                            val annotated = run {
+                                val t = block.annotated.text.trimEnd('\n')
+                                if (t.length == block.annotated.text.length) block.annotated
+                                else AnnotatedString(t, block.annotated.spanStyles, block.annotated.paragraphStyles)
+                            }
+                            val chunks = chunkAnnotated(annotated, viewportChunkSize)
+                            chunks.forEachIndexed { idx, chunk ->
+                                list.add(DisplayItem.Chunk(block.id, chunk, idx, idx == 0, idx == chunks.lastIndex, block.exitCode))
+                            }
+                            continue
                         }
-                        val chunks = chunkAnnotated(annotated, viewportChunkSize)
-                        chunks.forEachIndexed { idx, chunk ->
-                            out.add(DisplayItem.Chunk(block.id, chunk, idx, idx == 0, idx == chunks.lastIndex, block.exitCode))
-                        }
-                        continue
                     }
+                    list.add(DisplayItem.Block(view))
                 }
-                out.add(DisplayItem.Block(view))
+                list
             }
-            out
+            displayItems = out
         }
         // Map blockId -> first display index for search navigation
         val blockToDisplayIndex = remember(displayItems) {
