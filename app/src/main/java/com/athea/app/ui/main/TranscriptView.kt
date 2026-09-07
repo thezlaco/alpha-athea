@@ -9,6 +9,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -28,6 +29,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -202,28 +204,22 @@ fun TranscriptView(
         val lastTextLength =
             (views.lastOrNull()?.block as? OutputBlock)?.text?.length ?: 0
 
-        // Track previous visible state to decide if we were at bottom before new output arrived.
-        // Using prev values avoids the bug where new total makes lastVisible >= newTotal-2 false even though we were at bottom.
-        var prevLastVisible by remember { mutableStateOf(0) }
-        var prevTotal by remember { mutableStateOf(0) }
+        // A chunk can be much taller than the viewport.  Therefore the last
+        // visible *item* is not sufficient to tell whether we are at the end:
+        // it may only be the beginning of that last chunk.  Keep following
+        // output only while its final line was actually visible.
+        var stickToBottom by remember { mutableStateOf(true) }
         LaunchedEffect(listState) {
-            snapshotFlow {
-                val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                val total = listState.layoutInfo.totalItemsCount
-                lastVisible to total
-            }.collect { pair ->
-                prevLastVisible = pair.first
-                prevTotal = pair.second
+            snapshotFlow { !listState.canScrollForward }.collect { atBottom ->
+                stickToBottom = atBottom
             }
         }
-        // Stick to the bottom while the user was near it before output grew.
-        // No offset hack — viewport-adaptive chunks fit viewport, so last chunk's top is very end.
+        // Stick to the real bottom while output grows, including the tail of
+        // a last chunk that is taller than one viewport.
         LaunchedEffect(itemCount, lastTextLength) {
-            if (itemCount == 0) return@LaunchedEffect
-            val wasNearBottom = prevTotal == 0 || prevLastVisible >= prevTotal - 2
-            // Also consider current canScrollForward as fallback for initial
-            val nearBottom = wasNearBottom || !listState.canScrollForward
-            if (nearBottom) try { listState.scrollToItem(itemCount - 1) } catch (_: Exception) {}
+            if (itemCount > 0 && stickToBottom) {
+                try { listState.scrollToEnd(itemCount - 1) } catch (_: Exception) {}
+            }
         }
 
         // Search navigation: reveal the block, then scroll to its first chunk.
@@ -247,29 +243,17 @@ fun TranscriptView(
         LaunchedEffect(session.id, itemCount) {
             jumpToBottom.collect {
                 val last = itemCount - 1
-                if (last >= 0) try { listState.animateScrollToItem(last) } catch (_: Exception) {}
+                if (last >= 0) try { listState.animateScrollToEnd(last) } catch (_: Exception) {}
             }
         }
 
-        // Jump button: appears when scrolling down with room below,
-        // disappears when scrolling up or reaching the bottom.
+        // The button remains available whenever even part of a tall final
+        // chunk is below the viewport, and disappears only at the true end.
         var showJumpDown by remember { mutableStateOf(false) }
         LaunchedEffect(listState) {
-            var prevIndex = -1
-            var prevOffset = -1
-            snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
-                .collect { (idx, offset) ->
-                    if (idx != prevIndex || offset != prevOffset) {
-                        val movingDown = prevIndex >= 0 && (idx > prevIndex || (idx == prevIndex && offset > prevOffset))
-                        if (movingDown) {
-                            showJumpDown = listState.canScrollForward
-                        } else if (prevIndex >= 0 && (idx < prevIndex || (idx == prevIndex && offset < prevOffset))) {
-                            showJumpDown = false
-                        }
-                        prevIndex = idx
-                        prevOffset = offset
-                    }
-                }
+            snapshotFlow { listState.canScrollForward }.collect { canScrollForward ->
+                showJumpDown = canScrollForward
+            }
         }
 
         val currentMatchId = search?.matchBlockIds?.getOrNull(search.index)
@@ -361,7 +345,6 @@ fun TranscriptView(
                                 )
                             }
                             if (item.isLast) {
-                                val collapsible = true
                                 Icon(
                                     Icons.Default.KeyboardArrowDown,
                                     contentDescription = stringResource(R.string.cd_collapse),
@@ -384,12 +367,13 @@ fun TranscriptView(
             val scope = rememberCoroutineScope()
             Surface(
                 onClick = {
-                    // Use large offset so last chunk's bottom is visible, slightly slower than instant via animate
+                    // A final chunk can exceed the viewport, so moving to
+                    // that item alone would stop at its first line.
                     val last = itemCount - 1
-                    if (last >= 0) scope.launch { try { listState.animateScrollToItem(last, scrollOffset = constraints.maxHeight) } catch (_: Exception) {} }
+                    if (last >= 0) scope.launch { try { listState.animateScrollToEnd(last) } catch (_: Exception) {} }
                     else {
                         val fallback = listState.layoutInfo.totalItemsCount - 1
-                        if (fallback >= 0) scope.launch { try { listState.animateScrollToItem(fallback, scrollOffset = constraints.maxHeight) } catch (_: Exception) {} }
+                        if (fallback >= 0) scope.launch { try { listState.animateScrollToEnd(fallback) } catch (_: Exception) {} }
                     }
                 },
                 shape = androidx.compose.foundation.shape.CircleShape,
@@ -730,19 +714,54 @@ private fun chunkAnnotated(annotated: AnnotatedString, chunkSize: Int = Ui.chunk
     return list
 }
 
+/** Move to the actual end even when the final lazy-list item is very tall. */
+private suspend fun LazyListState.scrollToEnd(lastIndex: Int) {
+    scrollToItem(lastIndex)
+    scrollRemainingToEnd()
+}
+
+/** Animate to the actual end even when the final lazy-list item is very tall. */
+private suspend fun LazyListState.animateScrollToEnd(lastIndex: Int) {
+    animateScrollToItem(lastIndex)
+    scrollRemainingToEnd()
+}
+
+/**
+ * Finish a jump through a tall final item one viewport at a time.  Passing a
+ * giant synthetic offset to [scrollBy] can create numerical instability in
+ * the lazy-list measurement code, so use the measured viewport instead.
+ */
+private suspend fun LazyListState.scrollRemainingToEnd() {
+    while (canScrollForward) {
+        val viewportHeight =
+            (layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset).toFloat()
+        if (viewportHeight <= 0f || scrollBy(viewportHeight) <= 0f) return
+    }
+}
+
 @Composable
 private fun VirtualizedOutput(annotated: AnnotatedString, query: String?, jumpToBottom: Flow<Unit>? = null) {
     // Inner viewport is 50% screen, so chunk is half of outer viewport-adaptive size
     val chunks = remember(annotated) { chunkAnnotated(annotated, Ui.chunkSize / 2) }
     val innerState = rememberLazyListState()
+    // Do not pull a reader back to the end after they scroll inside a large
+    // output block; follow only while they were at its actual bottom.
+    var stickToBottom by remember { mutableStateOf(true) }
+    androidx.compose.runtime.LaunchedEffect(innerState) {
+        snapshotFlow { !innerState.canScrollForward }.collect { atBottom ->
+            stickToBottom = atBottom
+        }
+    }
     // Termux-like: inner virtualized list pinned to bottom — auto instant, jump slightly slower (animate)
     androidx.compose.runtime.LaunchedEffect(chunks.size) {
-        if (chunks.isNotEmpty()) try { innerState.scrollToItem(chunks.size - 1) } catch (_: Exception) {}
+        if (chunks.isNotEmpty() && stickToBottom) {
+            try { innerState.scrollToEnd(chunks.size - 1) } catch (_: Exception) {}
+        }
     }
     if (jumpToBottom != null) {
         androidx.compose.runtime.LaunchedEffect(jumpToBottom) {
             jumpToBottom.collect {
-                if (chunks.isNotEmpty()) try { innerState.animateScrollToItem(chunks.size - 1) } catch (_: Exception) {}
+                if (chunks.isNotEmpty()) try { innerState.animateScrollToEnd(chunks.size - 1) } catch (_: Exception) {}
             }
         }
     }
