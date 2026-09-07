@@ -213,11 +213,19 @@ fun TranscriptView(
         // visible *item* is not sufficient to tell whether we are at the end:
         // it may only be the beginning of that last chunk.  Keep following
         // output only while its final line was actually visible.
+        // Debounce to avoid sticky when quickly scrolling back-and-forth — more responsive.
         var stickToBottom by remember { mutableStateOf(true) }
         LaunchedEffect(listState) {
-            snapshotFlow { !listState.canScrollForward }.collect { atBottom ->
-                stickToBottom = atBottom
-            }
+            snapshotFlow { !listState.canScrollForward }
+                .collect { atBottom ->
+                    if (atBottom) {
+                        // Require staying at bottom for a moment before sticking, so quick back-and-forth doesn't stick
+                        kotlinx.coroutines.delay(200)
+                        if (!listState.canScrollForward) stickToBottom = true
+                    } else {
+                        stickToBottom = false
+                    }
+                }
         }
         // Stick to the real bottom while output grows, including the tail of
         // a last chunk that is taller than one viewport.
@@ -750,11 +758,16 @@ private fun VirtualizedOutput(annotated: AnnotatedString, query: String?, jumpTo
     val chunks = remember(annotated) { chunkAnnotated(annotated, Ui.chunkSize / 2) }
     val innerState = rememberLazyListState()
     // Do not pull a reader back to the end after they scroll inside a large
-    // output block; follow only while they were at its actual bottom.
+    // output block; follow only while they were at its actual bottom — debounced for responsiveness.
     var stickToBottom by remember { mutableStateOf(true) }
     androidx.compose.runtime.LaunchedEffect(innerState) {
         snapshotFlow { !innerState.canScrollForward }.collect { atBottom ->
-            stickToBottom = atBottom
+            if (atBottom) {
+                kotlinx.coroutines.delay(200)
+                if (!innerState.canScrollForward) stickToBottom = true
+            } else {
+                stickToBottom = false
+            }
         }
     }
     // Termux-like: inner virtualized list pinned to bottom — auto instant, jump slightly slower (animate)

@@ -111,11 +111,10 @@ fun InputBar(
     }
 }
 
-/** Union of navigation-bar and IME insets: tighter to the key row. */
+/** Tighter to the key row — no extra stripe under input, transparent background. */
 @Composable
 private fun Modifier.barPadding(): Modifier =
     this
-        .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
         .padding(horizontal = 10.dp, vertical = 5.dp)
 
 /**
