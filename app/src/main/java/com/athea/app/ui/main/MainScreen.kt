@@ -252,75 +252,128 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
                     .imePadding()
                     .background(MaterialTheme.colorScheme.background),
             ) {
-                Column(Modifier.fillMaxSize()) {
+                // Transcript fills entire area — InputBar/KeyRow float above with half-height dimming, no solid black stripe
+                if (current != null) {
+                    // Remember draft/suggestion before transcript to reuse for bottom inset logic
+                    val draft = androidx.compose.runtime.remember(current.draft) { current.draft.orEmpty() }
+                    val suggestion = androidx.compose.runtime.remember(state.suggestion, state.search) { if (state.search == null) state.suggestion else null }
+                    // Bottom inset for overlay: InputBar ~60dp + KeyRow ~48dp + nav
+                    val overlayBottom = 112.dp + Ui.contentPaddingV
+                    TranscriptView(
+                        session = current,
+                        search = state.search,
+                        scrollRequests = viewModel.scrollRequests,
+                        jumpToBottom = viewModel.jumpToBottom,
+                        previewLines = state.previewLines,
+                        contentTopPadding = statusBarTop + Ui.topBarContentTop,
+                        contentBottomPadding = overlayBottom,
+                        pinchZoomEnabled = state.pinchZoomEnabled,
+                        virtualizeLargeOutput = state.virtualizeLargeOutput,
+                        onOutputFontZoom = viewModel::onOutputFontZoom,
+                        onToggleBlock = viewModel::toggleBlockCollapsed,
+                        onRevealBlock = viewModel::revealBlock,
+                        onLocateBlock = { blockId ->
+                            current.blocks.indexOfFirst { it.block.id == blockId }
+                        },
+                        onCopyCommand = { text ->
+                            context.copyToClipboard(text, "athea-command")
+                        },
+                        onSelectCommandText = viewModel::showSelectText,
+                        onAddToFavorites = viewModel::addFavorite,
+                        onAreaResized = viewModel::onTranscriptAreaResized,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    // Bottom dimming from half vertical of input bubble downward — emptiness where text can peek through
                     Box(
                         Modifier
-                            .weight(1f)
-                            .fillMaxSize(),
+                            .align(Alignment.BottomStart)
+                            .fillMaxWidth()
+                            .height(90.dp)
+                            .background(
+                                Brush.verticalGradient(
+                                    0f to Color.Transparent,
+                                    1f to Color.Black.copy(alpha = 0.52f),
+                                )
+                            ),
+                    )
+                    Column(
+                        Modifier
+                            .align(Alignment.BottomStart)
+                            .fillMaxWidth(),
                     ) {
-                        if (current != null) {
-                            TranscriptView(
-                                session = current,
-                                search = state.search,
-                                scrollRequests = viewModel.scrollRequests,
-                                jumpToBottom = viewModel.jumpToBottom,
-                                previewLines = state.previewLines,
-                                contentTopPadding = statusBarTop + Ui.topBarContentTop,
-                                pinchZoomEnabled = state.pinchZoomEnabled,
-                                virtualizeLargeOutput = state.virtualizeLargeOutput,
-                                onOutputFontZoom = viewModel::onOutputFontZoom,
-                                onToggleBlock = viewModel::toggleBlockCollapsed,
-                                onRevealBlock = viewModel::revealBlock,
-                                onLocateBlock = { blockId ->
-                                    current.blocks.indexOfFirst { it.block.id == blockId }
-                                },
-                                onCopyCommand = { text ->
-                                    context.copyToClipboard(text, "athea-command")
-                                },
-                                onSelectCommandText = viewModel::showSelectText,
-                                onAddToFavorites = viewModel::addFavorite,
-                                onAreaResized = viewModel::onTranscriptAreaResized,
-                                modifier = Modifier.fillMaxSize(),
+                        InputBar(
+                            draft = draft,
+                            suggestion = suggestion,
+                            attachments = state.attachments,
+                            onDraftChange = viewModel::updateDraft,
+                            onSend = viewModel::sendDraft,
+                            onExpandEditor = { viewModel.setEditorExpanded(true) },
+                            onAddClick = { viewModel.setShowAttachChooser(true) },
+                            onRemoveAttachment = viewModel::removeAttachment,
+                            search = state.search,
+                            onSearchQueryChange = viewModel::updateSearchQuery,
+                            onSearchNext = viewModel::nextSearchMatch,
+                            onExitSearch = viewModel::exitSearch,
+                            enterSends = state.enterSends,
+                        )
+                        if (state.keyRowVisible && state.search == null) {
+                            val keys = androidx.compose.runtime.remember(state.customKeys) { keyRowKeys(state) }
+                            val stickyCtrl = androidx.compose.runtime.remember(state.stickyCtrl) { state.stickyCtrl }
+                            val suggestionActive = androidx.compose.runtime.remember(suggestion) { suggestion != null }
+                            KeyRow(
+                                keys = keys,
+                                stickyCtrl = stickyCtrl,
+                                suggestionActive = suggestionActive,
+                                onInsert = viewModel::insertIntoDraft,
+                                onSendBytes = viewModel::sendDirectText,
+                                onAcceptSuggestion = viewModel::acceptSuggestion,
+                                onToggleStickyCtrl = viewModel::toggleStickyCtrl,
+                                onConsumeStickyCtrl = viewModel::consumeStickyCtrl,
+                                modifier = Modifier.navigationBarsPadding(),
                             )
                         }
                     }
-
-                    // Remember draft/suggestion to avoid recomposing InputBar/KeyRow on every transcript throttle (100ms)
-                    val draft = androidx.compose.runtime.remember(current?.draft) { current?.draft.orEmpty() }
-                    val suggestion = androidx.compose.runtime.remember(state.suggestion, state.search) { if (state.search == null) state.suggestion else null }
-                    InputBar(
-                        draft = draft,
-                        suggestion = suggestion,
-                        attachments = state.attachments,
-                        onDraftChange = viewModel::updateDraft,
-                        onSend = viewModel::sendDraft,
-                        onExpandEditor = { viewModel.setEditorExpanded(true) },
-                        onAddClick = { viewModel.setShowAttachChooser(true) },
-                        onRemoveAttachment = viewModel::removeAttachment,
-                        search = state.search,
-                        onSearchQueryChange = viewModel::updateSearchQuery,
-                        onSearchNext = viewModel::nextSearchMatch,
-                        onExitSearch = viewModel::exitSearch,
-                        enterSends = state.enterSends,
-                    )
-
-                    if (state.keyRowVisible && state.search == null) {
-                        val keys = androidx.compose.runtime.remember(state.customKeys) { keyRowKeys(state) }
-                        val stickyCtrl = androidx.compose.runtime.remember(state.stickyCtrl) { state.stickyCtrl }
-                        val suggestionActive = androidx.compose.runtime.remember(suggestion) { suggestion != null }
-                        KeyRow(
-                            keys = keys,
-                            stickyCtrl = stickyCtrl,
-                            suggestionActive = suggestionActive,
-                            onInsert = viewModel::insertIntoDraft,
-                            onSendBytes = viewModel::sendDirectText,
-                            onAcceptSuggestion = viewModel::acceptSuggestion,
-                            onToggleStickyCtrl = viewModel::toggleStickyCtrl,
-                            onConsumeStickyCtrl = viewModel::consumeStickyCtrl,
-                            // Bottom inset is handled by the row itself so it
-                            // sits flush under the composer.
-                            modifier = Modifier.navigationBarsPadding(),
+                } else {
+                    // No session yet — keep draft/key row at bottom for empty state
+                    val draft = ""
+                    val suggestion: String? = null
+                    Column(Modifier.fillMaxSize()) { }
+                    Column(
+                        Modifier
+                            .align(Alignment.BottomStart)
+                            .fillMaxWidth(),
+                    ) {
+                        InputBar(
+                            draft = draft,
+                            suggestion = suggestion,
+                            attachments = state.attachments,
+                            onDraftChange = viewModel::updateDraft,
+                            onSend = viewModel::sendDraft,
+                            onExpandEditor = { viewModel.setEditorExpanded(true) },
+                            onAddClick = { viewModel.setShowAttachChooser(true) },
+                            onRemoveAttachment = viewModel::removeAttachment,
+                            search = state.search,
+                            onSearchQueryChange = viewModel::updateSearchQuery,
+                            onSearchNext = viewModel::nextSearchMatch,
+                            onExitSearch = viewModel::exitSearch,
+                            enterSends = state.enterSends,
                         )
+                        if (state.keyRowVisible && state.search == null) {
+                            val keys = androidx.compose.runtime.remember(state.customKeys) { keyRowKeys(state) }
+                            val stickyCtrl = androidx.compose.runtime.remember(state.stickyCtrl) { state.stickyCtrl }
+                            val suggestionActive = false
+                            KeyRow(
+                                keys = keys,
+                                stickyCtrl = stickyCtrl,
+                                suggestionActive = suggestionActive,
+                                onInsert = viewModel::insertIntoDraft,
+                                onSendBytes = viewModel::sendDirectText,
+                                onAcceptSuggestion = viewModel::acceptSuggestion,
+                                onToggleStickyCtrl = viewModel::toggleStickyCtrl,
+                                onConsumeStickyCtrl = viewModel::consumeStickyCtrl,
+                                modifier = Modifier.navigationBarsPadding(),
+                            )
+                        }
                     }
                 }
 

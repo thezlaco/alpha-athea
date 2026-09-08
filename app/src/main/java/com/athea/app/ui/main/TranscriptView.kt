@@ -109,6 +109,7 @@ fun TranscriptView(
     jumpToBottom: Flow<Unit>,
     previewLines: Int,
     contentTopPadding: Dp,
+    contentBottomPadding: Dp = Ui.contentPaddingV,
     pinchZoomEnabled: Boolean,
     virtualizeLargeOutput: Boolean = false,
     onOutputFontZoom: (Float) -> Unit,
@@ -213,17 +214,16 @@ fun TranscriptView(
         // visible *item* is not sufficient to tell whether we are at the end:
         // it may only be the beginning of that last chunk.  Keep following
         // output only while its final line was actually visible.
-        // Debounce to avoid sticky when quickly scrolling back-and-forth — more responsive.
+        // Responsive stick: immediate false on scroll up or while dragging, true only after settled at bottom — avoids sticky on quick back-and-forth.
         var stickToBottom by remember { mutableStateOf(true) }
         LaunchedEffect(listState) {
-            snapshotFlow { !listState.canScrollForward }
-                .collect { atBottom ->
-                    if (atBottom) {
-                        // Require staying at bottom for a moment before sticking, so quick back-and-forth doesn't stick
-                        kotlinx.coroutines.delay(200)
-                        if (!listState.canScrollForward) stickToBottom = true
-                    } else {
+            snapshotFlow { (!listState.canScrollForward) to listState.isScrollInProgress }
+                .collect { (atBottom, inProgress) ->
+                    if (!atBottom || inProgress) {
                         stickToBottom = false
+                    } else {
+                        kotlinx.coroutines.delay(350)
+                        if (!listState.canScrollForward && !listState.isScrollInProgress) stickToBottom = true
                     }
                 }
         }
@@ -293,7 +293,7 @@ fun TranscriptView(
                 ),
             contentPadding = PaddingValues(
                 top = contentTopPadding + Ui.contentPaddingV,
-                bottom = Ui.contentPaddingV,
+                bottom = contentBottomPadding,
             ),
         ) {
             items(displayItems, key = { item ->
@@ -758,15 +758,15 @@ private fun VirtualizedOutput(annotated: AnnotatedString, query: String?, jumpTo
     val chunks = remember(annotated) { chunkAnnotated(annotated, Ui.chunkSize / 2) }
     val innerState = rememberLazyListState()
     // Do not pull a reader back to the end after they scroll inside a large
-    // output block; follow only while they were at its actual bottom — debounced for responsiveness.
+    // output block; follow only while they were at its actual bottom — debounced + isScrollInProgress for responsiveness.
     var stickToBottom by remember { mutableStateOf(true) }
     androidx.compose.runtime.LaunchedEffect(innerState) {
-        snapshotFlow { !innerState.canScrollForward }.collect { atBottom ->
-            if (atBottom) {
-                kotlinx.coroutines.delay(200)
-                if (!innerState.canScrollForward) stickToBottom = true
-            } else {
+        snapshotFlow { (!innerState.canScrollForward) to innerState.isScrollInProgress }.collect { (atBottom, inProgress) ->
+            if (!atBottom || inProgress) {
                 stickToBottom = false
+            } else {
+                kotlinx.coroutines.delay(350)
+                if (!innerState.canScrollForward && !innerState.isScrollInProgress) stickToBottom = true
             }
         }
     }

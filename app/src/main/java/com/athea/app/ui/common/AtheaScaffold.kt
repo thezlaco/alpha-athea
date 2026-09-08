@@ -3,8 +3,10 @@ package com.athea.app.ui.common
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
@@ -32,14 +34,21 @@ fun AtheaScaffold(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
-        Column(
-            Modifier
-                .fillMaxSize()
-                .safeDrawingPadding(),
-        ) {
-            // Floating back button like TopBar left button — no full-width bar, no title, no divider
+        Box(Modifier.fillMaxSize()) {
+            // Content fills entire area behind floating button — no full-width black bar reserved
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .safeDrawingPadding(),
+            ) {
+                // Small spacer so first content is not hidden strictly under floating button; scroll can go behind
+                Spacer(Modifier.height(Ui.topBarContentTop - 12.dp))
+                content()
+            }
+            // Floating back button like TopBar — transparent surroundings, no horizontal field
             Box(
                 Modifier
+                    .align(Alignment.TopStart)
                     .fillMaxWidth()
                     .statusBarsPadding()
                     .padding(
@@ -63,7 +72,6 @@ fun AtheaScaffold(
                     }
                 }
             }
-            content()
         }
     }
 }
