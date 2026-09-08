@@ -35,14 +35,12 @@ fun AtheaScaffold(
 ) {
     Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize()) {
-            // Content fills entire area behind floating button — no full-width black bar reserved
+            // Content fills entire area behind floating button — no reserved black bar, scroll peeks behind button
             Column(
                 Modifier
                     .fillMaxSize()
                     .safeDrawingPadding(),
             ) {
-                // Small spacer so first content is not hidden strictly under floating button; scroll can go behind
-                Spacer(Modifier.height(Ui.topBarContentTop - 12.dp))
                 content()
             }
             // Floating back button like TopBar — transparent surroundings, no horizontal field

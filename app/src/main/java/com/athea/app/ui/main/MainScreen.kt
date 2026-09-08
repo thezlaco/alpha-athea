@@ -257,8 +257,8 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
                     // Remember draft/suggestion before transcript to reuse for bottom inset logic
                     val draft = androidx.compose.runtime.remember(current.draft) { current.draft.orEmpty() }
                     val suggestion = androidx.compose.runtime.remember(state.suggestion, state.search) { if (state.search == null) state.suggestion else null }
-                    // Bottom inset for overlay: InputBar ~60dp + KeyRow ~48dp + nav
-                    val overlayBottom = 112.dp + Ui.contentPaddingV
+                    // Peek-through: let transcript peek behind InputBar side margins with dimming; keep last line above KeyRow only
+                    val overlayBottom = 72.dp + Ui.contentPaddingV
                     TranscriptView(
                         session = current,
                         search = state.search,
@@ -283,16 +283,17 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
                         onAreaResized = viewModel::onTranscriptAreaResized,
                         modifier = Modifier.fillMaxSize(),
                     )
-                    // Bottom dimming from half vertical of input bubble downward — emptiness where text can peek through
+                    // Obvious half-height dimming: starts mid-pill, strong fade so peek is visible
                     Box(
                         Modifier
                             .align(Alignment.BottomStart)
                             .fillMaxWidth()
-                            .height(90.dp)
+                            .height(130.dp)
                             .background(
                                 Brush.verticalGradient(
                                     0f to Color.Transparent,
-                                    1f to Color.Black.copy(alpha = 0.52f),
+                                    0.45f to Color.Transparent,
+                                    1f to Color.Black.copy(alpha = 0.70f),
                                 )
                             ),
                     )

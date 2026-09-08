@@ -111,12 +111,12 @@ fun InputBar(
     }
 }
 
-/** Transparent gap around bubble — no solid stripe under input, emptiness where transcript can peek through with half-height dimming. */
+/** Floating gap — visibly lifted above key row, no solid black stripe; side margins 16dp let transcript peek with dimming */
 @Composable
 private fun Modifier.barPadding(): Modifier =
     this
-        .padding(horizontal = 10.dp)
-        .padding(top = 6.dp, bottom = 4.dp)
+        .padding(horizontal = 16.dp)
+        .padding(top = 10.dp, bottom = 8.dp)
 
 /**
  * One morphing panel, chat-app style:
@@ -209,8 +209,8 @@ private fun DraftPanel(
                                     style = messageStyle(),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
-                                    // Slightly above geometrically to appear optically centered inside 40dp bubble
-                                    modifier = Modifier.align(Alignment.CenterStart).padding(bottom = 1.dp),
+                                    // Optically centered — 2dp lift is clearly visible
+                                    modifier = Modifier.align(Alignment.CenterStart).padding(bottom = 2.dp),
                                 )
                             }
                             // Ghost suggestion: the opaque draft text covers the

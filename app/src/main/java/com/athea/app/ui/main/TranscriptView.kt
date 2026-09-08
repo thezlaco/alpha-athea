@@ -214,7 +214,7 @@ fun TranscriptView(
         // visible *item* is not sufficient to tell whether we are at the end:
         // it may only be the beginning of that last chunk.  Keep following
         // output only while its final line was actually visible.
-        // Responsive stick: immediate false on scroll up or while dragging, true only after settled at bottom — avoids sticky on quick back-and-forth.
+        // Extra responsive: immediate detach while dragging or not at bottom; re-stick only after 600ms idle at true bottom — prevents bounce on quick back-and-forth
         var stickToBottom by remember { mutableStateOf(true) }
         LaunchedEffect(listState) {
             snapshotFlow { (!listState.canScrollForward) to listState.isScrollInProgress }
@@ -222,7 +222,7 @@ fun TranscriptView(
                     if (!atBottom || inProgress) {
                         stickToBottom = false
                     } else {
-                        kotlinx.coroutines.delay(350)
+                        kotlinx.coroutines.delay(600)
                         if (!listState.canScrollForward && !listState.isScrollInProgress) stickToBottom = true
                     }
                 }
@@ -758,14 +758,14 @@ private fun VirtualizedOutput(annotated: AnnotatedString, query: String?, jumpTo
     val chunks = remember(annotated) { chunkAnnotated(annotated, Ui.chunkSize / 2) }
     val innerState = rememberLazyListState()
     // Do not pull a reader back to the end after they scroll inside a large
-    // output block; follow only while they were at its actual bottom — debounced + isScrollInProgress for responsiveness.
+    // output block; follow only while they were at its actual bottom — 600ms idle required
     var stickToBottom by remember { mutableStateOf(true) }
     androidx.compose.runtime.LaunchedEffect(innerState) {
         snapshotFlow { (!innerState.canScrollForward) to innerState.isScrollInProgress }.collect { (atBottom, inProgress) ->
             if (!atBottom || inProgress) {
                 stickToBottom = false
             } else {
-                kotlinx.coroutines.delay(350)
+                kotlinx.coroutines.delay(600)
                 if (!innerState.canScrollForward && !innerState.isScrollInProgress) stickToBottom = true
             }
         }
