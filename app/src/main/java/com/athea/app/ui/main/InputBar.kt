@@ -115,7 +115,8 @@ fun InputBar(
 @Composable
 private fun Modifier.barPadding(): Modifier =
     this
-        .padding(horizontal = 10.dp, vertical = 5.dp)
+        .padding(horizontal = 10.dp)
+        .padding(top = 5.dp, bottom = 0.dp)
 
 /**
  * One morphing panel, chat-app style:
@@ -208,6 +209,7 @@ private fun DraftPanel(
                                     style = messageStyle(),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
+                                    modifier = Modifier.align(Alignment.CenterStart),
                                 )
                             }
                             // Ghost suggestion: the opaque draft text covers the
