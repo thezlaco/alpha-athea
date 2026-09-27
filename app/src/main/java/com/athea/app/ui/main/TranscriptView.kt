@@ -33,7 +33,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -47,7 +46,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -74,6 +72,8 @@ import com.athea.app.core.model.DisplayMode
 import com.athea.app.core.model.OutputBlock
 import com.athea.app.ui.SearchState
 import com.athea.app.ui.SessionUi
+import com.athea.app.ui.common.AtheaMenuHost
+import com.athea.app.ui.common.rememberAtheaMenu
 import com.athea.app.ui.theme.Ui
 import com.athea.app.ui.theme.CodeStyle
 import com.athea.app.ui.theme.HighlightColor
@@ -458,7 +458,7 @@ private fun CommandBubble(
     val lines = block.text.lines()
     val collapsible = lines.size > previewLines
     val bubbleStyle = messageStyle()
-    var menuOpen by remember { mutableStateOf(false) }
+    val menu = rememberAtheaMenu()
 
     Row(
         Modifier
@@ -480,7 +480,7 @@ private fun CommandBubble(
                     // Tapping the bubble body is reserved for text
                     // selection; expand/collapse lives on the chevrons.
                     onClick = {},
-                    onLongClick = { menuOpen = true },
+                    onLongClick = menu::open,
                 ),
         ) {
             Column(Modifier.padding(start = Ui.bubblePaddingH, end = Ui.bubblePaddingH, top = Ui.bubblePaddingTop, bottom = Ui.bubblePaddingBottom)) {
@@ -542,25 +542,19 @@ private fun CommandBubble(
                 }
             }
 
-            AtheaDropdownMenu(
-                expanded = menuOpen,
-                onDismissRequest = { menuOpen = false },
-            ) {
-                AtheaDropdownItem(
+            AtheaMenuHost(menu) {
+                item(
                     icon = Icons.Default.ContentCopy,
                     text = stringResource(R.string.copy),
-                    onClick = { menuOpen = false; onCopy() },
-                )
-                AtheaDropdownItem(
+                ) { onCopy() }
+                item(
                     icon = Icons.Default.TextFields,
                     text = stringResource(R.string.select_text),
-                    onClick = { menuOpen = false; onSelectText() },
-                )
-                AtheaDropdownItem(
+                ) { onSelectText() }
+                item(
                     icon = Icons.Default.Star,
                     text = stringResource(R.string.add_to_favorites),
-                    onClick = { menuOpen = false; onFavorite() },
-                )
+                ) { onFavorite() }
             }
         }
     }

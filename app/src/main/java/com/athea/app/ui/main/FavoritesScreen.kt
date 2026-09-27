@@ -7,34 +7,23 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.StarBorder
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -43,8 +32,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.athea.app.R
 import com.athea.app.core.model.FavoriteCommand
+import com.athea.app.ui.common.AtheaMenuHost
+import com.athea.app.ui.common.AtheaTextFieldDialog
+import com.athea.app.ui.common.rememberAtheaMenu
 import com.athea.app.ui.common.AtheaScaffold
-import com.athea.app.ui.theme.Ui
 
 /**
  * Full list of favorite commands: tap inserts into the editor, long
@@ -78,13 +69,13 @@ fun FavoritesScreen(
         } else {
             LazyColumn(Modifier.fillMaxSize()) {
                 items(favorites, key = { it.id }) { favorite ->
-                    var menuOpen by remember { mutableStateOf(false) }
+                    val menu = rememberAtheaMenu()
                     Row(
                         Modifier
                             .fillMaxWidth()
                             .combinedClickable(
                                 onClick = { onInsert(favorite.text) },
-                                onLongClick = { menuOpen = true },
+                                onLongClick = menu::open,
                             )
                             .padding(horizontal = 20.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -106,35 +97,20 @@ fun FavoritesScreen(
                                 .weight(1f)
                                 .padding(start = 14.dp),
                         )
-                        Box {
-                            IconButton(onClick = { menuOpen = true }) {
-                                Icon(
-                                    Icons.Default.MoreVert,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            AtheaDropdownMenu(
-                                expanded = menuOpen,
-                                onDismissRequest = { menuOpen = false },
-                            ) {
-                                AtheaDropdownItem(
-                                    icon = Icons.Default.PlayArrow,
-                                    text = stringResource(R.string.favorites_run),
-                                    onClick = { menuOpen = false; onRun(favorite.text) },
-                                )
-                                AtheaDropdownItem(
-                                    icon = Icons.Default.Edit,
-                                    text = stringResource(R.string.favorites_edit),
-                                    onClick = { menuOpen = false; editTarget = favorite },
-                                )
-                                AtheaDropdownItem(
-                                    icon = Icons.Default.Delete,
-                                    text = stringResource(R.string.menu_delete),
-                                    tinted = true,
-                                    onClick = { menuOpen = false; onDelete(favorite.id) },
-                                )
-                            }
+                        AtheaMenuHost(menu) {
+                            item(
+                                icon = Icons.Default.PlayArrow,
+                                text = stringResource(R.string.favorites_run),
+                            ) { onRun(favorite.text) }
+                            item(
+                                icon = Icons.Default.Edit,
+                                text = stringResource(R.string.favorites_edit),
+                            ) { editTarget = favorite }
+                            item(
+                                icon = Icons.Default.Delete,
+                                text = stringResource(R.string.menu_delete),
+                                tinted = true,
+                            ) { onDelete(favorite.id) }
                         }
                     }
                 }
@@ -143,8 +119,9 @@ fun FavoritesScreen(
     }
 
     editTarget?.let { target ->
-        EditFavoriteDialog(
-            initialText = target.text,
+        AtheaTextFieldDialog(
+            title = stringResource(R.string.favorites_edit_title),
+            initialValue = target.text,
             onDismiss = { editTarget = null },
             onSave = { text ->
                 editTarget = null
@@ -152,37 +129,4 @@ fun FavoritesScreen(
             },
         )
     }
-}
-
-@Composable
-private fun EditFavoriteDialog(
-    initialText: String,
-    onDismiss: () -> Unit,
-    onSave: (String) -> Unit,
-) {
-    var value by remember { mutableStateOf(initialText) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.favorites_edit_title)) },
-        text = {
-            OutlinedTextField(
-                value = value,
-                onValueChange = { value = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = { onSave(value) }) {
-                Text(stringResource(R.string.dialog_save))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.dialog_cancel))
-            }
-        },
-    )
 }

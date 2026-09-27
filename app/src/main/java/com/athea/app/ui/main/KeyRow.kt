@@ -2,16 +2,9 @@ package com.athea.app.ui.main
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -22,10 +15,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.athea.app.ui.common.EqualCellStrip
 import com.athea.app.ui.theme.Ui
-import com.athea.app.util.TabCompletionHandler
 import com.athea.app.util.isCtrlCombinable
 import com.athea.app.util.toControlChar
 
@@ -74,77 +66,69 @@ fun KeyRow(
     onConsumeStickyCtrl: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Fixed bar with thin separators — not floating chips. Tighter to the
-    // composer, larger tap targets, calmer than spaced chips.
-    // Exactly 7 keys fill the viewport (no 7.5); extra keys scroll.
-    // Calculated from available width so result is universal across densities,
-    // not hardcoded 46dp that fractures on small screens.
+    // Fixed bar with thin equal-width cells — not floating chips. The cell
+    // width is owned by EqualCellStrip, so KeyRow carries no viewport logic
+    // itself. One strip, one scroll state, one place to reason about.
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = modifier.fillMaxWidth(),
     ) {
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            // Row padding 2dp each side = 4dp, 6 separators between 7 visible = 6dp
-            val visibleCount = 7
-            val separatorsForVisible = 1.dp * (visibleCount - 1)
-            val rowPaddingH = 4.dp
-            val cellWidth = (maxWidth - rowPaddingH - separatorsForVisible) / visibleCount.toFloat()
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 2.dp, vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                keys.forEachIndexed { index, key ->
-                    if (index > 0) {
-                    Box(
-                        Modifier
-                            .width(Ui.keySeparatorWidth)
-                            .height(Ui.keySeparatorHeight)
-                            .background(
-                                MaterialTheme.colorScheme.outline.copy(alpha = Ui.dividerAlpha)
-                            ),
-                    )
-                    }
-                    val selected = key.kind == KeyActionKind.TOGGLE_STICKY_CTRL && stickyCtrl
-                    KeyCell(key = key, selected = selected, cellWidth = cellWidth) {
-                        when (key.kind) {
-                            KeyActionKind.INSERT_INTO_DRAFT -> onInsert(key.payload)
+        EqualCellStrip(
+            items = keys,
+            visibleCount = Ui.keyVisibleCount,
+            cellHeight = Ui.keyMinHeight,
+            separatorWidth = Ui.keySeparatorWidth,
+            separatorHeight = Ui.keySeparatorHeight,
+            contentPaddingH = Ui.keyRowPaddingH,
+            contentPaddingV = Ui.keyRowPaddingV,
+            modifier = Modifier.fillMaxWidth(),
+            separator = {
+                Box(
+                    Modifier.background(
+                        MaterialTheme.colorScheme.outline.copy(alpha = Ui.dividerAlpha),
+                    ),
+                )
+            },
+            cell = { key ->
+                val selected = key.kind == KeyActionKind.TOGGLE_STICKY_CTRL && stickyCtrl
+                KeyCell(key = key, selected = selected) {
+                    when (key.kind) {
+                        KeyActionKind.INSERT_INTO_DRAFT -> onInsert(key.payload)
 
-                            KeyActionKind.SEND_TO_TERMINAL -> {
-                                if (key == DefaultKeys.TAB && suggestionActive) {
-                                    onAcceptSuggestion()
-                                    return@KeyCell
-                                }
-                                val ch = key.payload.singleOrNull()
-                                val combinable = ch?.isCtrlCombinable() == true
-                                if (stickyCtrl && combinable && ch != null) {
-                                    val control = ch.toControlChar()
-                                    onSendBytes(control.toString())
-                                    onConsumeStickyCtrl()
-                                } else {
-                                    onSendBytes(key.payload)
-                                }
+                        KeyActionKind.SEND_TO_TERMINAL -> {
+                            if (key == DefaultKeys.TAB && suggestionActive) {
+                                onAcceptSuggestion()
+                                return@KeyCell
                             }
-
-                            KeyActionKind.TOGGLE_STICKY_CTRL -> onToggleStickyCtrl()
+                            val ch = key.payload.singleOrNull()
+                            val combinable = ch?.isCtrlCombinable() == true
+                            if (stickyCtrl && combinable && ch != null) {
+                                val control = ch.toControlChar()
+                                onSendBytes(control.toString())
+                                onConsumeStickyCtrl()
+                            } else {
+                                onSendBytes(key.payload)
+                            }
                         }
+
+                        KeyActionKind.TOGGLE_STICKY_CTRL -> onToggleStickyCtrl()
                     }
                 }
-            }
-        }
+            },
+        )
     }
 }
 
+/**
+ * One off-canvas key cell (rendered inside [EqualCellStrip]): autoshrinks to
+ * fit 4-5 chars on a line, never wraps.
+ */
 @Composable
 private fun KeyCell(
     key: TerminalKey,
     selected: Boolean,
-    cellWidth: androidx.compose.ui.unit.Dp,
     onClick: () -> Unit,
 ) {
-    // Autoshrink to fit 4-5 chars in one line, never wrap to 2 lines.
     val fontSize = when (key.label.length) {
         0, 1, 2 -> 15.sp
         3 -> 13.sp
@@ -153,12 +137,11 @@ private fun KeyCell(
     }
     Box(
         Modifier
-            .width(cellWidth)
-            .height(Ui.keyMinHeight)
+            .fillMaxSize()
             .clip(Ui.smallShape)
             .background(
                 if (selected) MaterialTheme.colorScheme.primaryContainer
-                else Color.Transparent
+                else Color.Transparent,
             )
             .clickable(onClick = onClick)
             .padding(horizontal = Ui.keyPaddingH),

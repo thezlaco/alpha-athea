@@ -7,7 +7,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,7 +27,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -36,17 +34,13 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.StarBorder
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,6 +51,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.athea.app.R
 import com.athea.app.ui.SessionUi
+import com.athea.app.ui.common.AtheaMenuHost
+import com.athea.app.ui.common.AtheaPill
+import com.athea.app.ui.common.AtheaPillIcon
+import com.athea.app.ui.common.rememberAtheaMenu
 import com.athea.app.ui.theme.Ui
 
 /**
@@ -146,29 +144,21 @@ fun SessionsDrawerContent(
 
                 // Tier 2: compact pill — identical to TopBar right pill,
                 // now left-aligned as requested.
-                Surface(
-                    shape = Ui.pillShape,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                AtheaPill(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(start = 14.dp, bottom = 16.dp),
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = onSettings) {
-                            Icon(
-                                Icons.Default.Settings,
-                                contentDescription = stringResource(R.string.settings),
-                                tint = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
-                        IconButton(onClick = onOpenFavorites) {
-                            Icon(
-                                Icons.Outlined.StarBorder,
-                                contentDescription = stringResource(R.string.favorites),
-                                tint = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
-                    }
+                    AtheaPillIcon(
+                        icon = Icons.Default.Settings,
+                        contentDescription = stringResource(R.string.settings),
+                        onClick = onSettings,
+                    )
+                    AtheaPillIcon(
+                        icon = Icons.Outlined.StarBorder,
+                        contentDescription = stringResource(R.string.favorites),
+                        onClick = onOpenFavorites,
+                    )
                 }
             }
         }
@@ -185,7 +175,7 @@ private fun SessionRow(
     onTogglePin: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    var menuOpen by remember { mutableStateOf(false) }
+    val menu = rememberAtheaMenu()
 
     Box(
         Modifier
@@ -195,7 +185,7 @@ private fun SessionRow(
                 if (selected) MaterialTheme.colorScheme.surfaceContainerHigh
                 else androidx.compose.ui.graphics.Color.Transparent
             )
-            .combinedClickable(onClick = onSelect, onLongClick = { menuOpen = true }),
+            .combinedClickable(onClick = onSelect, onLongClick = menu::open),
     ) {
         Row(
             Modifier.padding(start = 20.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
@@ -220,25 +210,22 @@ private fun SessionRow(
                 )
                 Spacer(Modifier.width(2.dp))
             }
-            AtheaDropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                AtheaDropdownItem(
+            AtheaMenuHost(menu) {
+                item(
                     icon = Icons.Default.Edit,
                     text = stringResource(R.string.menu_rename),
-                    onClick = { menuOpen = false; onRename() },
-                )
-                AtheaDropdownItem(
+                ) { onRename() }
+                item(
                     icon = Icons.Default.PushPin,
                     text = stringResource(
                         if (session.pinned) R.string.menu_unpin else R.string.menu_pin
                     ),
-                    onClick = { menuOpen = false; onTogglePin() },
-                )
-                AtheaDropdownItem(
+                ) { onTogglePin() }
+                item(
                     icon = Icons.Default.Delete,
                     text = stringResource(R.string.menu_delete),
                     tinted = true,
-                    onClick = { menuOpen = false; onDelete() },
-                )
+                ) { onDelete() }
             }
         }
     }

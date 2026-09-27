@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -31,7 +32,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -53,6 +53,7 @@ import com.athea.app.R
 import com.athea.app.ui.MainViewModel
 import com.athea.app.ui.UiEvent
 import com.athea.app.ui.UiState
+import com.athea.app.ui.common.AtheaDialogContainer
 import com.athea.app.ui.theme.Ui
 import com.athea.app.ui.theme.LocalMessageFontSize
 import com.athea.app.ui.theme.LocalOutputFontSize
@@ -138,15 +139,13 @@ fun MainScreen(viewModel: MainViewModel) {
             Triple("link", stringResource(R.string.attach_link), Icons.Filled.InsertLink),
             Triple("name", stringResource(R.string.attach_name), Icons.Filled.Title),
         )
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { viewModel.setShowAttachChooser(false) },
-            shape = Ui.dialogShape,
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            title = { Text(stringResource(R.string.attach_chooser_title), style = MaterialTheme.typography.titleMedium) },
-            text = {
-                Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(4.dp)) {
+        AtheaDialogContainer(
+            title = stringResource(R.string.attach_chooser_title),
+            onDismiss = { viewModel.setShowAttachChooser(false) },
+            content = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     attachOptions.forEach { (action, label, icon) ->
-                        androidx.compose.foundation.layout.Row(
+                        Row(
                             Modifier
                                 .fillMaxWidth()
                                 .clip(Ui.attachmentShape)
@@ -158,7 +157,7 @@ fun MainScreen(viewModel: MainViewModel) {
                                 .padding(horizontal = 14.dp, vertical = 14.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            androidx.compose.material3.Icon(
+                            Icon(
                                 icon,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -174,12 +173,7 @@ fun MainScreen(viewModel: MainViewModel) {
                     }
                 }
             },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { viewModel.setShowAttachChooser(false) }) {
-                    Text(stringResource(R.string.dialog_cancel))
-                }
-            },
+            confirm = {},
         )
     }
 
@@ -252,12 +246,11 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
                     .imePadding()
                     .background(MaterialTheme.colorScheme.background),
             ) {
-                // Transcript fills entire area — InputBar/KeyRow float above with half-height dimming, no solid black stripe
-                if (current != null) {
-                    // Remember draft/suggestion before transcript to reuse for bottom inset logic
-                    val draft = androidx.compose.runtime.remember(current.draft) { current.draft.orEmpty() }
-                    val suggestion = androidx.compose.runtime.remember(state.suggestion, state.search) { if (state.search == null) state.suggestion else null }
-                    // Peek-through: let transcript peek behind InputBar side margins with dimming; keep last line above KeyRow only
+                // Transcript fills the available area; the bottom bar
+                // (InputBar + key row) floats above it for both the
+                // session and the empty state, wired in exactly one place.
+            if (current != null) {
+                    // Peek-through: let transcript peek behind InputBar margins with dimming; keep last line above KeyRow only
                     val overlayBottom = 72.dp + Ui.contentPaddingV
                     TranscriptView(
                         session = current,
@@ -297,86 +290,17 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
                                 )
                             ),
                     )
-                    Column(
-                        Modifier
-                            .align(Alignment.BottomStart)
-                            .fillMaxWidth(),
-                    ) {
-                        InputBar(
-                            draft = draft,
-                            suggestion = suggestion,
-                            attachments = state.attachments,
-                            onDraftChange = viewModel::updateDraft,
-                            onSend = viewModel::sendDraft,
-                            onExpandEditor = { viewModel.setEditorExpanded(true) },
-                            onAddClick = { viewModel.setShowAttachChooser(true) },
-                            onRemoveAttachment = viewModel::removeAttachment,
-                            search = state.search,
-                            onSearchQueryChange = viewModel::updateSearchQuery,
-                            onSearchNext = viewModel::nextSearchMatch,
-                            onExitSearch = viewModel::exitSearch,
-                            enterSends = state.enterSends,
-                        )
-                        if (state.keyRowVisible && state.search == null) {
-                            val keys = androidx.compose.runtime.remember(state.customKeys) { keyRowKeys(state) }
-                            val stickyCtrl = androidx.compose.runtime.remember(state.stickyCtrl) { state.stickyCtrl }
-                            val suggestionActive = androidx.compose.runtime.remember(suggestion) { suggestion != null }
-                            KeyRow(
-                                keys = keys,
-                                stickyCtrl = stickyCtrl,
-                                suggestionActive = suggestionActive,
-                                onInsert = viewModel::insertIntoDraft,
-                                onSendBytes = viewModel::sendDirectText,
-                                onAcceptSuggestion = viewModel::acceptSuggestion,
-                                onToggleStickyCtrl = viewModel::toggleStickyCtrl,
-                                onConsumeStickyCtrl = viewModel::consumeStickyCtrl,
-                                modifier = Modifier.navigationBarsPadding(),
-                            )
-                        }
-                    }
-                } else {
-                    // No session yet — keep draft/key row at bottom for empty state
-                    val draft = ""
-                    val suggestion: String? = null
-                    Column(Modifier.fillMaxSize()) { }
-                    Column(
-                        Modifier
-                            .align(Alignment.BottomStart)
-                            .fillMaxWidth(),
-                    ) {
-                        InputBar(
-                            draft = draft,
-                            suggestion = suggestion,
-                            attachments = state.attachments,
-                            onDraftChange = viewModel::updateDraft,
-                            onSend = viewModel::sendDraft,
-                            onExpandEditor = { viewModel.setEditorExpanded(true) },
-                            onAddClick = { viewModel.setShowAttachChooser(true) },
-                            onRemoveAttachment = viewModel::removeAttachment,
-                            search = state.search,
-                            onSearchQueryChange = viewModel::updateSearchQuery,
-                            onSearchNext = viewModel::nextSearchMatch,
-                            onExitSearch = viewModel::exitSearch,
-                            enterSends = state.enterSends,
-                        )
-                        if (state.keyRowVisible && state.search == null) {
-                            val keys = androidx.compose.runtime.remember(state.customKeys) { keyRowKeys(state) }
-                            val stickyCtrl = androidx.compose.runtime.remember(state.stickyCtrl) { state.stickyCtrl }
-                            val suggestionActive = false
-                            KeyRow(
-                                keys = keys,
-                                stickyCtrl = stickyCtrl,
-                                suggestionActive = suggestionActive,
-                                onInsert = viewModel::insertIntoDraft,
-                                onSendBytes = viewModel::sendDirectText,
-                                onAcceptSuggestion = viewModel::acceptSuggestion,
-                                onToggleStickyCtrl = viewModel::toggleStickyCtrl,
-                                onConsumeStickyCtrl = viewModel::consumeStickyCtrl,
-                                modifier = Modifier.navigationBarsPadding(),
-                            )
-                        }
-                    }
                 }
+
+                BottomBar(
+                    viewModel = viewModel,
+                    state = state,
+                    draft = if (current != null) current.draft.orEmpty() else "",
+                    suggestion = if (state.search == null) state.suggestion else null,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .fillMaxWidth(),
+                )
 
                 // Top scrim: same gradient as before, now sibling of Column
                 // so it sits above transcript but below TopBar.
@@ -448,6 +372,51 @@ private fun MainScreenContent(viewModel: MainViewModel, state: UiState) {
                 onConfirm = viewModel::confirmDelete,
             )
         }
+    }
+}
+
+/**
+ * The single wiring for the bottom panel (InputBar + key row). Used by both
+ * the active-session and the empty states — there is exactly one place that
+ * binds the composer to the ViewModel here, instead of the old copy-paste
+ * of the whole block.
+ */
+@Composable
+private fun BottomBar(
+    viewModel: MainViewModel,
+    state: UiState,
+    draft: String,
+    suggestion: String?,
+    modifier: Modifier = Modifier,
+) {
+    InputBar(
+        draft = draft,
+        suggestion = suggestion,
+        attachments = state.attachments,
+        onDraftChange = viewModel::updateDraft,
+        onSend = viewModel::sendDraft,
+        onExpandEditor = { viewModel.setEditorExpanded(true) },
+        onAddClick = { viewModel.setShowAttachChooser(true) },
+        onRemoveAttachment = viewModel::removeAttachment,
+        search = state.search,
+        onSearchQueryChange = viewModel::updateSearchQuery,
+        onSearchNext = viewModel::nextSearchMatch,
+        onExitSearch = viewModel::exitSearch,
+        enterSends = state.enterSends,
+    )
+    if (state.keyRowVisible && state.search == null) {
+        val keys = remember(state.customKeys) { keyRowKeys(state) }
+        KeyRow(
+            keys = keys,
+            stickyCtrl = state.stickyCtrl,
+            suggestionActive = suggestion != null,
+            onInsert = viewModel::insertIntoDraft,
+            onSendBytes = viewModel::sendDirectText,
+            onAcceptSuggestion = viewModel::acceptSuggestion,
+            onToggleStickyCtrl = viewModel::toggleStickyCtrl,
+            onConsumeStickyCtrl = viewModel::consumeStickyCtrl,
+            modifier = Modifier.navigationBarsPadding(),
+        )
     }
 }
 

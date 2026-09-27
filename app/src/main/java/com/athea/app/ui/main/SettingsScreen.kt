@@ -18,9 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -45,6 +43,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.athea.app.R
+import com.athea.app.ui.common.AtheaDialogContainer
+import com.athea.app.ui.common.AtheaScaffold
 
 @Composable
 fun SettingsScreen(
@@ -322,10 +322,10 @@ private fun KeyEditorDialog(
     var payload by remember { mutableStateOf(initial.payload) }
     var kind by remember { mutableStateOf(initial.kind) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.settings_keys_edit_title)) },
-        text = {
+    AtheaDialogContainer(
+        title = stringResource(R.string.settings_keys_edit_title),
+        onDismiss = onDismiss,
+        content = {
             Column {
                 OutlinedTextField(
                     value = label,
@@ -368,7 +368,7 @@ private fun KeyEditorDialog(
                 )
             }
         },
-        confirmButton = {
+        confirm = {
             TextButton(onClick = {
                 onSave(
                     initial.copy(
@@ -379,11 +379,6 @@ private fun KeyEditorDialog(
                 )
             }) {
                 Text(stringResource(R.string.dialog_save))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.dialog_cancel))
             }
         },
     )
