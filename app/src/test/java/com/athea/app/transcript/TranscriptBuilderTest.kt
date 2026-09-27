@@ -1,5 +1,8 @@
 package com.athea.app.transcript
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import com.athea.app.core.journal.JournalEvent
 import com.athea.app.core.model.CommandBlock
 import com.athea.app.core.model.OutputBlock
@@ -41,7 +44,7 @@ class TranscriptBuilderTest {
     }
 
     @Test
-    fun `output without marks closes heuristically on next command`() {
+    fun `output without marks stays open across the next command`() {
         val builder = TranscriptBuilder.replay(
             listOf(
                 JournalEvent.CommandSubmitted(1, "a", 0),
@@ -52,9 +55,13 @@ class TranscriptBuilderTest {
 
         val snapshot = builder.snapshot(displayRaw = false)
         val firstOutput = snapshot.blocks[1].block as OutputBlock
-        assertFalse(firstOutput.running)
+        // No OSC 133;D ever arrived, so the honest state is "still running":
+        // force-closing it here is what used to drop the real exit code of
+        // commands that finished after the next one was submitted.
+        assertTrue(firstOutput.running)
+        assertTrue(snapshot.running)
         assertNull(firstOutput.exitCode)
-        assertTrue(snapshot.blocks[1].collapsed)
+        assertFalse(snapshot.blocks[1].collapsed)
     }
 
     @Test
@@ -95,6 +102,7 @@ class TranscriptBuilderTest {
         val builder = TranscriptBuilder()
         builder.applyCommandSubmitted(1, "a")
         builder.applyOutput("x")
+        builder.applyCommandEnd(0)
         builder.applyCommandSubmitted(2, "b")
 
         assertTrue(builder.snapshot(false).blocks[1].collapsed)
@@ -102,6 +110,58 @@ class TranscriptBuilderTest {
         builder.reveal("out-1")
         val view = builder.snapshot(false).blocks[1]
         assertFalse(view.collapsed)
+    }
+
+    @Test
+    fun `command submitted while another runs keeps output on the running block`() {
+        val builder = TranscriptBuilder()
+        builder.applyCommandSubmitted(1, "sleep 100")
+        builder.applyOutput("started\n")
+        // Typed while the first command is still executing: the shell buffers
+        // these bytes, the bubble shows immediately, the first command is not
+        // cancelled.
+        builder.applyCommandSubmitted(2, "ls")
+        builder.applyOutput("still sleeping\n")
+        builder.applyCommandEnd(0)
+        builder.applyOutput("file-a\n")
+
+        val blocks = builder.snapshot(false).blocks.map { it.block }
+        assertEquals(4, blocks.size)
+        assertEquals("cmd-1", blocks[0].id)
+        assertEquals("out-1", blocks[1].id)
+        assertEquals("cmd-2", blocks[2].id)
+        assertEquals("out-2", blocks[3].id)
+
+        val firstOutput = blocks[1] as OutputBlock
+        assertEquals("started\nstill sleeping\n", firstOutput.text)
+        // The whole point: the late exit code is not thrown away.
+        assertEquals(0, firstOutput.exitCode)
+
+        val secondOutput = blocks[3] as OutputBlock
+        assertEquals("file-a\n", secondOutput.text)
+    }
+
+    @Test
+    fun `long running output keeps its colors after trimming`() {
+        val builder = TranscriptBuilder()
+        builder.applyCommandSubmitted(1, "flood")
+        val red = Color(0xFFFF0000)
+        val chunk = AnnotatedString(
+            text = "x".repeat(700_000),
+            spanStyles = listOf(
+                AnnotatedString.Range(SpanStyle(color = red), 0, 700_000),
+            ),
+        )
+        builder.applyOutput(chunk)
+        builder.applyOutput(chunk) // 1.4M chars, over MAX_RUNNING_CHARS
+
+        val block = builder.snapshot(false).blocks.last().block as OutputBlock
+        assertTrue(block.running)
+        assertTrue(
+            "trimming the running buffer must not drop colour spans",
+            block.annotated.spanStyles.isNotEmpty(),
+        )
+        assertEquals(red, block.annotated.spanStyles.first().item.color)
     }
 
     @Test

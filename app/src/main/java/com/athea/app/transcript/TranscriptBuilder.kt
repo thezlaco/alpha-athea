@@ -5,7 +5,6 @@ import com.athea.app.core.model.Block
 import com.athea.app.core.model.CommandBlock
 import com.athea.app.core.model.OutputBlock
 import com.athea.app.core.model.PREVIEW_LINES
-import com.athea.app.parse.StreamEvent
 import com.athea.app.parse.StreamParser
 import com.athea.app.parse.applyTo
 
@@ -62,10 +61,18 @@ class TranscriptBuilder(
     // ---------------------------------------------------------------- input
 
     fun applyCommandSubmitted(seq: Long, text: String) {
-        finishRunning(null)
-        // Only the current expanded output's override matters; clearing all
-        // OutputBlock overrides is O(n). Keep map small by removing only
-        // out-* keys when needed (usually 0-1).
+        // A still-running output block is deliberately NOT closed here.
+        //
+        // Typing the next command while this one executes does not cancel it:
+        // the shell buffers those bytes in the tty and the current command's
+        // OSC 133;D still arrives later. Closing eagerly cost us two things:
+        //  - the exit code was thrown away, because finishRunning() is a
+        //    no-op once runningOutputId is null;
+        //  - the rest of the output opened a *new* block that landed below
+        //    the newer bubble, so a command's answer appeared under the next
+        //    command - in a chat UI that reads as a glitch.
+        // Keeping it open lets the output grow in place, above the bubble,
+        // which is both the real order in the stream and what a chat shows.
         if (expandedOverrides.isNotEmpty()) {
             expandedOverrides.keys.removeIf { it.startsWith("out-") }
         }
@@ -93,14 +100,12 @@ class TranscriptBuilder(
             if (runningText.length > MAX_RUNNING_CHARS) {
                 val excess = runningText.length - MAX_RUNNING_CHARS
                 runningText.delete(0, excess)
-                // Trim annotated builder similarly by rebuilding from tail
-                val full = runningAnnotated.toAnnotatedString()
+                // Slice the spans with the text. Re-appending a plain tail
+                // here silently dropped every colour for the rest of the
+                // stream, so a long-running command faded to uncoloured text.
+                val trimmed = tailOf(runningAnnotated.toAnnotatedString(), MAX_RUNNING_CHARS)
                 runningAnnotated = androidx.compose.ui.text.AnnotatedString.Builder()
-                runningAnnotated.append(full.text.takeLast(MAX_RUNNING_CHARS).let { tail ->
-                    // Preserve spans for tail — simplified: re-append tail without spans for now
-                    // Full span preservation would require slicing spans, keep plain tail
-                    androidx.compose.ui.text.AnnotatedString(tail)
-                })
+                runningAnnotated.append(trimmed)
             }
         }
         appendRaw(text)
@@ -138,25 +143,7 @@ class TranscriptBuilder(
         for (block in blocks) {
             val viewBlock = if (block is OutputBlock && block.running) {
                 val tailText = runningText.takeLast(STREAM_RENDER_TAIL).toString()
-                val fullAnnotated = runningAnnotated.toAnnotatedString()
-                val tailAnnotated = if (fullAnnotated.text.length <= STREAM_RENDER_TAIL) {
-                    fullAnnotated
-                } else {
-                    val start = fullAnnotated.text.length - STREAM_RENDER_TAIL
-                    androidx.compose.ui.text.AnnotatedString(
-                        text = fullAnnotated.text.takeLast(STREAM_RENDER_TAIL),
-                        spanStyles = fullAnnotated.spanStyles.mapNotNull { span ->
-                            if (span.end <= start) null else androidx.compose.ui.text.AnnotatedString.Range(
-                                span.item, maxOf(0, span.start - start), span.end - start
-                            )
-                        },
-                        paragraphStyles = fullAnnotated.paragraphStyles.mapNotNull { span ->
-                            if (span.end <= start) null else androidx.compose.ui.text.AnnotatedString.Range(
-                                span.item, maxOf(0, span.start - start), span.end - start
-                            )
-                        }
-                    )
-                }
+                val tailAnnotated = tailOf(runningAnnotated.toAnnotatedString(), STREAM_RENDER_TAIL)
                 block.copy(text = tailText, annotated = tailAnnotated)
             } else {
                 block
@@ -205,6 +192,44 @@ class TranscriptBuilder(
     private fun indexOfBlock(id: String): Int =
         blocks.indexOfFirst { it.id == id }
 
+    /**
+     * Last [maxChars] characters of [source] with its spans re-based onto
+     * that tail, so trimming never costs the text its styling. Spans that
+     * end before the cut are dropped; spans that straddle it are shifted.
+     */
+    private fun tailOf(
+        source: androidx.compose.ui.text.AnnotatedString,
+        maxChars: Int,
+    ): androidx.compose.ui.text.AnnotatedString {
+        if (source.text.length <= maxChars) return source
+        val start = source.text.length - maxChars
+        return androidx.compose.ui.text.AnnotatedString(
+            text = source.text.takeLast(maxChars),
+            spanStyles = source.spanStyles.mapNotNull { span ->
+                if (span.end <= start) {
+                    null
+                } else {
+                    androidx.compose.ui.text.AnnotatedString.Range(
+                        span.item,
+                        maxOf(0, span.start - start),
+                        span.end - start,
+                    )
+                }
+            },
+            paragraphStyles = source.paragraphStyles.mapNotNull { span ->
+                if (span.end <= start) {
+                    null
+                } else {
+                    androidx.compose.ui.text.AnnotatedString.Range(
+                        span.item,
+                        maxOf(0, span.start - start),
+                        span.end - start,
+                    )
+                }
+            },
+        )
+    }
+
     private fun nextOutputId(): String = "out-${++outputCounter}"
 
     /**
@@ -250,7 +275,7 @@ class TranscriptBuilder(
         const val RAW_RENDER_CAP = 50_000
 
         /** Cap for in-memory running buffer to avoid OOM on huge streams. */
-        private const val MAX_RUNNING_CHARS = 1_200_000
+        const val MAX_RUNNING_CHARS = 1_200_000
 
         fun cmdId(seq: Long): String = "cmd-$seq"
 
