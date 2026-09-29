@@ -1,9 +1,8 @@
 package com.athea.app.parse
 
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 
 /**
  * Semantic events extracted from the raw terminal byte stream.
@@ -40,11 +39,9 @@ class StreamParser {
     private val csiBuffer = StringBuilder()
     private val oscBuffer = StringBuilder()
 
-    // ANSI SGR current style — updated on CSI m
-    private var currentStyle = SpanStyle()
-    private var currentFg: Color? = null
-    private var currentBg: Color? = null
-    private var isBold = false
+    // SGR attributes live in SgrState so the screen projection resolves a
+    // 256-colour index to exactly the same RGB a chat span gets.
+    private val sgr = SgrState()
 
     private var lineBuilder = AnnotatedString.Builder()
     private var lineLength = 0
@@ -163,7 +160,7 @@ class StreamParser {
         when (ch) {
             '\n' -> {
                 // CRLF must keep line content.
-                appendToLine("\n", currentStyle)
+                appendToLine("\n", chatSpanStyle())
                 pendingBuilder.append(lineBuilder.toAnnotatedString())
                 pendingLength += lineLength + 1
                 lineBuilder = AnnotatedString.Builder()
@@ -185,7 +182,7 @@ class StreamParser {
                     lineBuilder = AnnotatedString.Builder()
                     if (current.text.isNotEmpty()) {
                         val truncated = current.text.dropLast(1)
-                        // Re-append truncated with same style (simplified: use currentStyle)
+                        // Re-append truncated, keeping the spans the line already had
                         lineBuilder.append(AnnotatedString(truncated, current.spanStyles))
                         // Actually need to preserve spans, but for \b we drop last char with its span
                         // Simplified: rebuild from current with spans adjusted
@@ -194,7 +191,7 @@ class StreamParser {
                     lineLength = maxOf(0, lineLength - 1)
                 }
             }
-            '\t' -> appendToLine("\t", currentStyle)
+            '\t' -> appendToLine("\t", chatSpanStyle())
             else -> {
                 if (ch >= ' ') {
                     if (cursorAtLineStart) {
@@ -202,7 +199,7 @@ class StreamParser {
                         lineLength = 0
                         cursorAtLineStart = false
                     }
-                    appendToLine(ch.toString(), currentStyle)
+                    appendToLine(ch.toString(), chatSpanStyle())
                 }
             }
         }
@@ -234,98 +231,20 @@ class StreamParser {
     }
 
     private fun handleSgr(params: String) {
-        if (params.isEmpty()) {
-            resetStyle()
-            return
-        }
-        val codes = params.split(';').mapNotNull { it.toIntOrNull() }
-        var i = 0
-        while (i < codes.size) {
-            when (val c = codes[i]) {
-                0 -> resetStyle()
-                1 -> isBold = true
-                22 -> isBold = false
-                30 -> currentFg = Color(0xFF000000)
-                31 -> currentFg = Color(0xFFCC0000)
-                32 -> currentFg = Color(0xFF00CC00)
-                33 -> currentFg = Color(0xFFCCCC00)
-                34 -> currentFg = Color(0xFF0000CC)
-                35 -> currentFg = Color(0xFFCC00CC)
-                36 -> currentFg = Color(0xFF00CCCC)
-                37 -> currentFg = Color(0xFFCCCCCC)
-                90 -> currentFg = Color(0xFF777777)
-                91 -> currentFg = Color(0xFFFF5555)
-                92 -> currentFg = Color(0xFF55FF55)
-                93 -> currentFg = Color(0xFFFFFF55)
-                94 -> currentFg = Color(0xFF5555FF)
-                95 -> currentFg = Color(0xFFFF55FF)
-                96 -> currentFg = Color(0xFF55FFFF)
-                97 -> currentFg = Color(0xFFFFFFFF)
-                39 -> currentFg = null
-                40 -> currentBg = Color(0xFF000000)
-                41 -> currentBg = Color(0xFFCC0000)
-                42 -> currentBg = Color(0xFF00CC00)
-                43 -> currentBg = Color(0xFFCCCC00)
-                44 -> currentBg = Color(0xFF0000CC)
-                45 -> currentBg = Color(0xFFCC00CC)
-                46 -> currentBg = Color(0xFF00CCCC)
-                47 -> currentBg = Color(0xFFCCCCCC)
-                49 -> currentBg = null
-                38, 48 -> {
-                    // 38;5;n or 38;2;r;g;b
-                    if (i + 2 < codes.size && codes[i + 1] == 5) {
-                        val color = colorFrom256(codes[i + 2])
-                        if (c == 38) currentFg = color else currentBg = color
-                        i += 2
-                    } else if (i + 4 < codes.size && codes[i + 1] == 2) {
-                        val color = Color((0xFF000000L or (codes[i + 2].toLong() shl 16) or (codes[i + 3].toLong() shl 8) or codes[i + 4].toLong()))
-                        if (c == 38) currentFg = color else currentBg = color
-                        i += 4
-                    }
-                }
-            }
-            i++
-        }
-        updateCurrentStyle()
+        sgr.applySgr(params)
     }
 
-    private fun resetStyle() {
-        currentFg = null
-        currentBg = null
-        isBold = false
-        currentStyle = SpanStyle()
-    }
-
-    private fun updateCurrentStyle() {
+    /**
+     * The chat projection of the current attributes. Deliberately narrower
+     * than what a grid cell can express: colour, background and weight only,
+     * which is exactly what chat output has always rendered.
+     */
+    private fun chatSpanStyle(): SpanStyle {
         var style = SpanStyle()
-        currentFg?.let { style = style.copy(color = it) }
-        currentBg?.let { style = style.copy(background = it) }
-        if (isBold) style = style.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
-        currentStyle = style
-    }
-
-    private fun colorFrom256(n: Int): Color {
-        // Simplified 256 color cube
-        return when {
-            n < 16 -> when (n) {
-                0 -> Color.Black; 1 -> Color(0xFF800000); 2 -> Color(0xFF008000); 3 -> Color(0xFF808000)
-                4 -> Color(0xFF000080); 5 -> Color(0xFF800080); 6 -> Color(0xFF008080); 7 -> Color(0xFFC0C0C0)
-                8 -> Color(0xFF808080); 9 -> Color(0xFFFF0000); 10 -> Color(0xFF00FF00); 11 -> Color(0xFFFFFF00)
-                12 -> Color(0xFF0000FF); 13 -> Color(0xFFFF00FF); 14 -> Color(0xFF00FFFF); 15 -> Color(0xFFFFFFFF)
-                else -> Color.Gray
-            }
-            n < 232 -> {
-                val idx = n - 16
-                val r = idx / 36
-                val g = (idx % 36) / 6
-                val b = idx % 6
-                Color(0xFF000000L or ((r * 40 + 55).toLong() shl 16) or ((g * 40 + 55).toLong() shl 8) or (b * 40 + 55).toLong())
-            }
-            else -> {
-                val gray = (n - 232) * 10 + 8
-                Color(0xFF000000L or (gray.toLong() shl 16) or (gray.toLong() shl 8) or gray.toLong())
-            }
-        }
+        sgr.foreground?.let { style = style.copy(color = it) }
+        sgr.background?.let { style = style.copy(background = it) }
+        if (sgr.bold) style = style.copy(fontWeight = FontWeight.Bold)
+        return style
     }
 
     // ----------------------------------------------------------------- helpers
