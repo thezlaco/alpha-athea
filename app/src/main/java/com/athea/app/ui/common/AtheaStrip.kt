@@ -42,7 +42,12 @@ fun <T> EqualCellStrip(
 ) {
     val scrollState = rememberScrollState()
     BoxWithConstraints(modifier.fillMaxWidth()) {
-        val viewport = if (maxWidth.isFinite && maxWidth > 0.dp) maxWidth else 0.dp
+        // maxWidth.value is a plain Float member, and Float.isFinite() is a
+        // stdlib function. Compose's Dp.isFinite is a top-level extension
+        // property and would need its own import; the stdlib route needs
+        // nothing and says exactly what is being checked.
+        val width = maxWidth.value
+        val viewport = if (width.isFinite() && width > 0f) maxWidth else 0.dp
         val fixed = contentPaddingH * 2 + separatorWidth * (visibleCount - 1).coerceAtLeast(0)
         val cellWidth = if (visibleCount <= 0 || viewport <= fixed) 0.dp else (viewport - fixed) / visibleCount
         Row(
