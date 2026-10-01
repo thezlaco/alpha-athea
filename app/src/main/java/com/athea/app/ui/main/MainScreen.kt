@@ -1,8 +1,6 @@
 package com.athea.app.ui.main
 
-import android.content.Context
 import androidx.activity.compose.BackHandler
-import com.athea.app.util.copyToClipboard
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -24,10 +22,8 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentCut
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.InsertLink
 import androidx.compose.material.icons.filled.Title
-import androidx.compose.ui.draw.clip
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -38,13 +34,12 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -52,13 +47,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.athea.app.R
+import com.athea.app.data.KeyKind
 import com.athea.app.ui.MainViewModel
 import com.athea.app.ui.UiEvent
 import com.athea.app.ui.UiState
 import com.athea.app.ui.common.AtheaDialogContainer
-import com.athea.app.ui.theme.Ui
 import com.athea.app.ui.theme.LocalMessageFontSize
 import com.athea.app.ui.theme.LocalOutputFontSize
+import com.athea.app.ui.theme.Ui
+import com.athea.app.util.copyToClipboard
 import kotlinx.coroutines.launch
 
 @Composable
@@ -430,9 +427,9 @@ private fun keyRowKeys(state: UiState): List<TerminalKey> {
         TerminalKey(
             label = key.label,
             kind = when (key.kind) {
-                com.athea.app.data.KeyKind.INSERT -> KeyActionKind.INSERT_INTO_DRAFT
-                com.athea.app.data.KeyKind.SEND -> KeyActionKind.SEND_TO_TERMINAL
-                com.athea.app.data.KeyKind.CTRL -> KeyActionKind.TOGGLE_STICKY_CTRL
+                KeyKind.INSERT -> KeyActionKind.INSERT_INTO_DRAFT
+                KeyKind.SEND -> KeyActionKind.SEND_TO_TERMINAL
+                KeyKind.CTRL -> KeyActionKind.TOGGLE_STICKY_CTRL
             },
             payload = key.payload,
         )

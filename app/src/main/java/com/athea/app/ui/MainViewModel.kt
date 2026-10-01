@@ -5,29 +5,38 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.athea.app.R
-import com.athea.app.data.AtheaStorage
-import com.athea.app.data.FavoritesIndex
-import com.athea.app.data.SessionMeta
-import com.athea.app.data.SessionsIndex
 import com.athea.app.core.journal.JournalEvent
 import com.athea.app.core.journal.SessionJournal
+import com.athea.app.core.model.Attachment
 import com.athea.app.core.model.CommandBlock
-import com.athea.app.core.model.DisplayMode
 import com.athea.app.core.model.FavoriteCommand
 import com.athea.app.core.model.OutputBlock
+import com.athea.app.core.model.PREVIEW_LINES
 import com.athea.app.core.terminal.EngineEvent
 import com.athea.app.core.terminal.TerminalEngine
+import com.athea.app.data.AtheaSettings
+import com.athea.app.data.AtheaStorage
+import com.athea.app.data.CustomKey
+import com.athea.app.data.FavoritesIndex
+import com.athea.app.data.KeysIndex
+import com.athea.app.data.SessionMeta
+import com.athea.app.data.SessionsIndex
+import com.athea.app.di.AppContainer
 import com.athea.app.engine.NativeShellEngine
+import com.athea.app.engine.SshShellEngine
 import com.athea.app.parse.StreamEvent
 import com.athea.app.parse.StreamParser
 import com.athea.app.parse.applyTo
 import com.athea.app.transcript.BlockView
 import com.athea.app.transcript.TranscriptBuilder
+import com.athea.app.ui.theme.Ui
+import com.athea.app.util.AtheaLog
 import com.athea.app.util.dropOldestSharedFlow
 import com.athea.app.util.normalizeCommand
 import com.athea.app.util.shellEval
 import com.athea.app.util.shellQuote
 import com.athea.app.util.trimCommand
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -38,7 +47,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.io.File
 
 /** Search within one session transcript. */
 data class SearchState(
@@ -52,7 +60,7 @@ data class SessionUi(
     val id: Long,
     val name: String,
     val pinned: Boolean,
-    val displayMode: DisplayMode,
+    val rawStream: Boolean,
     val draft: String,
     val blocks: List<BlockView>,
     val running: Boolean,
@@ -73,7 +81,7 @@ data class UiState(
     val rawStream: Boolean = false,
     val autocompleteEnabled: Boolean = true,
     val pinchZoomEnabled: Boolean = true,
-    val previewLines: Int = com.athea.app.core.model.PREVIEW_LINES,
+    val previewLines: Int = PREVIEW_LINES,
     val bubbleFontSizeSp: Int = 16,
     val virtualizeLargeOutput: Boolean = false,
     val showSettings: Boolean = false,
@@ -84,8 +92,8 @@ data class UiState(
     val deleteTargetId: Long? = null,
     val selectTextPayload: String? = null,
     val suggestion: String? = null,
-    val customKeys: List<com.athea.app.data.CustomKey> = emptyList(),
-    val attachments: List<com.athea.app.core.model.Attachment> = emptyList(),
+    val customKeys: List<CustomKey> = emptyList(),
+    val attachments: List<Attachment> = emptyList(),
 )
 
 sealed interface UiEvent {
@@ -145,8 +153,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var nextSessionIdValue: Long = 1
     private var favoriteCounter: Long = 0
 
-    // Extracted managers — thin the 850-line god object (audit 2)
-    @Suppress("unused") private val sessionManager = SessionManager()
+    // Extracted managers — thin the god object (audit 2)
     private val searchManager = SearchManager()
 
     init {
@@ -158,7 +165,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // second; without throttling each one triggers a full recompose.
         viewModelScope.launch(Dispatchers.Default) {
             while (isActive) {
-                kotlinx.coroutines.delay(com.athea.app.ui.theme.Ui.throttleMs)
+                kotlinx.coroutines.delay(Ui.throttleMs)
                 if (dirtySessions.isEmpty()) continue
                 val toRefresh = dirtySessions.toList()
                 dirtySessions.removeAll(toRefresh)
@@ -176,7 +183,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val index = storage.loadIndex()
         val settings = storage.loadSettings()
         val preview = settings.previewLines
-        val globalMode = if (settings.rawStream) DisplayMode.RAW else DisplayMode.BLOCKS
         val replayed = index.items.map { meta ->
             val journal = storage.journalFor(meta.id)
             val events = journal.readAll()
@@ -187,7 +193,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             )
             val history = events.filterIsInstance<JournalEvent.CommandSubmitted>().map { it.text }
             val nextSeq = (events.filterIsInstance<JournalEvent.CommandSubmitted>().maxOfOrNull { it.seq } ?: 0L) + 1
-            Triple(meta.copy(displayMode = globalMode), pipe, history to nextSeq)
+            Triple(meta, pipe, history to nextSeq)
         }
         synchronized(lock) {
             for ((meta, pipe, historySeq) in replayed) {
@@ -220,9 +226,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /** Replaces the whole key row (used by the settings editor). */
-    fun setCustomKeys(keys: List<com.athea.app.data.CustomKey>) {
+    fun setCustomKeys(keys: List<CustomKey>) {
         _state.update { it.copy(customKeys = keys) }
-        storage.saveKeys(com.athea.app.data.KeysIndex(items = keys))
+        storage.saveKeys(KeysIndex(items = keys))
     }
 
     fun resetKeysToDefaults() {
@@ -268,22 +274,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     "name" -> quoted
                     else -> "cp $quoted ./"
                 }
-                com.athea.app.util.AtheaLog.log("attach", "imported $safeName action=$action")
+                AtheaLog.log("attach", "imported $safeName action=$action")
                 _state.update {
                     it.copy(
-                        attachments = it.attachments + com.athea.app.core.model.Attachment(
+                        attachments = it.attachments + Attachment(
                             name = safeName,
                             command = command,
                         )
                     )
                 }
             } catch (e: Exception) {
-                com.athea.app.util.AtheaLog.error("attach", "import failed", e)
+                AtheaLog.error("attach", "import failed", e)
             }
         }
     }
 
-    fun removeAttachment(attachment: com.athea.app.core.model.Attachment) {
+    fun removeAttachment(attachment: Attachment) {
         _state.update { it.copy(attachments = it.attachments - attachment) }
     }
 
@@ -308,8 +314,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun attachEngine(meta: SessionMeta) {
         val app = getApplication<Application>()
         val shellPath = try { storage.loadSettings().shellPath } catch (_: Exception) { "/system/bin/sh" }
-        val engine: com.athea.app.core.terminal.TerminalEngine = when {
-            shellPath.startsWith("ssh://") -> com.athea.app.engine.SshShellEngine(shellPath)
+        val engine: TerminalEngine = when {
+            shellPath.startsWith("ssh://") -> SshShellEngine(shellPath)
             else -> NativeShellEngine(
                 homeDir = storage.shellHome().absolutePath,
                 rcPath = storage.ensureShellRc(readShellAsset(app)).absolutePath,
@@ -344,7 +350,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 try {
                     processBatch(meta.id, batch)
                 } catch (e: Exception) {
-                    com.athea.app.util.AtheaLog.error("pipeline", "processBatch failed", e)
+                    AtheaLog.error("pipeline", "processBatch failed", e)
                 }
             }
         }
@@ -417,7 +423,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val meta = SessionMeta(
             id = id,
             name = name,
-            displayMode = if (_state.value.rawStream) DisplayMode.RAW else DisplayMode.BLOCKS,
         )
         metas[id] = meta
         histories[id] = emptyList()
@@ -502,11 +507,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         return ids.getOrNull(index + 1) ?: ids.getOrNull(index - 1)
     }
 
-    fun setDisplayMode(mode: DisplayMode) {
-        val id = _state.value.currentSessionId ?: return
-        mutateMeta(id) { it.copy(displayMode = mode) }
-    }
-
     // ----------------------------------------------------------------- input
 
     fun updateDraft(text: String) {
@@ -569,7 +569,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun submit(id: Long, text: String) {
         val engine = engines[id]
         if (engine == null) {
-            com.athea.app.util.AtheaLog.error("submit", "no engine for session $id")
+            AtheaLog.error("submit", "no engine for session $id")
             return
         }
         var seq = 0L
@@ -588,12 +588,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             pipe.builder.applyCommandSubmitted(seq, text)
             val hist = histories[id]?.toMutableList() ?: mutableListOf()
             hist.add(text)
-            if (hist.size > com.athea.app.ui.theme.Ui.historyCap) hist.removeAt(0)
+            if (hist.size > Ui.historyCap) hist.removeAt(0)
             histories[id] = hist
             refreshSession(id)
         }
         val payload = text.shellEval()
-        com.athea.app.util.AtheaLog.log("submit", "seq=$seq payloadSize=${payload.length}")
+        AtheaLog.log("submit", "seq=$seq payloadSize=${payload.length}")
         engine.write(payload.toByteArray(Charsets.UTF_8))
     }
 
@@ -654,7 +654,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         it.copy(showKeyBuilder = visible)
     }
 
-    fun addCustomKey(key: com.athea.app.data.CustomKey) {
+    fun addCustomKey(key: CustomKey) {
         setCustomKeys(_state.value.customKeys + key)
     }
 
@@ -810,13 +810,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Global transcript view: raw stream instead of chat blocks. */
     fun setRawStream(enabled: Boolean) {
-        val mode = if (enabled) DisplayMode.RAW else DisplayMode.BLOCKS
+        // One preference, one place it lives. Refresh re-reads it from UiState,
+        // so there is no per-session copy to write here.
         synchronized(lock) {
             _state.update { it.copy(rawStream = enabled) }
-            for (id in metas.keys.toList()) {
-                metas[id]?.let { metas[id] = it.copy(displayMode = mode) }
-            }
-            persistIndexLocked()
             for (id in pipes.keys.toList()) refreshSession(id)
         }
         saveSettings()
@@ -829,7 +826,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun saveSettings() {
         val st = _state.value
         storage.saveSettings(
-            com.athea.app.data.AtheaSettings(
+            AtheaSettings(
                 keyRowVisible = st.keyRowVisible,
                 enterSends = st.enterSends,
                 outputFontSizeSp = st.outputFontSizeSp,
@@ -888,12 +885,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun refreshSession(id: Long) {
         val pipe = pipes[id] ?: return
         val meta = metas[id] ?: return
-        val snapshot = pipe.builder.snapshot(displayRaw = meta.displayMode == DisplayMode.RAW)
+        // The raw-stream view is one global preference; read it from UiState
+        // instead of carrying a per-session copy of the same bit.
+        val rawStream = _state.value.rawStream
+        val snapshot = pipe.builder.snapshot(displayRaw = rawStream)
         val session = SessionUi(
             id = meta.id,
             name = meta.name,
             pinned = meta.pinned,
-            displayMode = meta.displayMode,
+            rawStream = rawStream,
             draft = meta.draft,
             blocks = snapshot.blocks,
             running = snapshot.running,
@@ -931,7 +931,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         const val SHELL_ASSET = "mkshrc"
     }
 
-    class Factory(private val app: Application, private val container: com.athea.app.di.AppContainer? = null) :
+    class Factory(private val app: Application, private val container: AppContainer? = null) :
         androidx.lifecycle.ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {

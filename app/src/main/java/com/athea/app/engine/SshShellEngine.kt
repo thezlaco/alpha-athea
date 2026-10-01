@@ -2,6 +2,8 @@ package com.athea.app.engine
 
 import com.athea.app.core.terminal.EngineEvent
 import com.athea.app.core.terminal.TerminalEngine
+import com.athea.app.ui.theme.Ui
+import com.athea.app.util.AtheaLog
 import com.athea.app.util.dropOldestSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -15,14 +17,14 @@ import kotlinx.coroutines.flow.StateFlow
  */
 class SshShellEngine(private val sshUrl: String) : TerminalEngine {
 
-    private val _events = dropOldestSharedFlow<EngineEvent>(extraBufferCapacity = com.athea.app.ui.theme.Ui.sshEventBuffer)
+    private val _events = dropOldestSharedFlow<EngineEvent>(extraBufferCapacity = Ui.sshEventBuffer)
     override val events: SharedFlow<EngineEvent> = _events
 
     private val _isAlive = MutableStateFlow(false)
     override val isAlive: StateFlow<Boolean> = _isAlive
 
     override fun start(initialRows: Int, initialCols: Int): Boolean {
-        com.athea.app.util.AtheaLog.log("ssh", "SshShellEngine stub for $sshUrl — not yet implemented")
+        AtheaLog.log("ssh", "SshShellEngine stub for $sshUrl — not yet implemented")
         // Emit a visible placeholder so the user sees why it's empty
         _events.tryEmit(EngineEvent.Output("SSH backend not yet implemented for $sshUrl\nUse System sh / mksh / bash for now.\n".toByteArray()))
         _isAlive.value = false
@@ -30,7 +32,7 @@ class SshShellEngine(private val sshUrl: String) : TerminalEngine {
     }
 
     override fun write(data: ByteArray) {
-        com.athea.app.util.AtheaLog.log("ssh", "write ignored (stub) size=${data.size}")
+        AtheaLog.log("ssh", "write ignored (stub) size=${data.size}")
     }
 
     override fun resize(rows: Int, cols: Int) = Unit

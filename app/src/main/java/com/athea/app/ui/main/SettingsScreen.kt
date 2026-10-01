@@ -3,18 +3,12 @@ package com.athea.app.ui.main
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import com.athea.app.ui.common.AtheaScaffold
-import com.athea.app.ui.theme.Ui
-import com.athea.app.util.copyToClipboard
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -26,16 +20,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,8 +34,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.athea.app.R
+import com.athea.app.data.CustomKey
+import com.athea.app.data.KeyKind
 import com.athea.app.ui.common.AtheaDialogContainer
 import com.athea.app.ui.common.AtheaScaffold
+import com.athea.app.ui.theme.Ui
+import com.athea.app.util.AtheaLog
+import com.athea.app.util.copyToClipboard
 
 @Composable
 fun SettingsScreen(
@@ -58,7 +54,7 @@ fun SettingsScreen(
     outputFontSizeSp: Int,
     previewLines: Int,
     bubbleFontSizeSp: Int,
-    customKeys: List<com.athea.app.data.CustomKey>,
+    customKeys: List<CustomKey>,
     onKeyRowVisibleChange: (Boolean) -> Unit,
     onEnterSendsChange: (Boolean) -> Unit,
     onAutoScrollOnSendChange: (Boolean) -> Unit,
@@ -69,7 +65,7 @@ fun SettingsScreen(
     onOutputFontSizeChange: (Int) -> Unit,
     onPreviewLinesChange: (Int) -> Unit,
     onBubbleFontSizeChange: (Int) -> Unit,
-    onCustomKeysChange: (List<com.athea.app.data.CustomKey>) -> Unit,
+    onCustomKeysChange: (List<CustomKey>) -> Unit,
     onResetKeys: () -> Unit,
     onOpenKeyBuilder: () -> Unit,
     onBack: () -> Unit,
@@ -179,10 +175,10 @@ fun SettingsScreen(
                 ) {
                     TextButton(onClick = {
                         onCustomKeysChange(
-                            customKeys + com.athea.app.data.CustomKey(
+                            customKeys + CustomKey(
                                 label = "",
                                 payload = "",
-                                kind = com.athea.app.data.KeyKind.SEND,
+                                kind = KeyKind.SEND,
                             )
                         )
                     }) {
@@ -211,7 +207,7 @@ fun SettingsScreen(
                 val context = androidx.compose.ui.platform.LocalContext.current
                 TextButton(
                     onClick = {
-                        val log = com.athea.app.util.AtheaLog.dump()
+                        val log = AtheaLog.dump()
                         context.copyToClipboard(log, "athea-logs")
                         android.widget.Toast.makeText(
                             context,
@@ -265,8 +261,8 @@ private fun SliderRow(
 
 @Composable
 private fun KeyEditRow(
-    key: com.athea.app.data.CustomKey,
-    onEdit: (com.athea.app.data.CustomKey) -> Unit,
+    key: CustomKey,
+    onEdit: (CustomKey) -> Unit,
     onDelete: () -> Unit,
 ) {
     var editing by remember { mutableStateOf(false) }
@@ -314,9 +310,9 @@ private fun KeyEditRow(
 
 @Composable
 private fun KeyEditorDialog(
-    initial: com.athea.app.data.CustomKey,
+    initial: CustomKey,
     onDismiss: () -> Unit,
-    onSave: (com.athea.app.data.CustomKey) -> Unit,
+    onSave: (CustomKey) -> Unit,
 ) {
     var label by remember { mutableStateOf(initial.label) }
     var payload by remember { mutableStateOf(initial.payload) }
@@ -348,9 +344,9 @@ private fun KeyEditorDialog(
                 )
                 Row {
                     listOf(
-                        com.athea.app.data.KeyKind.SEND to stringResource(R.string.settings_keys_kind_send),
-                        com.athea.app.data.KeyKind.INSERT to stringResource(R.string.settings_keys_kind_insert),
-                        com.athea.app.data.KeyKind.CTRL to stringResource(R.string.settings_keys_kind_ctrl),
+                        KeyKind.SEND to stringResource(R.string.settings_keys_kind_send),
+                        KeyKind.INSERT to stringResource(R.string.settings_keys_kind_insert),
+                        KeyKind.CTRL to stringResource(R.string.settings_keys_kind_ctrl),
                     ).forEach { (candidate, label) ->
                         FilterChip(
                             selected = kind == candidate,

@@ -8,11 +8,11 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.gestures.detectTransformGestures
-import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -46,12 +46,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -68,19 +66,19 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.athea.app.R
 import com.athea.app.core.model.CommandBlock
-import com.athea.app.core.model.DisplayMode
 import com.athea.app.core.model.OutputBlock
+import com.athea.app.transcript.BlockView
 import com.athea.app.ui.SearchState
 import com.athea.app.ui.SessionUi
 import com.athea.app.ui.common.AtheaMenuHost
 import com.athea.app.ui.common.rememberAtheaMenu
-import com.athea.app.ui.theme.Ui
 import com.athea.app.ui.theme.CodeStyle
 import com.athea.app.ui.theme.HighlightColor
 import com.athea.app.ui.theme.OnHighlightColor
+import com.athea.app.ui.theme.Ui
 import com.athea.app.ui.theme.codeStyle
-import com.athea.app.util.trimCommand
 import com.athea.app.ui.theme.messageStyle
+import com.athea.app.util.trimCommand
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
@@ -89,7 +87,7 @@ private const val VIRTUALIZE_LINES_FACTOR = Ui.virtualizeLinesFactor
 private const val CHUNK_LINES = 200 // kept for compat, not used (chunking via chunkSize)
 
 private sealed interface DisplayItem {
-    data class Block(val view: com.athea.app.transcript.BlockView) : DisplayItem
+    data class Block(val view: BlockView) : DisplayItem
     data class Chunk(
         val blockId: String,
         val chunk: AnnotatedString,
@@ -140,7 +138,7 @@ fun TranscriptView(
             onAreaResized(rows, cols)
         }
 
-        if (session.displayMode == DisplayMode.RAW) {
+        if (session.rawStream) {
             // Cap raw view rendering: the full text lives in the journal.
             val rawCapped = session.rawText.takeLast(10_000)
             RawStreamView(

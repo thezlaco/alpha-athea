@@ -1,20 +1,26 @@
 package com.athea.app.data
 
 import com.athea.app.core.journal.SessionJournal
-import com.athea.app.core.model.DisplayMode
 import com.athea.app.core.model.FavoriteCommand
+import com.athea.app.core.model.PREVIEW_LINES
 import com.athea.app.util.writeTextAtomic
+import java.io.File
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.io.File
 
-/** Persistable per-session metadata (the transcript itself lives in the journal). */
+/**
+ * Persistable per-session metadata (the transcript itself lives in the
+ * journal).
+ *
+ * The raw-stream view is deliberately absent: it is a single global
+ * preference in [AtheaSettings], and storing a per-session copy of it here
+ * only created a second source of truth to keep in sync.
+ */
 @Serializable
 data class SessionMeta(
     val id: Long,
     val name: String,
     val pinned: Boolean = false,
-    val displayMode: DisplayMode = DisplayMode.BLOCKS,
     val draft: String = "",
 )
 
@@ -38,7 +44,7 @@ data class AtheaSettings(
     val autoScrollOnSend: Boolean = true,
     val rawStream: Boolean = false,
     val outputFontSizeSp: Int = 13,
-    val previewLines: Int = com.athea.app.core.model.PREVIEW_LINES,
+    val previewLines: Int = PREVIEW_LINES,
     val bubbleFontSizeSp: Int = 16,
     val autocompleteEnabled: Boolean = true,
     val pinchZoomEnabled: Boolean = true,

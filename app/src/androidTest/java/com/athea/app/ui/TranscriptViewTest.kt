@@ -26,7 +26,7 @@ class TranscriptViewTest {
     fun commandBubbleIsDisplayed() {
         val session = SessionUi(
             id = 1, name = "test", pinned = false,
-            displayMode = com.athea.app.core.model.DisplayMode.BLOCKS,
+            rawStream = false,
             draft = "", rawText = "", running = false,
             blocks = listOf(
                 BlockView(CommandBlock("cmd-1", "echo hello"), false),

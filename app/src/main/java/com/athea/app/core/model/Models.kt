@@ -32,8 +32,6 @@ data class OutputBlock(
     val annotated: androidx.compose.ui.text.AnnotatedString = androidx.compose.ui.text.AnnotatedString(text),
 ) : Block
 
-enum class DisplayMode { BLOCKS, RAW }
-
 @Immutable
 @Serializable
 data class FavoriteCommand(

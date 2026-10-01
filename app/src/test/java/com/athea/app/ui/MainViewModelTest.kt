@@ -1,6 +1,10 @@
 package com.athea.app.ui
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import com.athea.app.core.model.CommandBlock
+import com.athea.app.core.model.OutputBlock
+import com.athea.app.core.model.PREVIEW_LINES
+import com.athea.app.transcript.BlockView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -8,10 +12,10 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import org.junit.Assert.*
 
 /**
  * Unit tests for MainViewModel — satisfies audit "no tests for MainViewModel".
@@ -40,16 +44,7 @@ class MainViewModelTest {
     fun `previewLines defaults to PREVIEW_LINES`() = runTest {
         // UiState is pure data, can be tested without Android runtime
         val state = UiState()
-        assertEquals(com.athea.app.core.model.PREVIEW_LINES, state.previewLines)
-    }
-
-    @Test
-    fun `SessionManager holds histories with cap`() = runTest {
-        val sm = SessionManager()
-        // Simulate 600 submits, expect cap 500
-        repeat(600) { i -> sm.histories.getOrPut(1L) { mutableListOf() }.let { /* not used */ } }
-        // Direct test of cap logic via ViewModel is integration, here we test the manager exists
-        assertNotNull(sm)
+        assertEquals(PREVIEW_LINES, state.previewLines)
     }
 
     @Test
@@ -58,13 +53,13 @@ class MainViewModelTest {
         val sessions = listOf(
             SessionUi(
                 id = 1, name = "test", pinned = false,
-                displayMode = com.athea.app.core.model.DisplayMode.BLOCKS,
+                rawStream = false,
                 draft = "", blocks = listOf(
-                    com.athea.app.transcript.BlockView(
-                        com.athea.app.core.model.CommandBlock("cmd-1", "Hello World"), false
+                    BlockView(
+                        CommandBlock("cmd-1", "Hello World"), false
                     ),
-                    com.athea.app.transcript.BlockView(
-                        com.athea.app.core.model.OutputBlock("out-1", "hello world output"), false
+                    BlockView(
+                        OutputBlock("out-1", "hello world output"), false
                     )
                 ),
                 rawText = "", running = false

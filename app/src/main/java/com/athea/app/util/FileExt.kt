@@ -1,7 +1,6 @@
 package com.athea.app.util
 
 import java.io.File
-import java.io.IOException
 
 /** Crash-safe: temp file first, atomic rename second. */
 fun File.writeTextAtomic(text: String) {

@@ -1,5 +1,6 @@
 package com.athea.app.util
 
+import com.athea.app.ui.theme.Ui
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -11,7 +12,7 @@ import java.util.Locale
  */
 object AtheaLog {
 
-    private const val CAPACITY = com.athea.app.ui.theme.Ui.logCapacity
+    private const val CAPACITY = Ui.logCapacity
     private val lines = ArrayDeque<String>()
     private val lock = Any()
     private val format = SimpleDateFormat("HH:mm:ss.SSS", Locale.US)

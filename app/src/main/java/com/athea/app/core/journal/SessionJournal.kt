@@ -1,6 +1,6 @@
 package com.athea.app.core.journal
 
-import kotlinx.serialization.json.Json
+import com.athea.app.ui.theme.Ui
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.ByteArrayInputStream
@@ -10,6 +10,7 @@ import java.io.EOFException
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import kotlinx.serialization.json.Json
 
 /**
  * Disk-backed append-only log for one session.
@@ -40,7 +41,7 @@ class SessionJournal(private val file: File) {
         synchronized(lock) {
             ensureFormat()
             file.parentFile?.mkdirs()
-            val out = writer ?: DataOutputStream(BufferedOutputStream(FileOutputStream(file, true), com.athea.app.ui.theme.Ui.journalBufferSize)).also {
+            val out = writer ?: DataOutputStream(BufferedOutputStream(FileOutputStream(file, true), Ui.journalBufferSize)).also {
                 writer = it
             }
             writeRecord(out, event)

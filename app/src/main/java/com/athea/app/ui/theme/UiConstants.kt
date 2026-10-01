@@ -1,7 +1,6 @@
 package com.athea.app.ui.theme
 
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
@@ -14,7 +13,6 @@ object Ui {
     val menuShape = RoundedCornerShape(24.dp)
     val bubbleShape = RoundedCornerShape(22.dp)
     val panelShape = RoundedCornerShape(28.dp)
-    val chipShape = RoundedCornerShape(10.dp)
     val attachmentShape = RoundedCornerShape(14.dp)
     val dialogShape = RoundedCornerShape(20.dp)
     val pillShape = RoundedCornerShape(50.dp)
@@ -39,14 +37,11 @@ object Ui {
     val composerButtonSize = 38.dp
     val composerButtonSpace = 52.dp
     val composerButtonRowHeight = 44.dp
-    val composerFieldStart = 10.dp
     val composerFieldEndGrown = 8.dp
     val composerFieldTopGrown = 10.dp
 
     // ---- Key row ----------------------------------------------------------
-    val keyMinWidth = 46.dp
     val keyMinHeight = 44.dp
-    val keySpacing = 4.dp
     val keyPaddingH = 8.dp
     val keyVisibleCount = 7
     val keySeparatorWidth = 1.dp
@@ -63,15 +58,11 @@ object Ui {
 
     // ---- Drawer -----------------------------------------------------------
     val drawerWidthFraction = 0.72f
-    val drawerItemPaddingH = 20.dp
-    val drawerItemPaddingV = 12.dp
 
     // ---- Common paddings --------------------------------------------------
     val screenPadding = 16.dp
-    val titleEndPadding = 48.dp
     val headerPaddingH = 8.dp
     val headerPaddingV = 4.dp
-    val contentPaddingH = 16.dp
     val contentPaddingV = 8.dp
     val dividerPadding = 8.dp
 

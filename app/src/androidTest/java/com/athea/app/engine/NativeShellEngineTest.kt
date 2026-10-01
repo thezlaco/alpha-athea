@@ -2,13 +2,14 @@ package com.athea.app.engine
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.athea.app.core.terminal.EngineEvent
+import java.io.File
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.io.File
 
 /**
  * Integration test for NativeShellEngine — satisfies audit.
@@ -33,7 +34,7 @@ class NativeShellEngineTest {
             var collected = ""
             // Collect first output containing hello_test
             engine.events.first { event ->
-                if (event is com.athea.app.core.terminal.EngineEvent.Output) {
+                if (event is EngineEvent.Output) {
                     collected += event.data.decodeToString()
                     collected.contains("hello_test")
                 } else false
