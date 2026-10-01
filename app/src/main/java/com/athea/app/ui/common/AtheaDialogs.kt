@@ -1,5 +1,6 @@
 package com.athea.app.ui.common
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
@@ -42,7 +43,11 @@ fun AtheaDialogContainer(
                 style = MaterialTheme.typography.titleMedium,
             )
         },
-        text = { content() },
+        // AlertDialog's own `text` slot has no ColumnScope receiver, so the
+        // content lambda gets one from a Column instead of being called bare.
+        text = {
+            Column { content() }
+        },
         confirmButton = confirm,
         dismissButton = {
             TextButton(onClick = onDismiss) {
