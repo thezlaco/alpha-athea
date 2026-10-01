@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 
 /**
  * A horizontal strip of equal-width cells with thin separators.
@@ -41,9 +42,9 @@ fun <T> EqualCellStrip(
 ) {
     val scrollState = rememberScrollState()
     BoxWithConstraints(modifier.fillMaxWidth()) {
-        val viewport = if (maxWidth.value.isFinite() && maxWidth.value > 0f) maxWidth else Dp.Zero
+        val viewport = if (maxWidth.isFinite && maxWidth > 0.dp) maxWidth else 0.dp
         val fixed = contentPaddingH * 2 + separatorWidth * (visibleCount - 1).coerceAtLeast(0)
-        val cellWidth = if (visibleCount <= 0 || viewport <= fixed) Dp.Zero else (viewport - fixed) / visibleCount
+        val cellWidth = if (visibleCount <= 0 || viewport <= fixed) 0.dp else (viewport - fixed) / visibleCount
         Row(
             Modifier
                 .fillMaxWidth()
